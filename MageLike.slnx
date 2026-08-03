@@ -5,5 +5,4 @@
   <Project Path="GameKit.Dependencies.csproj" />
   <Project Path="Unity.FishNet.Codegen.csproj" />
   <Project Path="Assembly-CSharp.csproj" />
-  <Project Path="FishNet.Demos.csproj" />
 </Solution>

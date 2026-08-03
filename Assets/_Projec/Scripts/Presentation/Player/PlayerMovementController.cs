@@ -23,21 +23,30 @@ namespace Game.Presentation.Player
         private InputAction _moveAction;
         private InputAction _jumpAction;
         private InputAction _sprintAction;
+        private InputAction _lookAction;
 
         private Vector3 _verticalVelocity;
         private bool _jumpQueued;
+        
+        [Header("Mirada")]
+        [SerializeField] private float _mouseSensitivity = 0.65f;
+        [SerializeField] private CameraLookController _cameraLook;
 
         public struct ReplicateData : FishNet.Object.Prediction.IReplicateData
         {
             public Vector2 Move;
             public bool Jump;
             public bool Sprint;
+            public float YawDelta;
+            public float PitchDelta;
 
-            public ReplicateData(Vector2 move, bool jump, bool sprint) : this()
+            public ReplicateData(Vector2 move, bool jump, bool sprint, float yawDelta, float pitchDelta) : this()
             {
                 Move = move;
                 Jump = jump;
                 Sprint = sprint;
+                YawDelta = yawDelta;
+                PitchDelta = pitchDelta;
             }
 
             private uint _tick;
@@ -81,6 +90,7 @@ namespace Game.Presentation.Player
 
             _jumpAction = new InputAction("Jump", InputActionType.Button, "<Keyboard>/space");
             _sprintAction = new InputAction("Sprint", InputActionType.Button, "<Keyboard>/leftShift");
+            _lookAction = new InputAction("Look", InputActionType.Value, "<Mouse>/delta");
         }
 
         private void OnEnable()
@@ -88,6 +98,8 @@ namespace Game.Presentation.Player
             _moveAction.Enable();
             _jumpAction.Enable();
             _sprintAction.Enable();
+            _lookAction.Enable();
+            Cursor.lockState = CursorLockMode.Locked;
         }
 
         private void OnDisable()
@@ -95,6 +107,7 @@ namespace Game.Presentation.Player
             _moveAction.Disable();
             _jumpAction.Disable();
             _sprintAction.Disable();
+            _lookAction.Disable();
         }
 
         public override void OnStartNetwork()
@@ -136,14 +149,21 @@ namespace Game.Presentation.Player
             bool jump = _jumpQueued;
             _jumpQueued = false;
 
-            return new ReplicateData(move, jump, sprint);
+            Vector2 look = _lookAction.ReadValue<Vector2>();
+            float yawDelta = look.x * _mouseSensitivity;
+            float pitchDelta = -look.y * _mouseSensitivity;
+
+            return new ReplicateData(move, jump, sprint, yawDelta, pitchDelta);
         }
 
         [Replicate]
         private void RunInputs(ReplicateData data, ReplicateState state = ReplicateState.Invalid, FishNet.Transporting.Channel channel = FishNet.Transporting.Channel.Unreliable)
         {
             float delta = (float)base.TimeManager.TickDelta;
+            transform.Rotate(Vector3.up, data.YawDelta);
 
+            if (_cameraLook != null)
+                _cameraLook.AddPitch(data.PitchDelta);
             // Movimiento horizontal relativo a la orientación del jugador.
             float speed = _moveSpeed * (data.Sprint ? _sprintMultiplier : 1f);
             Vector3 horizontal = (transform.right * data.Move.x + transform.forward * data.Move.y) * speed;
