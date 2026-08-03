@@ -4,6 +4,6 @@
   <Project Path="SynapseSocket.csproj" />
   <Project Path="GameKit.Dependencies.csproj" />
   <Project Path="Unity.FishNet.Codegen.csproj" />
-  <Project Path="FishNet.Demos.csproj" />
   <Project Path="Assembly-CSharp.csproj" />
+  <Project Path="FishNet.Demos.csproj" />
 </Solution>

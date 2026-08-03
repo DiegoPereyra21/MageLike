@@ -1,0 +1,47 @@
+using UnityEngine;
+
+namespace Game.Core.Abilities
+{
+    /// <summary>
+    /// Contrato común para toda habilidad. Se implementa vía ScriptableObject para
+    /// permitir diseño data-driven (nuevas habilidades sin tocar código de sistema).
+    /// </summary>
+    public interface IAbility
+    {
+        string AbilityId { get; }
+        float Cooldown { get; }
+        float ResourceCost { get; }
+
+        /// <summary>
+        /// Ejecuta el efecto de la habilidad. Se llama SIEMPRE desde el servidor
+        /// (autoridad) para el efecto real; el cliente solo predice feedback local (VFX/anim).
+        /// </summary>
+        void Execute(AbilityExecutor executor, in AbilityCastContext context);
+    }
+
+    /// <summary>
+    /// Clase base abstracta para todas las habilidades como asset (ScriptableObject).
+    /// Cada habilidad concreta hereda de acá e implementa su propio comportamiento:
+    /// composición sobre herencia para EFECTOS (buffs/debuffs), pero herencia simple
+    /// aquí porque todas comparten el mismo contrato de ejecución.
+    /// </summary>
+    public abstract class AbilitySO : ScriptableObject, IAbility
+    {
+        [Header("Identidad")]
+        [SerializeField] private string _abilityId;
+        [SerializeField] private string _displayName;
+        [SerializeField] private Sprite _icon;
+
+        [Header("Costos")]
+        [SerializeField] private float _cooldown = 1f;
+        [SerializeField] private float _resourceCost = 10f;
+
+        public string AbilityId => _abilityId;
+        public string DisplayName => _displayName;
+        public Sprite Icon => _icon;
+        public float Cooldown => _cooldown;
+        public float ResourceCost => _resourceCost;
+
+        public abstract void Execute(AbilityExecutor executor, in AbilityCastContext context);
+    }
+}
