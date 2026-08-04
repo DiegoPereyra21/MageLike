@@ -33,6 +33,8 @@ namespace Game.Presentation.Combat
 
         private void HandleDiedServer(int instigatorNetworkId)
         {
+            if (Game.Presentation.Run.RunManager.ServerInstance != null)
+                Game.Presentation.Run.RunManager.ServerInstance.SetDead(base.ObjectId);
             Debug.Log($"[Death] Jugador {base.ObjectId} eliminado (por {instigatorNetworkId})");
             // Propaga el efecto de muerte a todos (desactivar control/colisión).
             DieObserversRpc();

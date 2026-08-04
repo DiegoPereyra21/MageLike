@@ -3,6 +3,7 @@ using FishNet.Object.Synchronizing;
 using Game.Core.Run;
 using Game.Presentation.Player;
 using UnityEngine;
+using Game.Presentation.Run;
 
 namespace Game.Presentation.Combat
 {
@@ -35,6 +36,8 @@ namespace Game.Presentation.Combat
             if (_isExtracted.Value) return;
 
             _isExtracted.Value = true;
+            if (Game.Presentation.Run.RunManager.ServerInstance != null)
+                Game.Presentation.Run.RunManager.ServerInstance.SetExtracted(base.ObjectId);
             _extractionProgress.Value = 1f;
 
             // Salvar loot (si hay inventario implementado).
@@ -50,6 +53,12 @@ namespace Game.Presentation.Combat
             Debug.Log($"[Extraction] Jugador {base.ObjectId} EXTRAÍDO con éxito");
             if (_avatar != null) _avatar.DisableControl();
             // TODO: cámara spectator / pantalla de "extracción exitosa".
+        }
+
+        public override void OnStartServer()
+        {
+            if (Run.RunManager.ServerInstance != null)
+                Run.RunManager.ServerInstance.RegisterPlayer(base.ObjectId);
         }
     }
 }
