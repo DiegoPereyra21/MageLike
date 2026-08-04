@@ -14,17 +14,18 @@ namespace Game.Presentation.Abilities
     /// </summary>
     public class NetworkAbilityExecutor : AbilityExecutor
     {
-        public void SpawnProjectile(GameObject projectilePrefab, Vector3 origin, Vector3 direction, float speed, float damage, int casterNetworkId)
+        public void SpawnProjectile(GameObject projectilePrefab, Vector3 origin, Vector3 direction, float speed, float damage, float radius, int casterNetworkId)
         {
             if (!InstanceFinder.IsServerStarted) return;
 
             GameObject instance = InstanceFinder.NetworkManager.GetPooledInstantiated(
                 projectilePrefab.GetComponent<NetworkObject>(), asServer: true).gameObject;
 
-            instance.transform.SetPositionAndRotation(origin, Quaternion.LookRotation(direction));
+            Vector3 spawnPos = origin + direction.normalized * 1.2f;
+            instance.transform.SetPositionAndRotation(spawnPos, Quaternion.LookRotation(direction));
 
             if (instance.TryGetComponent(out Projectile projectile))
-                projectile.Initialize(direction, speed, damage, casterNetworkId);
+                projectile.Initialize(direction, speed, damage, radius, casterNetworkId);
 
             InstanceFinder.ServerManager.Spawn(instance);
         }

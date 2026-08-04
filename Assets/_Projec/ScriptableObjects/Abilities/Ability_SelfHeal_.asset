@@ -1,0 +1,20 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e7d5365f2de27c3448ba6b5dab2b6df9, type: 3}
+  m_Name: Ability_SelfHeal_
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Core.Abilities.Abilities.SelfHealAbilitySO
+  _abilityId: id_heal
+  _displayName: Heal
+  _icon: {fileID: 0}
+  _cooldown: 1
+  _resourceCost: 10
+  _healAmount: 30

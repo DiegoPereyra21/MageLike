@@ -9,6 +9,7 @@ namespace Game.Core.Abilities.Abilities
         [SerializeField] private GameObject _projectilePrefab;
         [SerializeField] private float _speed = 25f;
         [SerializeField] private float _damage = 20f;
+        [SerializeField] private float _radius = 0.25f;
 
         public override void Execute(AbilityExecutor executor, in AbilityCastContext context)
         {
@@ -18,6 +19,7 @@ namespace Game.Core.Abilities.Abilities
                 context.AimDirection,
                 _speed,
                 _damage,
+                _radius,
                 context.CasterNetworkId
             );
         }

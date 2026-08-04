@@ -10,8 +10,7 @@ namespace Game.Core.Abilities
     public interface AbilityExecutor
     {
         /// <summary>Spawnea un proyectil de red desde el pool (server-authoritative).</summary>
-        void SpawnProjectile(GameObject projectilePrefab, Vector3 origin, Vector3 direction, float speed, float damage, int casterNetworkId);
-
+        void SpawnProjectile(GameObject projectilePrefab, Vector3 origin, Vector3 direction, float speed, float damage, float radius, int casterNetworkId);
         /// <summary>Aplica daño/efecto en área alrededor de un punto (server-authoritative).</summary>
         void ApplyAreaEffect(Vector3 point, float radius, float damage, int casterNetworkId);
 
