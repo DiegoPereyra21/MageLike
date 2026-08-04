@@ -15,8 +15,8 @@ MonoBehaviour:
   _abilityId: id_burst
   _displayName: Burst
   _icon: {fileID: 0}
-  _cooldown: 0.3
-  _resourceCost: 0
+  _cooldown: 1
+  _resourceCost: 20
   _radius: 4
   _damage: 35
   _maxCastDistance: 15

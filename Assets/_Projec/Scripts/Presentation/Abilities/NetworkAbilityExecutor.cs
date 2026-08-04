@@ -21,7 +21,7 @@ namespace Game.Presentation.Abilities
             GameObject instance = InstanceFinder.NetworkManager.GetPooledInstantiated(
                 projectilePrefab.GetComponent<NetworkObject>(), asServer: true).gameObject;
 
-            Vector3 spawnPos = origin + direction.normalized * 1.2f;
+            Vector3 spawnPos = origin + direction.normalized * 0.5f;
             instance.transform.SetPositionAndRotation(spawnPos, Quaternion.LookRotation(direction));
 
             if (instance.TryGetComponent(out Projectile projectile))
