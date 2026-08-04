@@ -12,6 +12,8 @@ GameObject:
   - component: {fileID: 8155489654076050703}
   - component: {fileID: 4708353133064893462}
   - component: {fileID: 303123316450518896}
+  - component: {fileID: 815632673414522861}
+  - component: {fileID: 5069673391465223464}
   - component: {fileID: 1907102855803517485}
   - component: {fileID: 6401898320443898019}
   m_Layer: 0
@@ -142,6 +144,44 @@ MonoBehaviour:
   _gravity: -20
   _mouseSensitivity: 0.65
   _cameraLook: {fileID: 4541030088272683536}
+--- !u!114 &815632673414522861
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 708038747777476914}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1cf3f3e7b82ce024797d546d5ee2af1e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Presentation.UI.HUDController
+  _componentIndexCache: 255
+  _addedNetworkObject: {fileID: 4708353133064893462}
+  _networkObjectCache: {fileID: 0}
+--- !u!114 &5069673391465223464
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 708038747777476914}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 19102, guid: 0000000000000000e000000000000000, type: 0}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.dll::UnityEngine.UIElements.UIDocument
+  m_PanelSettings: {fileID: 11400000, guid: fe79718c9c6fbc04898b0afe209d66db, type: 2}
+  m_ParentUI: {fileID: 0}
+  sourceAsset: {fileID: 9197481963319205126, guid: 4456e7de469ff02479c30a66f820fd4b, type: 3}
+  m_SortingOrder: 0.06
+  m_Position: 0
+  m_WorldSpaceSizeMode: 1
+  m_WorldSpaceWidth: 1920
+  m_WorldSpaceHeight: 1080
+  m_PivotReferenceSize: 0
+  m_Pivot: 0
+  m_WorldSpaceCollider: {fileID: 0}
 --- !u!114 &1907102855803517485
 MonoBehaviour:
   m_ObjectHideFlags: 0

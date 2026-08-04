@@ -114,5 +114,29 @@ namespace Game.Presentation.Abilities
 
             ability.Execute(_executor, in context);
         }
+
+
+        public int AbilitySlotCount => _equippedAbilities.Length;
+
+        public AbilitySO GetAbility(int slot)
+        {
+            if (slot < 0 || slot >= _equippedAbilities.Length) return null;
+            return _equippedAbilities[slot];
+        }
+
+        /// <summary>
+        /// Fracción de cooldown restante (0 = listo, 1 = recién casteado). Cálculo local
+        /// para feedback de UI; el cooldown autoritativo se valida en servidor aparte.
+        /// </summary>
+        public float GetCooldownNormalized(int slot)
+        {
+            if (slot < 0 || slot >= _equippedAbilities.Length) return 0f;
+            AbilitySO ability = _equippedAbilities[slot];
+            if (ability == null || ability.Cooldown <= 0f) return 0f;
+
+            float remaining = _localCooldownEndTime[slot] - Time.time;
+            if (remaining <= 0f) return 0f;
+            return Mathf.Clamp01(remaining / ability.Cooldown);
+        }
     }
 }
