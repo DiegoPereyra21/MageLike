@@ -26,6 +26,7 @@ namespace Game.Presentation.Player
         private InputAction _lookAction;
 
         private Vector3 _verticalVelocity;
+        private Vector3 _pendingImpulse;
         private bool _jumpQueued;
         
         [Header("Mirada")]
@@ -179,8 +180,11 @@ namespace Game.Presentation.Player
             {
                 _verticalVelocity.y += _gravity * delta;
             }
+            // Impulso de dash (consumido en este tick).
+            Vector3 impulseThisTick = _pendingImpulse;
+            _pendingImpulse = Vector3.zero;
 
-            Vector3 motion = (horizontal + _verticalVelocity) * delta;
+            Vector3 motion = (horizontal + _verticalVelocity + impulseThisTick / delta) * delta;
             _controller.Move(motion);
         }
 
@@ -199,6 +203,14 @@ namespace Game.Presentation.Player
             transform.SetPositionAndRotation(data.Position, data.Rotation);
             _verticalVelocity = data.VerticalVelocity;
             _controller.enabled = true;
+        }
+
+        /// <summary>
+        /// Encola un impulso de dash. Solo debe llamarse en el servidor (el owner lo verá vía reconcile).
+        /// </summary>
+        public void ApplyDashImpulse(Vector3 impulse)
+        {
+            _pendingImpulse += impulse;
         }
     }
 }

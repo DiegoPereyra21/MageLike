@@ -47,11 +47,10 @@ namespace Game.Presentation.Abilities
             if (!InstanceFinder.IsServerStarted) return;
             if (!InstanceFinder.ServerManager.Objects.Spawned.TryGetValue(casterNetworkId, out NetworkObject nob)) return;
 
-            // Simplificación del vertical slice: el dash se aplica como salto de posición
-            // validado server-side. Para una versión pulida, este impulso debería inyectarse
-            // dentro del ReplicateData de PlayerMovementController para que quede
-            // correctamente predicho/reconciliado en vez de ser un salto discreto.
-            nob.transform.position += impulse * Time.fixedDeltaTime;
+            // Delega al controller de movimiento para que el impulso pase por el flujo de
+            // predicción/reconciliación en vez de mover el transform crudo (que sería sobrescrito).
+            if (nob.TryGetComponent(out Game.Presentation.Player.PlayerMovementController movement))
+                movement.ApplyDashImpulse(impulse);
         }
 
         public void ApplySelfEffect(int casterNetworkId, float healAmount)

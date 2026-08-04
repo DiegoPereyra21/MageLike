@@ -17,4 +17,4 @@ MonoBehaviour:
   _icon: {fileID: 0}
   _cooldown: 1
   _resourceCost: 10
-  _dashForce: 45
+  _dashForce: 8
