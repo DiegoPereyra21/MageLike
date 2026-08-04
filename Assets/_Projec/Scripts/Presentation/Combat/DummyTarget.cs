@@ -1,4 +1,5 @@
 using UnityEngine;
+using FishNet.Object;
 
 namespace Game.Presentation.Combat
 {
@@ -15,6 +16,23 @@ namespace Game.Presentation.Combat
         private void Awake()
         {
             _health = GetComponent<Health>();
+        }
+
+        private void OnEnable()
+        {
+            _health.OnDied += HandleDied;
+        }
+
+        private void OnDisable()
+        {
+            if (_health != null) _health.OnDied -= HandleDied;
+        }
+
+        private void HandleDied(int instigator)
+        {
+            // Solo el servidor despawnea el objeto de red.
+            if (_health.IsServerInitialized)
+                _health.Despawn();
         }
 
         private void OnGUI()

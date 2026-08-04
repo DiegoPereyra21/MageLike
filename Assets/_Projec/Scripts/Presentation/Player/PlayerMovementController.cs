@@ -161,6 +161,9 @@ namespace Game.Presentation.Player
         private void RunInputs(ReplicateData data, ReplicateState state = ReplicateState.Invalid, FishNet.Transporting.Channel channel = FishNet.Transporting.Channel.Unreliable)
         {
             float delta = (float)base.TimeManager.TickDelta;
+            if (!_controller.enabled)
+                    return;
+                    
             transform.Rotate(Vector3.up, data.YawDelta);
 
             if (_cameraLook != null)
@@ -211,6 +214,16 @@ namespace Game.Presentation.Player
         public void ApplyDashImpulse(Vector3 impulse)
         {
             _pendingImpulse += impulse;
+        }
+
+        public void DisableMovement()
+        {
+            if (base.TimeManager != null)
+            {
+                base.TimeManager.OnTick -= TimeManager_OnTick;
+                base.TimeManager.OnPostTick -= TimeManager_OnPostTick;
+            }
+            enabled = false;
         }
     }
 }

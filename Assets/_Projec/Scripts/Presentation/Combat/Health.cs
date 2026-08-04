@@ -27,26 +27,22 @@ namespace Game.Presentation.Combat
         /// <summary>
         /// amount positivo = daño, negativo = cura. Solo corre en servidor.
         /// </summary>
-          public void ApplyDamage(float amount, int instigatorNetworkId)
-          {
-          if (!base.IsServerStarted) return;
-          if (IsDead) return;
-
-          float newValue = Mathf.Clamp(_current.Value - amount, 0f, _maxHealth);
-          _current.Value = newValue;
-
-          string verbo = amount >= 0 ? "recibió daño" : "se curó";
-          Debug.Log($"[Health] {gameObject.name} {verbo} {Mathf.Abs(amount):0} → HP: {newValue:0}/{_maxHealth:0} (instigator: {instigatorNetworkId})");
-
-          if (newValue <= 0f)
-               OnDeath();
-          }
-
-        private void OnDeath()
+        public void ApplyDamage(float amount, int instigatorNetworkId)
         {
-            // Placeholder: por ahora solo despawnea. Más adelante: ragdoll, drop de loot,
-            // respawn, evento de kill para scoring, etc.
-            base.Despawn();
+            if (!base.IsServerStarted) return;
+            if (IsDead) return;
+
+            float newValue = Mathf.Clamp(_current.Value - amount, 0f, _maxHealth);
+            _current.Value = newValue;
+
+            string verbo = amount >= 0 ? "recibió daño" : "se curó";
+            Debug.Log($"[Health] {gameObject.name} {verbo} {Mathf.Abs(amount):0} → HP: {newValue:0}/{_maxHealth:0} (instigator: {instigatorNetworkId})");
+
+            if (newValue <= 0f)
+                OnDied?.Invoke(instigatorNetworkId);
         }
+
+        /// <summary>Se dispara solo en el servidor cuando la vida llega a 0. El instigador es quién causó la muerte.</summary>
+        public event System.Action<int> OnDied;
     }
 }
