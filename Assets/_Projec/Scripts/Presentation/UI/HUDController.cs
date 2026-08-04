@@ -17,12 +17,17 @@ namespace Game.Presentation.UI
         private UIDocument _document;
         private Health _health;
         private Mana _mana;
+        private PlayerExtractionState _extraction;
         private AbilityController _abilities;
 
         private VisualElement _healthFill;
         private VisualElement _manaFill;
         private Label _manaText;
         private Label _healthText;
+        //para la extraccion
+        private VisualElement _extractionContainer;
+        private VisualElement _extractionFill;
+        private Label _extractionLabel;
         private readonly VisualElement[] _cooldownOverlays = new VisualElement[4];
 
         private void Awake()
@@ -30,6 +35,7 @@ namespace Game.Presentation.UI
             _document = GetComponent<UIDocument>();
             _health = GetComponent<Health>();
             _mana = GetComponent<Mana>();
+            _extraction = GetComponent<PlayerExtractionState>();
             _abilities = GetComponent<AbilityController>();
         }
 
@@ -50,6 +56,9 @@ namespace Game.Presentation.UI
             _healthText = root.Q<Label>("health-text");
             _manaFill = root.Q<VisualElement>("mana-bar-fill");
             _manaText = root.Q<Label>("mana-text");
+            _extractionContainer = root.Q<VisualElement>("extraction-container");
+            _extractionFill = root.Q<VisualElement>("extraction-bar-fill");
+            _extractionLabel = root.Q<Label>("extraction-label");
 
             for (int i = 0; i < 4; i++)
                 _cooldownOverlays[i] = root.Q<VisualElement>($"slot-{i}-cd");
@@ -83,6 +92,30 @@ namespace Game.Presentation.UI
                     if (_cooldownOverlays[i] == null) continue;
                     float cd = _abilities.GetCooldownNormalized(i);
                     _cooldownOverlays[i].style.height = Length.Percent(cd * 100f);
+                }
+            }
+
+            // Extracción
+            if (_extraction != null && _extractionContainer != null)
+            {
+                float progress = _extraction.ExtractionProgress;
+                bool channeling = progress > 0f && !_extraction.IsExtracted;
+
+                if (_extraction.IsExtracted)
+                {
+                    _extractionContainer.style.display = DisplayStyle.Flex;
+                    _extractionFill.style.width = Length.Percent(100f);
+                    _extractionLabel.text = "Extraído";
+                }
+                else if (channeling)
+                {
+                    _extractionContainer.style.display = DisplayStyle.Flex;
+                    _extractionFill.style.width = Length.Percent(progress * 100f);
+                    _extractionLabel.text = "Extrayendo...";
+                }
+                else
+                {
+                    _extractionContainer.style.display = DisplayStyle.None;
                 }
             }
         }

@@ -2,6 +2,13 @@
     <Style src="HUD.uss" />
     <ui:VisualElement name="hud-root" class="hud-root">
 
+        <ui:VisualElement name="extraction-container" class="extraction-container">
+            <ui:Label name="extraction-label" text="Extrayendo..." class="extraction-label" />
+            <ui:VisualElement name="extraction-bar-bg" class="extraction-bar-bg">
+                <ui:VisualElement name="extraction-bar-fill" class="extraction-bar-fill" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+
         <ui:VisualElement name="bars-container" class="bars-container">
 
             <ui:VisualElement name="health-bar-bg" class="bar-bg health-bar-bg">

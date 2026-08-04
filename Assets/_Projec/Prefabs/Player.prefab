@@ -18,6 +18,8 @@ GameObject:
   - component: {fileID: -3952531383708439239}
   - component: {fileID: 1907102855803517485}
   - component: {fileID: 6401898320443898019}
+  - component: {fileID: 5943440516833520504}
+  - component: {fileID: 281249298206178624}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -115,6 +117,7 @@ MonoBehaviour:
   - {fileID: 303123316450518896}
   - {fileID: 815632673414522861}
   - {fileID: 5916285515039551247}
+  - {fileID: -3952531383708439239}
   - {fileID: 1907102855803517485}
   - {fileID: 6401898320443898019}
   InitializedParentNetworkBehaviour: {fileID: 0}
@@ -127,7 +130,7 @@ MonoBehaviour:
   _initializeOrder: 0
   _preventDespawnOnDisconnect: 0
   _defaultDespawnType: 0
-  _initializedTimestamp: -8584157899766464111
+  _initializedTimestamp: -8584157430071381575
 --- !u!114 &303123316450518896
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -216,14 +219,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9c4d98a2bce921241b231c39f41d0fb0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Game.Presentation.Combat.PlayerDeathHandler
-  _componentIndexCache: 255
+  _componentIndexCache: 3
   _addedNetworkObject: {fileID: 4708353133064893462}
-  _networkObjectCache: {fileID: 0}
-  _componentsToDisableOnDeath:
-  - {fileID: 1907102855803517485}
-  - {fileID: 7719687377624193090}
-  _bodyCollider: {fileID: 0}
-  _movement: {fileID: 303123316450518896}
+  _networkObjectCache: {fileID: 4708353133064893462}
+  _avatar: {fileID: 5943440516833520504}
 --- !u!114 &1907102855803517485
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -236,7 +235,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c106310e4a0a85f458efc7b997b425f0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Game.Presentation.Abilities.AbilityController
-  _componentIndexCache: 3
+  _componentIndexCache: 4
   _addedNetworkObject: {fileID: 4708353133064893462}
   _networkObjectCache: {fileID: 4708353133064893462}
   _equippedAbilities:
@@ -261,10 +260,46 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 51fa6685c6e0d0b4ba863cad47424ff4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Game.Presentation.Combat.Health
-  _componentIndexCache: 4
+  _componentIndexCache: 5
   _addedNetworkObject: {fileID: 4708353133064893462}
   _networkObjectCache: {fileID: 4708353133064893462}
   _maxHealth: 100
+--- !u!114 &5943440516833520504
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 708038747777476914}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9a3d6be16bdeca74f96815fa90a8a01f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Presentation.Player.PlayerAvatarState
+  _componentIndexCache: 255
+  _addedNetworkObject: {fileID: 4708353133064893462}
+  _networkObjectCache: {fileID: 0}
+  _movement: {fileID: 303123316450518896}
+  _abilities: {fileID: 1907102855803517485}
+  _extraToDisable:
+  - {fileID: 7719687377624193090}
+  _bodyCollider: {fileID: 8155489654076050703}
+--- !u!114 &281249298206178624
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 708038747777476914}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b1530269cb603c94992acb6e54e94875, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Presentation.Combat.PlayerExtractionState
+  _componentIndexCache: 255
+  _addedNetworkObject: {fileID: 4708353133064893462}
+  _networkObjectCache: {fileID: 0}
+  _avatar: {fileID: 5943440516833520504}
 --- !u!1 &5589743811304467652
 GameObject:
   m_ObjectHideFlags: 0

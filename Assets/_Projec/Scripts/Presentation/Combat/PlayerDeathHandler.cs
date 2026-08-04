@@ -12,9 +12,7 @@ namespace Game.Presentation.Combat
     [RequireComponent(typeof(Health))]
     public class PlayerDeathHandler : NetworkBehaviour
     {
-        [SerializeField] private MonoBehaviour[] _componentsToDisableOnDeath; // movimiento, habilidades, etc.
-        [SerializeField] private Collider _bodyCollider;
-        [SerializeField] private PlayerMovementController _movement;
+        [SerializeField] private Game.Presentation.Player.PlayerAvatarState _avatar;
 
         private Health _health;
 
@@ -43,21 +41,14 @@ namespace Game.Presentation.Combat
         [ObserversRpc(RunLocally = true)]
         private void DieObserversRpc()
         {
-          if (_movement != null)
-          _movement.DisableMovement();
-          
-            // Desactivar componentes de control en todas las instancias.
-            if (_componentsToDisableOnDeath != null)
-            {
-                foreach (var c in _componentsToDisableOnDeath)
-                    if (c != null) c.enabled = false;
-            }
+            if (_avatar != null)
+                _avatar.DisableControl();
 
-            if (_bodyCollider != null)
-                _bodyCollider.enabled = false;
+            // Soltar el loot de la run al morir (si hay inventario implementado).
+            if (TryGetComponent(out Game.Core.Run.IRunInventory inventory))
+                inventory.DropAll();
 
-            // TODO: activar cámara spectator para el dueño, mostrar pantalla de eliminación,
-            // soltar loot, marcar como "fuera de la run" en el estado de la partida.
+            // TODO: cámara spectator, pantalla de eliminación.
         }
     }
 }
