@@ -1,0 +1,46 @@
+using FishNet.Object;
+using FishNet.Object.Synchronizing;
+using UnityEngine;
+
+namespace Game.Presentation.Combat
+{
+    /// <summary>
+    /// Maná server-authoritative con regeneración. El valor se sincroniza a los clientes
+    /// vía SyncVar; el gasto y la regeneración solo ocurren en el servidor.
+    /// </summary>
+    public class Mana : NetworkBehaviour
+    {
+        [SerializeField] private float _maxMana = 100f;
+        [SerializeField] private float _regenPerSecond = 8f;
+
+        private readonly SyncVar<float> _current = new SyncVar<float>();
+
+        public float Current => _current.Value;
+        public float Max => _maxMana;
+
+        public override void OnStartServer()
+        {
+            _current.Value = _maxMana;
+        }
+
+        private void Update()
+        {
+            if (!base.IsServerStarted) return;
+            if (_current.Value >= _maxMana) return;
+
+            _current.Value = Mathf.Min(_maxMana, _current.Value + _regenPerSecond * Time.deltaTime);
+        }
+
+        /// <summary>Server-only. Devuelve true y descuenta si hay suficiente; false si no.</summary>
+        public bool TrySpend(float amount)
+        {
+            if (!base.IsServerStarted) return false;
+            if (_current.Value < amount) return false;
+
+            _current.Value -= amount;
+            return true;
+        }
+
+
+    }
+}

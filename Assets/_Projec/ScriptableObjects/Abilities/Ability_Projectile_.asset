@@ -16,7 +16,7 @@ MonoBehaviour:
   _displayName: Proyectile
   _icon: {fileID: 0}
   _cooldown: 0.5
-  _resourceCost: 10
+  _resourceCost: 15
   _projectilePrefab: {fileID: 9077845970666463845, guid: 007947feaa3cedf4b975548e3fa50a77, type: 3}
   _speed: 25
   _damage: 20

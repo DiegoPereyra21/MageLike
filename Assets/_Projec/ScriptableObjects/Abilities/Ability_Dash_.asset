@@ -16,5 +16,5 @@ MonoBehaviour:
   _displayName: Dash
   _icon: {fileID: 0}
   _cooldown: 1
-  _resourceCost: 10
+  _resourceCost: 20
   _dashForce: 8

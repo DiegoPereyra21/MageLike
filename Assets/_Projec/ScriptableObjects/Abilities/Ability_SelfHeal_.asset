@@ -16,5 +16,5 @@ MonoBehaviour:
   _displayName: Heal
   _icon: {fileID: 0}
   _cooldown: 1
-  _resourceCost: 10
+  _resourceCost: 25
   _healAmount: 30

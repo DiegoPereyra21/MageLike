@@ -14,6 +14,7 @@ GameObject:
   - component: {fileID: 303123316450518896}
   - component: {fileID: 815632673414522861}
   - component: {fileID: 5069673391465223464}
+  - component: {fileID: 5916285515039551247}
   - component: {fileID: 1907102855803517485}
   - component: {fileID: 6401898320443898019}
   m_Layer: 0
@@ -182,6 +183,23 @@ MonoBehaviour:
   m_PivotReferenceSize: 0
   m_Pivot: 0
   m_WorldSpaceCollider: {fileID: 0}
+--- !u!114 &5916285515039551247
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 708038747777476914}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7f6920444c56154686930ad10b7d7e7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Presentation.Combat.Mana
+  _componentIndexCache: 255
+  _addedNetworkObject: {fileID: 4708353133064893462}
+  _networkObjectCache: {fileID: 0}
+  _maxMana: 100
+  _regenPerSecond: 8
 --- !u!114 &1907102855803517485
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -16,9 +16,12 @@ namespace Game.Presentation.UI
     {
         private UIDocument _document;
         private Health _health;
+        private Mana _mana;
         private AbilityController _abilities;
 
         private VisualElement _healthFill;
+        private VisualElement _manaFill;
+        private Label _manaText;
         private Label _healthText;
         private readonly VisualElement[] _cooldownOverlays = new VisualElement[4];
 
@@ -26,6 +29,7 @@ namespace Game.Presentation.UI
         {
             _document = GetComponent<UIDocument>();
             _health = GetComponent<Health>();
+            _mana = GetComponent<Mana>();
             _abilities = GetComponent<AbilityController>();
         }
 
@@ -44,6 +48,8 @@ namespace Game.Presentation.UI
             var root = _document.rootVisualElement;
             _healthFill = root.Q<VisualElement>("health-bar-fill");
             _healthText = root.Q<Label>("health-text");
+            _manaFill = root.Q<VisualElement>("mana-bar-fill");
+            _manaText = root.Q<Label>("mana-text");
 
             for (int i = 0; i < 4; i++)
                 _cooldownOverlays[i] = root.Q<VisualElement>($"slot-{i}-cd");
@@ -61,6 +67,14 @@ namespace Game.Presentation.UI
                 _healthText.text = $"{_health.Current:0} / {_health.Max:0}";
             }
 
+            // Maná
+            if (_mana != null && _manaFill != null)
+            {
+                float pct = _mana.Max > 0 ? _mana.Current / _mana.Max : 0f;
+                _manaFill.style.width = Length.Percent(pct * 100f);
+                _manaText.text = $"{_mana.Current:0} / {_mana.Max:0}";
+            }
+            
             // Cooldowns
             if (_abilities != null)
             {

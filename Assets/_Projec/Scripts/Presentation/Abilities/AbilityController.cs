@@ -1,6 +1,7 @@
 using FishNet.Object;
 using Game.Core.Abilities;
 using Game.Presentation.Bootstrap;
+using Game.Presentation.Combat;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using VContainer;
@@ -20,6 +21,9 @@ namespace Game.Presentation.Abilities
         [SerializeField] private float _maxAimDistance = 50f;
 
         private readonly float[] _localCooldownEndTime = new float[4];
+        // Cooldowns autoritativos del servidor (Time.time del servidor en que cada slot vuelve a estar listo).
+        private readonly float[] _serverCooldownEndTime = new float[4];
+        private Mana _mana;
         private AbilityExecutor _executor;
         private InputAction[] _castActions;
 
@@ -46,6 +50,7 @@ namespace Game.Presentation.Abilities
         private void Awake()
         {
             _castActions = new InputAction[4];
+            _mana = GetComponent<Mana>();
             string[] keys = { "1", "2", "3", "4" };
             for (int i = 0; i < 4; i++)
                 _castActions[i] = new InputAction($"CastSlot{i}", InputActionType.Button, $"<Keyboard>/{keys[i]}");
@@ -76,8 +81,12 @@ namespace Game.Presentation.Abilities
         {
             AbilitySO ability = _equippedAbilities[slot];
             if (ability == null) return;
-            if (Time.time < _localCooldownEndTime[slot]) return; // feedback local, no autoritativo
 
+            // Chequeos locales (feedback inmediato, no autoritativos).
+            if (Time.time < _localCooldownEndTime[slot]) return;
+            if (_mana != null && _mana.Current < ability.ResourceCost) return;
+
+            // Predicción local de cooldown solamente. El maná lo descuenta y sincroniza el servidor.
             _localCooldownEndTime[slot] = Time.time + ability.Cooldown;
 
             ResolveAim(out Vector3 origin, out Vector3 direction, out Vector3 aimPoint);
@@ -101,8 +110,22 @@ namespace Game.Presentation.Abilities
             AbilitySO ability = _equippedAbilities[slot];
             if (ability == null) return;
 
-            // TODO: validar cooldown real server-side (tabla de cooldowns por NetworkObject)
-            // y costo de recurso antes de ejecutar. Se omite en este prototipo del vertical slice.
+            // 1. Validar cooldown autoritativo.
+            if (Time.time < _serverCooldownEndTime[slot])
+            {
+                RejectCastTargetRpc(base.Owner, slot, _serverCooldownEndTime[slot]);
+                return;
+            }
+
+            // 2. Validar y descontar maná autoritativo.
+            if (_mana != null && !_mana.TrySpend(ability.ResourceCost))
+            {
+                RejectCastTargetRpc(base.Owner, slot, _serverCooldownEndTime[slot]);
+                return;
+            }
+
+            // 3. Cast válido: registrar cooldown y ejecutar.
+            _serverCooldownEndTime[slot] = Time.time + ability.Cooldown;
 
             var context = new AbilityCastContext(
                 casterNetworkId: base.ObjectId,
@@ -113,6 +136,22 @@ namespace Game.Presentation.Abilities
             );
 
             ability.Execute(_executor, in context);
+        }
+
+        /// <summary>
+        /// Solo al cliente dueño: el servidor rechazó el cast. Corrige la predicción local
+        /// (restaura cooldown real y deja que el SyncVar de maná se reconcilie solo).
+        /// </summary>
+        [TargetRpc]
+        private void RejectCastTargetRpc(FishNet.Connection.NetworkConnection conn, int slot, float serverCooldownEnd)
+        {
+            // El cast fue rechazado: revertir la predicción de cooldown local.
+            // Restauramos al cooldown REAL del servidor (si el rechazo fue por maná,
+            // serverCooldownEnd refleja el estado real, que puede ser "ya listo").
+            float remaining = serverCooldownEnd - Time.time;
+            _localCooldownEndTime[slot] = remaining > 0f ? serverCooldownEnd : 0f;
+
+            // El maná se corrige solo vía SyncVar en el próximo sync.
         }
 
 

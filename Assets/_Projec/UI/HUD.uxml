@@ -2,29 +2,36 @@
     <Style src="HUD.uss" />
     <ui:VisualElement name="hud-root" class="hud-root">
 
-        <ui:VisualElement name="health-container" class="health-container">
-            <ui:VisualElement name="health-bar-bg" class="health-bar-bg">
-                <ui:VisualElement name="health-bar-fill" class="health-bar-fill" />
+        <ui:VisualElement name="bars-container" class="bars-container">
+
+            <ui:VisualElement name="health-bar-bg" class="bar-bg health-bar-bg">
+                <ui:VisualElement name="health-bar-fill" class="bar-fill health-bar-fill" />
+                <ui:Label name="health-text" text="100 / 100" class="bar-text" />
             </ui:VisualElement>
-            <ui:Label name="health-text" text="100 / 100" class="health-text" />
+
+            <ui:VisualElement name="mana-bar-bg" class="bar-bg mana-bar-bg">
+                <ui:VisualElement name="mana-bar-fill" class="bar-fill mana-bar-fill" />
+                <ui:Label name="mana-text" text="100 / 100" class="bar-text" />
+            </ui:VisualElement>
+
         </ui:VisualElement>
 
         <ui:VisualElement name="ability-bar" class="ability-bar">
             <ui:VisualElement name="slot-0" class="ability-slot">
-                <ui:Label name="slot-0-key" text="1" class="slot-key" />
                 <ui:VisualElement name="slot-0-cd" class="slot-cooldown" />
+                <ui:Label name="slot-0-key" text="1" class="slot-key" />
             </ui:VisualElement>
             <ui:VisualElement name="slot-1" class="ability-slot">
-                <ui:Label name="slot-1-key" text="2" class="slot-key" />
                 <ui:VisualElement name="slot-1-cd" class="slot-cooldown" />
+                <ui:Label name="slot-1-key" text="2" class="slot-key" />
             </ui:VisualElement>
             <ui:VisualElement name="slot-2" class="ability-slot">
-                <ui:Label name="slot-2-key" text="3" class="slot-key" />
                 <ui:VisualElement name="slot-2-cd" class="slot-cooldown" />
+                <ui:Label name="slot-2-key" text="3" class="slot-key" />
             </ui:VisualElement>
             <ui:VisualElement name="slot-3" class="ability-slot">
-                <ui:Label name="slot-3-key" text="4" class="slot-key" />
                 <ui:VisualElement name="slot-3-cd" class="slot-cooldown" />
+                <ui:Label name="slot-3-key" text="4" class="slot-key" />
             </ui:VisualElement>
         </ui:VisualElement>
 
