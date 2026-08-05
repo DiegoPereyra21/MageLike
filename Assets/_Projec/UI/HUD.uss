@@ -2,14 +2,14 @@
     flex-grow: 1;
     justify-content: flex-end;
     align-items: center;
-    padding-bottom: 30px;
+    padding-bottom: 42px;
 }
 
 /* --- Extracción --- */
 .extraction-container {
     position: absolute;
     top: 40%;
-    width: 360px;
+    width: 500px;
     align-items: center;
     display: none;
 }
@@ -17,19 +17,19 @@
 .extraction-label {
     color: white;
     -unity-font-style: bold;
-    font-size: 17px;
-    margin-bottom: 6px;
+    font-size: 24px;
+    margin-bottom: 8px;
     -unity-text-align: middle-center;
-    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.9);
 }
 
 .extraction-bar-bg {
-    width: 360px;
-    height: 22px;
+    width: 500px;
+    height: 31px;
     background-color: rgba(0, 0, 0, 0.75);
-    border-radius: 5px;
-    border-width: 2px;
-    border-color: rgba(255, 255, 255, 0.55);
+    border-radius: 7px;
+    border-width: 3px;
+    border-color: rgba(0, 0, 0, 0.9);
     overflow: hidden;
 }
 
@@ -41,28 +41,28 @@
 
 /* --- Barras vida / maná --- */
 .bars-container {
-    width: 300px;
-    margin-bottom: 12px;
+    width: 420px;
+    margin-bottom: 17px;
 }
 
 .bar-bg {
-    width: 300px;
+    width: 420px;
     background-color: rgba(0, 0, 0, 0.7);
-    border-radius: 5px;
-    border-width: 2px;
-    border-color: rgba(0, 0, 0, 0.85);
+    border-radius: 7px;
+    border-width: 3px;
+    border-color: rgba(0, 0, 0, 0.9);
     overflow: hidden;
     justify-content: center;
     align-items: center;
 }
 
 .health-bar-bg {
-    height: 24px;
-    margin-bottom: 6px;
+    height: 34px;
+    margin-bottom: 8px;
 }
 
 .mana-bar-bg {
-    height: 18px;
+    height: 25px;
 }
 
 .bar-fill {
@@ -84,9 +84,9 @@
 .bar-text {
     color: white;
     -unity-font-style: bold;
-    font-size: 12px;
+    font-size: 17px;
     -unity-text-align: middle-center;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.95);
+    text-shadow: 0 2px 3px rgba(0, 0, 0, 0.95);
 }
 
 /* --- Barra de habilidades --- */
@@ -95,13 +95,13 @@
 }
 
 .ability-slot {
-    width: 58px;
-    height: 58px;
-    margin: 4px;
+    width: 81px;
+    height: 81px;
+    margin: 6px;
     background-color: rgba(18, 18, 28, 0.9);
-    border-width: 2px;
-    border-color: rgba(255, 255, 255, 0.45);
-    border-radius: 7px;
+    border-width: 3px;
+    border-color: rgba(0, 0, 0, 0.9);
+    border-radius: 10px;
     justify-content: flex-end;
     align-items: flex-start;
     overflow: hidden;
@@ -109,11 +109,11 @@
 
 .slot-key {
     color: white;
-    font-size: 13px;
+    font-size: 18px;
     -unity-font-style: bold;
-    margin-left: 5px;
-    margin-bottom: 3px;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.95);
+    margin-left: 7px;
+    margin-bottom: 4px;
+    text-shadow: 0 2px 3px rgba(0, 0, 0, 0.95);
 }
 
 .slot-cooldown {
@@ -129,7 +129,7 @@
 /* --- Info de run (timer / peligro / contador) --- */
 .run-info {
     position: absolute;
-    top: 16px;
+    top: 22px;
     width: 100%;
     align-items: center;
 }
@@ -137,24 +137,24 @@
 .run-timer {
     color: white;
     -unity-font-style: bold;
-    font-size: 26px;
+    font-size: 36px;
     -unity-text-align: middle-center;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.95);
+    text-shadow: 0 3px 5px rgba(0, 0, 0, 0.95);
 }
 
 .run-danger {
     color: rgb(235, 65, 65);
     -unity-font-style: bold;
-    font-size: 19px;
-    margin-top: 3px;
+    font-size: 27px;
+    margin-top: 4px;
     display: none;
-    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.95);
+    text-shadow: 0 2px 5px rgba(0, 0, 0, 0.95);
 }
 
 .run-counter {
     color: rgba(255, 255, 255, 0.9);
-    font-size: 13px;
-    margin-top: 3px;
+    font-size: 18px;
+    margin-top: 4px;
     -unity-text-align: middle-center;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.95);
+    text-shadow: 0 2px 3px rgba(0, 0, 0, 0.95);
 }
