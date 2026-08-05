@@ -28,6 +28,9 @@ namespace Game.Presentation.UI
         private VisualElement _extractionContainer;
         private VisualElement _extractionFill;
         private Label _extractionLabel;
+        private Label _runTimer;
+        private Label _runDanger;
+        private Label _runCounter;
         private readonly VisualElement[] _cooldownOverlays = new VisualElement[4];
 
         private void Awake()
@@ -59,6 +62,9 @@ namespace Game.Presentation.UI
             _extractionContainer = root.Q<VisualElement>("extraction-container");
             _extractionFill = root.Q<VisualElement>("extraction-bar-fill");
             _extractionLabel = root.Q<Label>("extraction-label");
+            _runTimer = root.Q<Label>("run-timer");
+            _runDanger = root.Q<Label>("run-danger");
+            _runCounter = root.Q<Label>("run-counter");
 
             for (int i = 0; i < 4; i++)
                 _cooldownOverlays[i] = root.Q<VisualElement>($"slot-{i}-cd");
@@ -117,6 +123,21 @@ namespace Game.Presentation.UI
                 {
                     _extractionContainer.style.display = DisplayStyle.None;
                 }
+            }
+
+            // Info de run
+            var run = Game.Presentation.Run.RunManager.Instance;
+            if (run != null && _runTimer != null)
+            {
+                int total = Mathf.CeilToInt(run.TimeRemaining);
+                int mm = total / 60;
+                int ss = total % 60;
+                _runTimer.text = $"{mm:00}:{ss:00}";
+
+                bool danger = run.Phase == Game.Core.Run.RunPhase.DangerPhase;
+                _runDanger.style.display = danger ? DisplayStyle.Flex : DisplayStyle.None;
+
+                _runCounter.text = $"Vivos: {run.AliveCount}  ·  Extraídos: {run.ExtractedCount}  ·  Muertos: {run.DeadCount}";
             }
         }
     }

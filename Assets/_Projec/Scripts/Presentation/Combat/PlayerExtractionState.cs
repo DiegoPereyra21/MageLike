@@ -36,8 +36,8 @@ namespace Game.Presentation.Combat
             if (_isExtracted.Value) return;
 
             _isExtracted.Value = true;
-            if (Game.Presentation.Run.RunManager.ServerInstance != null)
-                Game.Presentation.Run.RunManager.ServerInstance.SetExtracted(base.ObjectId);
+            if (Game.Presentation.Run.RunManager.Instance != null)
+                Game.Presentation.Run.RunManager.Instance.SetExtracted(base.ObjectId);
             _extractionProgress.Value = 1f;
 
             // Salvar loot (si hay inventario implementado).
@@ -57,8 +57,8 @@ namespace Game.Presentation.Combat
 
         public override void OnStartServer()
         {
-            if (Run.RunManager.ServerInstance != null)
-                Run.RunManager.ServerInstance.RegisterPlayer(base.ObjectId);
+            if (Run.RunManager.Instance != null)
+                Run.RunManager.Instance.RegisterPlayer(base.ObjectId);
         }
     }
 }
