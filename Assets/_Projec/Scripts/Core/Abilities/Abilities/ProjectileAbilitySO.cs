@@ -13,12 +13,13 @@ namespace Game.Core.Abilities.Abilities
 
         public override void Execute(AbilityExecutor executor, in AbilityCastContext context)
         {
+            float finalDamage = _damage * context.DamageMultiplier;
             executor.SpawnProjectile(
                 _projectilePrefab,
                 context.Origin,
                 context.AimDirection,
                 _speed,
-                _damage,
+                finalDamage,
                 _radius,
                 context.CasterNetworkId
             );

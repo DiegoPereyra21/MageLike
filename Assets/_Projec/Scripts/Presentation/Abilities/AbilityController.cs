@@ -24,6 +24,7 @@ namespace Game.Presentation.Abilities
         // Cooldowns autoritativos del servidor (Time.time del servidor en que cada slot vuelve a estar listo).
         private readonly float[] _serverCooldownEndTime = new float[4];
         private Mana _mana;
+        [SerializeField] private Game.Presentation.Combat.PlayerStats _stats;
         private AbilityExecutor _executor;
         private InputAction[] _castActions;
 
@@ -51,6 +52,7 @@ namespace Game.Presentation.Abilities
         {
             _castActions = new InputAction[4];
             _mana = GetComponent<Mana>();
+            _stats = GetComponent<Game.Presentation.Combat.PlayerStats>();
             string[] keys = { "1", "2", "3", "4" };
             for (int i = 0; i < 4; i++)
                 _castActions[i] = new InputAction($"CastSlot{i}", InputActionType.Button, $"<Keyboard>/{keys[i]}");
@@ -87,7 +89,9 @@ namespace Game.Presentation.Abilities
             if (_mana != null && _mana.Current < ability.ResourceCost) return;
 
             // Predicción local de cooldown solamente. El maná lo descuenta y sincroniza el servidor.
-            _localCooldownEndTime[slot] = Time.time + ability.Cooldown;
+            float castSpeed = _stats != null ? _stats.CastSpeedMultiplier : 1f;
+            float effectiveCooldown = ability.Cooldown / Mathf.Max(0.1f, castSpeed);
+            _localCooldownEndTime[slot] = Time.time + effectiveCooldown;
 
             ResolveAim(out Vector3 origin, out Vector3 direction, out Vector3 aimPoint);
             CastServerRpc(slot, origin, direction, aimPoint);
@@ -124,15 +128,20 @@ namespace Game.Presentation.Abilities
                 return;
             }
 
-            // 3. Cast válido: registrar cooldown y ejecutar.
-            _serverCooldownEndTime[slot] = Time.time + ability.Cooldown;
+            // 3. Cast válido: registrar cooldown (reducido por velocidad de casteo) y ejecutar.
+            float castSpeed = _stats != null ? _stats.CastSpeedMultiplier : 1f;
+            float effectiveCooldown = ability.Cooldown / Mathf.Max(0.1f, castSpeed);
+            _serverCooldownEndTime[slot] = Time.time + effectiveCooldown;
+
+            float dmgMul = _stats != null ? _stats.DamageMultiplier : 1f;
 
             var context = new AbilityCastContext(
                 casterNetworkId: base.ObjectId,
                 origin: origin,
                 aimDirection: direction.normalized,
                 aimPoint: aimPoint,
-                tick: base.TimeManager.LocalTick
+                tick: base.TimeManager.LocalTick,
+                damageMultiplier: dmgMul
             );
 
             ability.Execute(_executor, in context);

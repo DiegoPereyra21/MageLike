@@ -12,9 +12,8 @@ namespace Game.Core.Abilities.Abilities
 
         public override void Execute(AbilityExecutor executor, in AbilityCastContext context)
         {
-            // El punto de impacto ya viene resuelto (raycast hecho en el controller);
-            // acá solo se aplica el efecto de área data-driven.
-            executor.ApplyAreaEffect(context.AimPoint, _radius, _damage, context.CasterNetworkId);
+            float finalDamage = _damage * context.DamageMultiplier;
+            executor.ApplyAreaEffect(context.AimPoint, _radius, finalDamage, context.CasterNetworkId);
         }
     }
 }

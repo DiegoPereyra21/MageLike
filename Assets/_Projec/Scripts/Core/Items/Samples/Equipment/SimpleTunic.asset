@@ -9,22 +9,22 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d699879e8a20b2240b4e2b75f42e5d23, type: 3}
-  m_Name: Staff
-  m_EditorClassIdentifier: Assembly-CSharp::Game.Core.Items.CatalystItemSO
-  _itemId: staff
-  _displayName: Staff
+  m_Script: {fileID: 11500000, guid: 696254234f6ab8a48b3a338d19b6b061, type: 3}
+  m_Name: SimpleTunic
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Core.Items.EquipmentItemSO
+  _itemId: simple_tunic
+  _displayName: Simple Tunic
+  _category: 2
   _icon: {fileID: 0}
   _description: 
   _isStackable: 0
   _maxStack: 1
-  _slot: 4
+  _slot: 2
   _modifiers:
-  - Stat: 4
+  - Stat: 0
     Operation: 0
-    Value: 15
-  - Stat: 5
+    Value: 5
+  - Stat: 3
     Operation: 0
-    Value: -15
+    Value: 0.2
   _backpackSlots: 0
-  _catalystType: 1

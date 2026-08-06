@@ -258,6 +258,7 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 64
   _maxAimDistance: 50
+  _stats: {fileID: 7481302007928117156}
 --- !u!114 &6401898320443898019
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -344,7 +345,7 @@ MonoBehaviour:
   _addedNetworkObject: {fileID: 4708353133064893462}
   _networkObjectCache: {fileID: 4708353133064893462}
   _inventory: {fileID: -6873126794131237326}
-  _testItemId: simple_tunic
+  _testItemId: wand
   _testQuantity: 3
 --- !u!114 &7481302007928117156
 MonoBehaviour:
