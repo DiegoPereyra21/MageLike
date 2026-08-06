@@ -12,18 +12,26 @@ namespace Game.Presentation.Combat
     [RequireComponent(typeof(NavMeshAgent))]
     public class EnemyAI : NetworkBehaviour
     {
-        private enum State { Idle, Chase }
+        private enum State { Idle, Chase, Attack }
 
         [SerializeField] private float _detectionRadius = 12f;
         [SerializeField] private float _loseRadius = 16f;      // un poco mayor: histéresis para no titilar
         [SerializeField] private float _moveSpeed = 3.5f;
         [SerializeField] private float _repathInterval = 0.2f; // cada cuánto recalcula el destino
+        [Header("Attack")]
+        [SerializeField] private float _attackRange = 2f;
+        [SerializeField] private float _attackWindup = 0.4f;   // telegrafía antes del golpe
+        [SerializeField] private float _attackCooldown = 1.5f; // tiempo entre golpes
+        [SerializeField] private float _attackDamage = 15f;
 
         private NavMeshAgent _agent;
         private State _state = State.Idle;
         private Transform _target;
         private float _repathTimer;
         private Health _health;
+        private float _attackTimer;   // cooldown entre ataques
+        private float _windupTimer;   // cuenta regresiva del windup
+        private bool _winding;        // está preparando un golpe
 
         private void Awake()
         {
@@ -67,6 +75,7 @@ namespace Game.Presentation.Combat
             {
                 case State.Idle: TickIdle(); break;
                 case State.Chase: TickChase(); break;
+                case State.Attack: TickAttack(); break;
             }
         }
 
@@ -82,10 +91,19 @@ namespace Game.Presentation.Combat
 
         private void TickChase()
         {
-            if (_target == null || DistanceTo(_target) > _loseRadius)
+            if (!TargetIsValid() || DistanceTo(_target) > _loseRadius)
             {
                 _target = null;
                 _state = State.Idle;
+                if (_agent.isOnNavMesh) _agent.ResetPath();
+                return;
+            }
+
+            // Si está en rango de ataque, pasar a Attack.
+            if (DistanceTo(_target) <= _attackRange)
+            {
+                _state = State.Attack;
+                _winding = false;
                 if (_agent.isOnNavMesh) _agent.ResetPath();
                 return;
             }
@@ -101,12 +119,14 @@ namespace Game.Presentation.Combat
 
         private Transform FindNearestPlayer(float radius)
         {
-            // Busca jugadores por su componente de movimiento (marca de "es un jugador").
             var players = FindObjectsByType<Game.Presentation.Player.PlayerMovementController>(FindObjectsSortMode.None);
             Transform nearest = null;
             float best = radius;
             foreach (var p in players)
             {
+                // Ignorar jugadores muertos.
+                if (p.TryGetComponent(out Health h) && h.IsDead) continue;
+
                 float d = Vector3.Distance(transform.position, p.transform.position);
                 if (d <= best)
                 {
@@ -115,6 +135,65 @@ namespace Game.Presentation.Combat
                 }
             }
             return nearest;
+        }
+
+
+        private void TickAttack()
+        {
+            // Si el objetivo se fue o se alejó del rango de ataque, volver a perseguir.
+            if (!TargetIsValid() || DistanceTo(_target) > _attackRange)
+            {
+                _winding = false;
+                _state = _target != null ? State.Chase : State.Idle;
+                return;
+            }
+
+            // Mirar hacia el objetivo (rotación plana, sin inclinarse).
+            Vector3 dir = _target.position - transform.position;
+            dir.y = 0f;
+            if (dir.sqrMagnitude > 0.01f)
+                transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(dir), Time.deltaTime * 8f);
+
+            _attackTimer -= Time.deltaTime;
+
+            if (!_winding)
+            {
+                // Iniciar un golpe si el cooldown lo permite.
+                if (_attackTimer <= 0f)
+                {
+                    _winding = true;
+                    _windupTimer = _attackWindup;
+                }
+            }
+            else
+            {
+                // En windup: contar hasta el impacto.
+                _windupTimer -= Time.deltaTime;
+                if (_windupTimer <= 0f)
+                {
+                    _winding = false;
+                    _attackTimer = _attackCooldown;
+                    TryLandHit();
+                }
+            }
+        }
+
+        private bool TargetIsValid()
+        {
+            if (_target == null) return false;
+            if (_target.TryGetComponent(out Health h) && h.IsDead) return false;
+            return true;
+        }
+
+        private void TryLandHit()
+        {
+            if (!TargetIsValid() || DistanceTo(_target) > _attackRange) return;
+
+            if (_target.TryGetComponent(out Game.Core.Abilities.IDamageable dmg))
+            {
+                dmg.ApplyDamage(_attackDamage, base.ObjectId);
+                Debug.Log($"[EnemyAI] Golpe a {_target.name} por {_attackDamage}");
+            }
         }
 
         private float DistanceTo(Transform t) => Vector3.Distance(transform.position, t.position);
