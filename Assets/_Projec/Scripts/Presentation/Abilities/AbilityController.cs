@@ -28,6 +28,9 @@ namespace Game.Presentation.Abilities
         private AbilityExecutor _executor;
         private InputAction[] _castActions;
 
+        private bool _inputBlocked;
+        public void SetInputBlocked(bool blocked) => _inputBlocked = blocked;
+
         // VContainer no puede inyectar automáticamente en prefabs instanciados por el
         // NetworkManager de Fish-Net (spawn fuera del LifetimeScope normal). Por eso se
         // resuelve manualmente acá en vez de usar [Inject] en el spawn.
@@ -71,6 +74,7 @@ namespace Game.Presentation.Abilities
         private void Update()
         {
             if (!base.IsOwner) return;
+            if (_inputBlocked) return;   // ← nuevo: sin castear con el inventario abierto
 
             for (int i = 0; i < _castActions.Length; i++)
             {

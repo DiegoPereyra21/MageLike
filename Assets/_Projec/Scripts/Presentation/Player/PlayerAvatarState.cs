@@ -14,6 +14,7 @@ namespace Game.Presentation.Player
         [SerializeField] private AbilityController _abilities;
         [SerializeField] private MonoBehaviour[] _extraToDisable; // cámara, etc.
         [SerializeField] private Collider _bodyCollider;
+        [SerializeField] private Game.Presentation.UI.InventoryUIController _inventoryUI;
 
         private bool _controlDisabled;
 
@@ -34,6 +35,9 @@ namespace Game.Presentation.Player
                     if (c != null) c.enabled = false;
 
             if (_bodyCollider != null) _bodyCollider.enabled = false;
+
+            if (_inventoryUI != null)
+                _inventoryUI.DisableInventory();
         }
     }
 }

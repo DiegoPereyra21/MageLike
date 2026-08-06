@@ -4,6 +4,7 @@ using FishNet.Object.Synchronizing;
 using Game.Core.Items;
 using Game.Core.Run;
 using UnityEngine;
+using FishNet;
 
 namespace Game.Presentation.Combat
 {
@@ -15,6 +16,8 @@ namespace Game.Presentation.Combat
     {
         [SerializeField] private ItemDatabase _database;
         [SerializeField] private int _fallbackBackpackSlots = 8; // capacidad si no hay mochila equipada
+        [SerializeField] private GameObject _lootContainerPrefab; // asignar en el Inspector
+
 
         // Mochila: lista de stacks. Vacíos representan slots libres.
         private readonly SyncList<ItemStack> _backpack = new SyncList<ItemStack>();
@@ -150,7 +153,36 @@ namespace Game.Presentation.Combat
 
             return true;
         }
+        /// <summary>Server-only. Desequipa el slot de equipo dado, mandando el item a la mochila.</summary>
+        [Server]
+        public bool TryUnequip(int equipmentSlotIndex)
+        {
+            if (equipmentSlotIndex < 0 || equipmentSlotIndex >= _equipment.Count) return false;
+            ItemStack equipped = _equipment[equipmentSlotIndex];
+            if (equipped.IsEmpty) return false;
 
+            // Buscar un slot libre en la mochila.
+            int freeSlot = -1;
+            for (int i = 0; i < _backpack.Count; i++)
+                if (_backpack[i].IsEmpty) { freeSlot = i; break; }
+
+            if (freeSlot < 0) return false; // mochila llena, no se puede desequipar
+
+            _backpack[freeSlot] = equipped;
+            _equipment[equipmentSlotIndex] = ItemStack.Empty;
+
+            if ((EquipmentSlot)equipmentSlotIndex == EquipmentSlot.Backpack)
+                RebuildBackpackCapacity();
+
+            return true;
+        }
+
+        /// <summary>Server-only. Agrega un stack ya formado a la mochila (para saqueo de contenedores).</summary>
+        [Server]
+        public int TryAddStack(ItemStack stack)
+        {
+            return TryAddItem(stack.ItemId, stack.Quantity);
+        }
         // ---------- IRunInventory ----------
 
         [Server]
@@ -168,8 +200,31 @@ namespace Game.Presentation.Combat
         [Server]
         public void DropAll()
         {
-            Debug.Log("[RunInventory] Muerte: se pierde todo el inventario de run.");
-            // TODO (capa 4): spawnear los items en el suelo en vez de solo borrarlos.
+            var loot = new List<ItemStack>();
+            foreach (var s in _backpack) if (!s.IsEmpty) loot.Add(s);
+            foreach (var s in _equipment) if (!s.IsEmpty) loot.Add(s);
+
+            if (loot.Count > 0 && _lootContainerPrefab != null)
+            {
+                // Spawnear el contenedor en la posición del jugador, un poco arriba del piso.
+                Vector3 pos = transform.position;
+                if (Physics.Raycast(transform.position, Vector3.down, out RaycastHit groundHit, 5f))
+                    pos = groundHit.point + Vector3.up * 0.1f; // justo sobre el suelo
+
+                GameObject obj = Instantiate(_lootContainerPrefab, pos, Quaternion.identity);
+
+                if (obj.TryGetComponent(out LootContainer container))
+                {
+                    InstanceFinder.ServerManager.Spawn(obj);
+                    container.ServerFill(loot);
+                }
+                Debug.Log($"[RunInventory] Muerte: {loot.Count} items soltados en un contenedor.");
+            }
+            else
+            {
+                Debug.Log("[RunInventory] Muerte: sin loot que soltar.");
+            }
+
             ClearAll();
         }
 

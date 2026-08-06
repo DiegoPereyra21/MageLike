@@ -23,6 +23,9 @@ namespace Game.Presentation.Combat
         /// <summary>El HUD lee esto para el prompt. Null = no apuntando a nada recogible.</summary>
         public string CurrentPrompt { get; private set; }
 
+        private bool _inputBlocked;
+        public void SetInputBlocked(bool blocked) => _inputBlocked = blocked;
+
         private void Awake()
         {
             _interactAction = new InputAction("Interact", InputActionType.Button, "<Keyboard>/e");
@@ -34,6 +37,7 @@ namespace Game.Presentation.Combat
         private void Update()
         {
             if (!base.IsOwner) return;
+            if (_inputBlocked) { CurrentPrompt = null; return; }   // ← nuevo
 
             DetectTarget();
 

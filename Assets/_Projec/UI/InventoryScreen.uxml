@@ -1,0 +1,25 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <Style src="InventoryScreen.uss" />
+    <ui:VisualElement name="inv-root" class="inv-root">
+
+        <ui:VisualElement name="inv-panel" class="inv-panel">
+
+            <ui:VisualElement name="equipment-column" class="column">
+                <ui:Label text="Equipamiento" class="column-title" />
+                <ui:VisualElement name="equipment-slots" class="equipment-slots" />
+            </ui:VisualElement>
+
+            <ui:VisualElement name="backpack-column" class="column">
+                <ui:Label text="Mochila" class="column-title" />
+                <ui:VisualElement name="backpack-grid" class="backpack-grid" />
+            </ui:VisualElement>
+
+            <ui:VisualElement name="container-column" class="column container-column">
+                <ui:Label text="Contenedor" class="column-title" />
+                <ui:VisualElement name="container-grid" class="backpack-grid" />
+            </ui:VisualElement>
+
+        </ui:VisualElement>
+
+    </ui:VisualElement>
+</ui:UXML>

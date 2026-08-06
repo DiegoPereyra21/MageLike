@@ -35,6 +35,11 @@ namespace Game.Presentation.Player
         [SerializeField] private float _mouseSensitivity = 0.65f;
         [SerializeField] private CameraLookController _cameraLook;
 
+        //para al abrir el inventario no siga moviendo la vista
+        private bool _inputBlocked;
+        /// <summary>Bloquea/desbloquea la lectura de input (para cuando se abre UI como el inventario).</summary>
+        public void SetInputBlocked(bool blocked) => _inputBlocked = blocked;
+
         public struct ReplicateData : FishNet.Object.Prediction.IReplicateData
         {
             public Vector2 Move;
@@ -146,6 +151,9 @@ namespace Game.Presentation.Player
         {
             if (!base.IsOwner)
                 return default;
+
+            if (_inputBlocked)
+                return default; // sin movimiento ni mirada mientras la UI está abierta
 
             Vector2 move = _moveAction.ReadValue<Vector2>();
             bool sprint = _sprintAction.IsPressed();
