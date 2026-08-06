@@ -395,6 +395,7 @@ MonoBehaviour:
     m_Bits: 128
   _inventory: {fileID: -6873126794131237326}
   _database: {fileID: 11400000, guid: 102308c18b8226846a202b06693b2687, type: 2}
+  _inventoryUI: {fileID: 2259917246576972072}
 --- !u!114 &2259917246576972072
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -15,6 +15,7 @@ GameObject:
   - component: {fileID: 2956733464476276293}
   - component: {fileID: 1049451341452041141}
   - component: {fileID: 4235362645797782145}
+  - component: {fileID: 3427062332844343633}
   m_Layer: 0
   m_Name: DummyTarget
   m_TagString: Untagged
@@ -189,6 +190,7 @@ MonoBehaviour:
   _componentIndexCache: 255
   _addedNetworkObject: {fileID: 2956733464476276293}
   _networkObjectCache: {fileID: 0}
+  _stats: {fileID: 0}
   _maxHealth: 100
 --- !u!114 &4235362645797782145
 MonoBehaviour:
@@ -202,3 +204,20 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9cfd3602e0c6e9f48b259811e526f0ba, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Game.Presentation.Combat.DummyTarget
+--- !u!114 &3427062332844343633
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4838554706895433767}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f130ded5f8b49eb46be84f4db5f2f24e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Presentation.Combat.LootDropper
+  _componentIndexCache: 255
+  _addedNetworkObject: {fileID: 2956733464476276293}
+  _networkObjectCache: {fileID: 0}
+  _lootTable: {fileID: 11400000, guid: c76f1cd9d97f13e48b4731c4af082371, type: 2}
+  _lootContainerPrefab: {fileID: 2764254699792074859, guid: 3d07cbfe898310a45a89d7f2119ba857, type: 3}

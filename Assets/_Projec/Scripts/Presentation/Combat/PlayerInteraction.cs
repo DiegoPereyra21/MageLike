@@ -16,7 +16,8 @@ namespace Game.Presentation.Combat
         [SerializeField] private LayerMask _interactMask;   // capa de los WorldItem
         [SerializeField] private RunInventory _inventory;
         [SerializeField] private ItemDatabase _database;
-
+        [SerializeField] private Game.Presentation.UI.InventoryUIController _inventoryUI;
+        private LootContainer _currentContainer;
         private InputAction _interactAction;
         private WorldItem _current;   // a qué estamos apuntando ahora
 
@@ -37,28 +38,45 @@ namespace Game.Presentation.Combat
         private void Update()
         {
             if (!base.IsOwner) return;
-            if (_inputBlocked) { CurrentPrompt = null; return; }   // ← nuevo
+            if (_inputBlocked) { CurrentPrompt = null; return; }
 
             DetectTarget();
 
-            if (_current != null && _interactAction.WasPressedThisFrame())
-                PickupServerRpc(_current);
+            if (_interactAction.WasPressedThisFrame())
+            {
+                if (_current != null)
+                    PickupServerRpc(_current);
+                else if (_currentContainer != null && _inventoryUI != null)
+                    _inventoryUI.OpenWithContainer(_currentContainer);
+            }
         }
 
         private void DetectTarget()
         {
             _current = null;
+            _currentContainer = null;
             CurrentPrompt = null;
 
             if (_aimOrigin == null) return;
 
             if (Physics.Raycast(_aimOrigin.position, _aimOrigin.forward, out RaycastHit hit, _range, _interactMask))
             {
-                if (hit.collider.TryGetComponent(out WorldItem item) ||
-                    hit.collider.GetComponentInParent<WorldItem>() is WorldItem parentItem && (item = parentItem) != null)
+                // ¿Es un item suelto?
+                WorldItem item = hit.collider.GetComponentInParent<WorldItem>();
+                if (item != null)
                 {
                     _current = item;
                     CurrentPrompt = $"E  Recoger {item.GetDisplayName(_database)} x{item.Quantity}";
+                    return;
+                }
+
+                // ¿Es un contenedor (cadáver)?
+                LootContainer container = hit.collider.GetComponentInParent<LootContainer>();
+                if (container != null && !container.IsEmpty)
+                {
+                    _currentContainer = container;
+                    CurrentPrompt = "E  Saquear";
+                    return;
                 }
             }
         }
