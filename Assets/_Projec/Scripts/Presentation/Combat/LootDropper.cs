@@ -40,8 +40,13 @@ namespace Game.Presentation.Combat
             if (loot.Count == 0) return; // no cayó nada
 
             Vector3 pos = transform.position;
-            if (Physics.Raycast(transform.position, Vector3.down, out RaycastHit groundHit, 5f))
+
+            // Raycast al piso ignorando triggers y capas de personajes (solo geometría del suelo).
+            if (Physics.Raycast(transform.position + Vector3.up * 0.5f, Vector3.down, out RaycastHit groundHit, 6f, ~0, QueryTriggerInteraction.Ignore))
                 pos = groundHit.point + Vector3.up * 0.1f;
+
+            // Pequeño desplazamiento aleatorio para que contenedores simultáneos no queden exactamente encima.
+            pos += new Vector3(Random.Range(-0.4f, 0.4f), 0f, Random.Range(-0.4f, 0.4f));
 
             GameObject obj = Instantiate(_lootContainerPrefab, pos, Quaternion.identity);
             if (obj.TryGetComponent(out LootContainer container))
