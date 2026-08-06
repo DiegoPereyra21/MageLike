@@ -23,6 +23,7 @@ GameObject:
   - component: {fileID: -6873126794131237326}
   - component: {fileID: 6513846324524779194}
   - component: {fileID: 7481302007928117156}
+  - component: {fileID: 8706064901918070629}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -369,6 +370,28 @@ MonoBehaviour:
   _baseDamageMultiplier: 1
   _baseCastSpeedMultiplier: 1
   _protectionCap: 0.6
+--- !u!114 &8706064901918070629
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 708038747777476914}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fe44c88af8dc3d94688e03e09b4a76aa, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Presentation.Combat.PlayerInteraction
+  _componentIndexCache: 255
+  _addedNetworkObject: {fileID: 4708353133064893462}
+  _networkObjectCache: {fileID: 0}
+  _aimOrigin: {fileID: 6013468344885175688}
+  _range: 3.5
+  _interactMask:
+    serializedVersion: 2
+    m_Bits: 128
+  _inventory: {fileID: -6873126794131237326}
+  _database: {fileID: 11400000, guid: 102308c18b8226846a202b06693b2687, type: 2}
 --- !u!1 &5589743811304467652
 GameObject:
   m_ObjectHideFlags: 0

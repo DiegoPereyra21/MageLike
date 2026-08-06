@@ -158,3 +158,29 @@
     -unity-text-align: middle-center;
     text-shadow: 0 2px 3px rgba(0, 0, 0, 0.95);
 }
+
+.crosshair {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 6px;
+    height: 6px;
+    margin-left: -3px;
+    margin-top: -3px;
+    background-color: rgba(255, 255, 255, 0.85);
+    border-radius: 3px;
+    border-width: 1px;
+    border-color: rgba(0, 0, 0, 0.7);
+}
+
+.interact-prompt {
+    position: absolute;
+    top: 55%;
+    width: 100%;
+    -unity-text-align: middle-center;
+    color: white;
+    -unity-font-style: bold;
+    font-size: 16px;
+    text-shadow: 0 2px 3px rgba(0, 0, 0, 0.95);
+    display: none;
+}

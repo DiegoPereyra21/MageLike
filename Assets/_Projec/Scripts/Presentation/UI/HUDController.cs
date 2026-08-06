@@ -31,6 +31,8 @@ namespace Game.Presentation.UI
         private Label _runTimer;
         private Label _runDanger;
         private Label _runCounter;
+        private PlayerInteraction _interaction;
+        private Label _interactPrompt;
         private readonly VisualElement[] _cooldownOverlays = new VisualElement[4];
 
         private void Awake()
@@ -40,6 +42,7 @@ namespace Game.Presentation.UI
             _mana = GetComponent<Mana>();
             _extraction = GetComponent<PlayerExtractionState>();
             _abilities = GetComponent<AbilityController>();
+            _interaction = GetComponent<PlayerInteraction>();
         }
 
         public override void OnStartClient()
@@ -65,6 +68,7 @@ namespace Game.Presentation.UI
             _runTimer = root.Q<Label>("run-timer");
             _runDanger = root.Q<Label>("run-danger");
             _runCounter = root.Q<Label>("run-counter");
+            _interactPrompt = root.Q<Label>("interact-prompt");
 
             for (int i = 0; i < 4; i++)
                 _cooldownOverlays[i] = root.Q<VisualElement>($"slot-{i}-cd");
@@ -138,6 +142,21 @@ namespace Game.Presentation.UI
                 _runDanger.style.display = danger ? DisplayStyle.Flex : DisplayStyle.None;
 
                 _runCounter.text = $"Vivos: {run.AliveCount}  ·  Extraídos: {run.ExtractedCount}  ·  Muertos: {run.DeadCount}";
+            }
+
+            //interact prompt
+            if (_interaction != null && _interactPrompt != null)
+            {
+                string prompt = _interaction.CurrentPrompt;
+                if (!string.IsNullOrEmpty(prompt))
+                {
+                    _interactPrompt.style.display = DisplayStyle.Flex;
+                    _interactPrompt.text = prompt;
+                }
+                else
+                {
+                    _interactPrompt.style.display = DisplayStyle.None;
+                }
             }
         }
     }
