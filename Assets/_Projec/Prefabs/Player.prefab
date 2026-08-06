@@ -20,6 +20,9 @@ GameObject:
   - component: {fileID: 6401898320443898019}
   - component: {fileID: 5943440516833520504}
   - component: {fileID: 281249298206178624}
+  - component: {fileID: -6873126794131237326}
+  - component: {fileID: 6513846324524779194}
+  - component: {fileID: 7481302007928117156}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -120,6 +123,11 @@ MonoBehaviour:
   - {fileID: -3952531383708439239}
   - {fileID: 1907102855803517485}
   - {fileID: 6401898320443898019}
+  - {fileID: 5943440516833520504}
+  - {fileID: 281249298206178624}
+  - {fileID: -6873126794131237326}
+  - {fileID: 6513846324524779194}
+  - {fileID: 7481302007928117156}
   InitializedParentNetworkBehaviour: {fileID: 0}
   InitializedNestedNetworkObjects: []
   RuntimeParentNetworkBehaviour: {fileID: 0}
@@ -130,7 +138,7 @@ MonoBehaviour:
   _initializeOrder: 0
   _preventDespawnOnDisconnect: 0
   _defaultDespawnType: 0
-  _initializedTimestamp: -8584157430071381575
+  _initializedTimestamp: -8584156269837897097
 --- !u!114 &303123316450518896
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -146,6 +154,7 @@ MonoBehaviour:
   _componentIndexCache: 0
   _addedNetworkObject: {fileID: 4708353133064893462}
   _networkObjectCache: {fileID: 4708353133064893462}
+  _stats: {fileID: 7481302007928117156}
   _moveSpeed: 6
   _sprintMultiplier: 1.5
   _jumpForce: 6
@@ -205,6 +214,7 @@ MonoBehaviour:
   _componentIndexCache: 2
   _addedNetworkObject: {fileID: 4708353133064893462}
   _networkObjectCache: {fileID: 4708353133064893462}
+  _stats: {fileID: 7481302007928117156}
   _maxMana: 100
   _regenPerSecond: 8
 --- !u!114 &-3952531383708439239
@@ -263,6 +273,7 @@ MonoBehaviour:
   _componentIndexCache: 5
   _addedNetworkObject: {fileID: 4708353133064893462}
   _networkObjectCache: {fileID: 4708353133064893462}
+  _stats: {fileID: 7481302007928117156}
   _maxHealth: 100
 --- !u!114 &5943440516833520504
 MonoBehaviour:
@@ -276,9 +287,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9a3d6be16bdeca74f96815fa90a8a01f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Game.Presentation.Player.PlayerAvatarState
-  _componentIndexCache: 255
+  _componentIndexCache: 6
   _addedNetworkObject: {fileID: 4708353133064893462}
-  _networkObjectCache: {fileID: 0}
+  _networkObjectCache: {fileID: 4708353133064893462}
   _movement: {fileID: 303123316450518896}
   _abilities: {fileID: 1907102855803517485}
   _extraToDisable:
@@ -296,10 +307,67 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b1530269cb603c94992acb6e54e94875, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Game.Presentation.Combat.PlayerExtractionState
-  _componentIndexCache: 255
+  _componentIndexCache: 7
   _addedNetworkObject: {fileID: 4708353133064893462}
-  _networkObjectCache: {fileID: 0}
+  _networkObjectCache: {fileID: 4708353133064893462}
   _avatar: {fileID: 5943440516833520504}
+--- !u!114 &-6873126794131237326
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 708038747777476914}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 39fb9d72a7461a34788087713bed02cc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Presentation.Combat.RunInventory
+  _componentIndexCache: 8
+  _addedNetworkObject: {fileID: 4708353133064893462}
+  _networkObjectCache: {fileID: 4708353133064893462}
+  _database: {fileID: 11400000, guid: 102308c18b8226846a202b06693b2687, type: 2}
+  _fallbackBackpackSlots: 8
+--- !u!114 &6513846324524779194
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 708038747777476914}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 44835dad06f2a42408ad64de909c0d15, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Presentation.Combat.InventoryDebugger
+  _componentIndexCache: 9
+  _addedNetworkObject: {fileID: 4708353133064893462}
+  _networkObjectCache: {fileID: 4708353133064893462}
+  _inventory: {fileID: -6873126794131237326}
+  _testItemId: simple_tunic
+  _testQuantity: 3
+--- !u!114 &7481302007928117156
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 708038747777476914}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8e7e29ccadbd7da46bb11d5ba5af2efe, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Presentation.Combat.PlayerStats
+  _componentIndexCache: 10
+  _addedNetworkObject: {fileID: 4708353133064893462}
+  _networkObjectCache: {fileID: 4708353133064893462}
+  _database: {fileID: 11400000, guid: 102308c18b8226846a202b06693b2687, type: 2}
+  _baseManaRegen: 8
+  _baseJumpForce: 6
+  _baseMoveSpeed: 6
+  _baseDamageMultiplier: 1
+  _baseCastSpeedMultiplier: 1
+  _protectionCap: 0.6
 --- !u!1 &5589743811304467652
 GameObject:
   m_ObjectHideFlags: 0

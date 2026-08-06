@@ -11,6 +11,7 @@ namespace Game.Presentation.Combat
     /// </summary>
     public class Health : NetworkBehaviour, IDamageable
     {
+        [SerializeField] private PlayerStats _stats;
         [SerializeField] private float _maxHealth = 100f;
 
         private readonly SyncVar<float> _current = new SyncVar<float>();
@@ -31,6 +32,10 @@ namespace Game.Presentation.Combat
         {
             if (!base.IsServerStarted) return;
             if (IsDead) return;
+
+            // Protección: reduce solo el daño entrante (no afecta curas).
+            if (amount > 0f && _stats != null)
+                amount *= (1f - _stats.ProtectionPercent);
 
             float newValue = Mathf.Clamp(_current.Value - amount, 0f, _maxHealth);
             _current.Value = newValue;

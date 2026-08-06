@@ -10,6 +10,7 @@ namespace Game.Presentation.Combat
     /// </summary>
     public class Mana : NetworkBehaviour
     {
+        [SerializeField] private PlayerStats _stats;
         [SerializeField] private float _maxMana = 100f;
         [SerializeField] private float _regenPerSecond = 8f;
 
@@ -28,7 +29,8 @@ namespace Game.Presentation.Combat
             if (!base.IsServerStarted) return;
             if (_current.Value >= _maxMana) return;
 
-            _current.Value = Mathf.Min(_maxMana, _current.Value + _regenPerSecond * Time.deltaTime);
+            float regen = _stats != null ? _stats.ManaRegen : _regenPerSecond;
+            _current.Value = Mathf.Min(_maxMana, _current.Value + regen * Time.deltaTime);
         }
 
         /// <summary>Server-only. Devuelve true y descuenta si hay suficiente; false si no.</summary>

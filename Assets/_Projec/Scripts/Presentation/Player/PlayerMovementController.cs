@@ -1,5 +1,6 @@
 using FishNet.Object;
 using FishNet.Object.Prediction;
+using Game.Presentation.Combat;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -14,6 +15,7 @@ namespace Game.Presentation.Player
     public class PlayerMovementController : NetworkBehaviour
     {
         [Header("Movimiento")]
+        [SerializeField] private PlayerStats _stats;
         [SerializeField] private float _moveSpeed = 6f;
         [SerializeField] private float _sprintMultiplier = 1.5f;
         [SerializeField] private float _jumpForce = 6f;
@@ -169,7 +171,8 @@ namespace Game.Presentation.Player
             if (_cameraLook != null)
                 _cameraLook.AddPitch(data.PitchDelta);
             // Movimiento horizontal relativo a la orientación del jugador.
-            float speed = _moveSpeed * (data.Sprint ? _sprintMultiplier : 1f);
+            float baseSpeed = _stats != null ? _stats.MoveSpeed : _moveSpeed;
+            float speed = baseSpeed * (data.Sprint ? _sprintMultiplier : 1f);
             Vector3 horizontal = (transform.right * data.Move.x + transform.forward * data.Move.y) * speed;
 
             // Gravedad y salto en el eje vertical, integrados aparte del horizontal.
@@ -177,7 +180,10 @@ namespace Game.Presentation.Player
             {
                 _verticalVelocity.y = -1f; // pequeño valor negativo para mantener grounded check estable
                 if (data.Jump)
-                    _verticalVelocity.y = _jumpForce;
+                {
+                    float jump = _stats != null ? _stats.JumpForce : _jumpForce;
+                    _verticalVelocity.y = jump;
+                }
             }
             else
             {
