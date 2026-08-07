@@ -102,6 +102,18 @@
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.95);
 }
 
+.drag-ghost {
+    position: absolute;
+    width: 56px;
+    height: 56px;
+    background-color: rgba(40, 40, 60, 0.95);
+    border-width: 2px;
+    border-color: rgba(255, 255, 255, 0.7);
+    border-radius: 6px;
+    justify-content: center;
+    align-items: center;
+}
+
 /* Colores por categoría (borde izquierdo) */
 .cat-material { border-left-color: rgb(150, 110, 70); border-left-width: 4px; }
 .cat-resource { border-left-color: rgb(200, 60, 60); border-left-width: 4px; }

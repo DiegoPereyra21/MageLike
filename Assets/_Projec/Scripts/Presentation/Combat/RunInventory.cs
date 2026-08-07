@@ -63,15 +63,58 @@ namespace Game.Presentation.Combat
         private void RebuildBackpackCapacity()
         {
             int cap = CurrentBackpackCapacity();
-            // Ajusta la cantidad de slots de la mochila a la capacidad actual.
+
             while (_backpack.Count < cap) _backpack.Add(ItemStack.Empty);
-            while (_backpack.Count > cap && _backpack.Count > 0)
+
+            // Si la capacidad bajó, rescatar los items de los slots que desaparecen.
+            while (_backpack.Count > cap)
             {
-                // Nota: en esta capa asumimos que no se reduce capacidad con items dentro
-                // (regla de mochila: hay que sacar la actual primero). Simplificado.
-                _backpack.RemoveAt(_backpack.Count - 1);
+                int last = _backpack.Count - 1;
+                ItemStack orphan = _backpack[last];
+                _backpack.RemoveAt(last);
+
+                if (orphan.IsEmpty) continue;
+
+                // Intentar mover al primer slot libre que queda dentro de la nueva capacidad.
+                bool rescued = false;
+                for (int i = 0; i < _backpack.Count; i++)
+                {
+                    if (!_backpack[i].IsEmpty) continue;
+                    _backpack[i] = orphan;
+                    rescued = true;
+                    break;
+                }
+
+                if (!rescued)
+                {
+                    // No hay espacio: spawnear en el mundo.
+                    SpawnWorldItem(orphan);
+                    Debug.Log($"[RunInventory] Sin espacio al quitar mochila: {orphan.ItemId} dropeado al mundo.");
+                }
             }
         }
+
+        [Server]
+        private void SpawnWorldItem(ItemStack stack)
+        {
+            if (_lootContainerPrefab == null) return;
+
+            Vector3 pos = transform.position;
+            if (Physics.Raycast(transform.position, Vector3.down, out RaycastHit hit, 5f))
+                pos = hit.point + Vector3.up * 0.1f;
+
+            // Offset aleatorio pequeño para que no se apilen si hay varios.
+            pos += new Vector3(Random.Range(-0.5f, 0.5f), 0f, Random.Range(-0.5f, 0.5f));
+
+            GameObject obj = Instantiate(_lootContainerPrefab, pos, Quaternion.identity);
+            if (obj.TryGetComponent(out LootContainer container))
+            {
+                InstanceFinder.ServerManager.Spawn(obj);
+                container.ServerFill(new[] { stack });
+            }
+        }
+
+
 
         // ---------- Agregar item (con stacking) ----------
 
@@ -230,6 +273,150 @@ namespace Game.Presentation.Combat
         {
             return TryAddItem(stack.ItemId, stack.Quantity);
         }
+
+
+        /// <summary>Server-only. Mueve un item entre dos slots cualesquiera del inventario propio.
+        /// Soporta reorden de mochila, equipar a slot exacto, desequipar, y merge de apilables.</summary>
+        [Server]
+        public bool TryMoveSlot(int fromZone, int fromIndex, int toZone, int toIndex)
+        {
+            ItemStack from = GetSlot(fromZone, fromIndex);
+            if (from.IsEmpty) return false;
+
+            // Validar destino de equipo: el item debe corresponder al slot exacto.
+            if (toZone == 0) // Equipment
+            {
+                if (_database.GetById(from.ItemId) is not EquipmentItemSO equip) return false;
+                if ((int)equip.Slot != toIndex) return false;
+
+                // Regla de mochila: no se puede equipar una mochila si ya hay una puesta
+                // y el origen no es ese mismo slot de equipo.
+                if (equip.Slot == EquipmentSlot.Backpack && !_equipment[toIndex].IsEmpty
+                    && !(fromZone == 0 && fromIndex == toIndex)) return false;
+            }
+
+            ItemStack to = GetSlot(toZone, toIndex);
+
+            // Merge: mismo item apilable, destino no vacío.
+            if (!to.IsEmpty && to.ItemId == from.ItemId)
+            {
+                ItemSO def = _database.GetById(from.ItemId);
+                if (def != null && def.IsStackable)
+                {
+                    int space = def.MaxStack - to.Quantity;
+                    if (space <= 0) return false;
+                    int move = Mathf.Min(space, from.Quantity);
+                    SetSlot(toZone, toIndex, new ItemStack(to.ItemId, to.Quantity + move, to.Durability));
+                    int remaining = from.Quantity - move;
+                    SetSlot(fromZone, fromIndex, remaining > 0
+                        ? new ItemStack(from.ItemId, remaining, from.Durability)
+                        : ItemStack.Empty);
+
+                    if (toZone == 0 || fromZone == 0) RebuildBackpackCapacity();
+                    return true;
+                }
+            }
+
+            // Swap normal.
+            SetSlot(toZone, toIndex, from);
+            SetSlot(fromZone, fromIndex, to.IsEmpty ? ItemStack.Empty : to);
+
+            if (toZone == 0 || fromZone == 0) RebuildBackpackCapacity();
+            return true;
+        }
+
+
+        /// <summary>Server-only. Mueve entre el inventario propio y un LootContainer externo.</summary>
+        [Server]
+        public bool TryMoveWithContainer(int fromZone, int fromIndex, int toZone, int toIndex, LootContainer container)
+        {
+            // fromZone/toZone: 0=Equipment, 1=Backpack, 2=Container
+            bool fromContainer = fromZone == 2;
+            bool toContainer   = toZone   == 2;
+
+            if (fromContainer && toContainer) return false; // container→container no aplica
+            if (!fromContainer && !toContainer) return false; // ambos internos: usar TryMoveSlot
+
+            if (fromContainer)
+            {
+                // Container → inventario propio (slot exacto con swap/merge)
+                if (fromIndex < 0 || fromIndex >= container.Contents.Count) return false;
+                ItemStack dragged = container.Contents[fromIndex];
+                if (dragged.IsEmpty) return false;
+
+                ItemStack existing = GetSlot(toZone, toIndex);
+
+                // Validar slot de equipo
+                if (toZone == 0)
+                {
+                    if (_database.GetById(dragged.ItemId) is not EquipmentItemSO equip) return false;
+                    if ((int)equip.Slot != toIndex) return false;
+                }
+
+                // Merge
+                if (!existing.IsEmpty && existing.ItemId == dragged.ItemId)
+                {
+                    ItemSO def = _database.GetById(dragged.ItemId);
+                    if (def != null && def.IsStackable)
+                    {
+                        int space = def.MaxStack - existing.Quantity;
+                        if (space <= 0) return false;
+                        int move = Mathf.Min(space, dragged.Quantity);
+                        SetSlot(toZone, toIndex, new ItemStack(existing.ItemId, existing.Quantity + move, existing.Durability));
+                        int remaining = dragged.Quantity - move;
+                        // Actualizar o quitar del contenedor
+                        container.ServerUpdateAt(fromIndex, remaining > 0
+                            ? new ItemStack(dragged.ItemId, remaining, dragged.Durability)
+                            : ItemStack.Empty);
+                        return true;
+                    }
+                }
+
+                // Swap: sacar del contenedor, poner en slot, depositar lo que había
+                container.ServerUpdateAt(fromIndex, ItemStack.Empty); // quita del contenedor
+                SetSlot(toZone, toIndex, dragged);
+                if (!existing.IsEmpty)
+                    container.ServerDeposit(existing); // lo que había en el slot vuelve al contenedor
+
+                if (toZone == 0) RebuildBackpackCapacity();
+                return true;
+            }
+            else
+            {
+                // Inventario propio → contenedor (append, sin slot fijo)
+                ItemStack dragged = GetSlot(fromZone, fromIndex);
+                if (dragged.IsEmpty) return false;
+
+                SetSlot(fromZone, fromIndex, ItemStack.Empty);
+                container.ServerDeposit(dragged);
+
+                if (fromZone == 0) RebuildBackpackCapacity();
+                return true;
+            }
+        }
+
+
+
+        private ItemStack GetSlot(int zone, int index)
+        {
+            return zone switch
+            {
+                0 => (index >= 0 && index < _equipment.Count) ? _equipment[index] : ItemStack.Empty,
+                1 => (index >= 0 && index < _backpack.Count)  ? _backpack[index]  : ItemStack.Empty,
+                _ => ItemStack.Empty
+            };
+        }
+
+        private void SetSlot(int zone, int index, ItemStack stack)
+        {
+            switch (zone)
+            {
+                case 0: if (index >= 0 && index < _equipment.Count) _equipment[index] = stack; break;
+                case 1: if (index >= 0 && index < _backpack.Count)  _backpack[index]  = stack; break;
+            }
+        }
+
+
         // ---------- IRunInventory ----------
 
         [Server]
