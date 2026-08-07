@@ -1,0 +1,134 @@
+.stash-root {
+    flex-grow: 1;
+    justify-content: center;
+    align-items: center;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: none;
+}
+
+.stash-panel {
+    background-color: rgba(22, 22, 32, 0.98);
+    border-width: 2px;
+    border-color: rgba(255, 255, 255, 0.25);
+    border-radius: 10px;
+    padding: 24px;
+    align-items: center;
+}
+
+.stash-title {
+    color: white;
+    font-size: 28px;
+    -unity-font-style: bold;
+    margin-bottom: 16px;
+}
+
+.management-columns {
+    flex-direction: row;
+}
+
+.mgmt-column {
+    margin: 10px;
+}
+
+.column-header {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 14px;
+    -unity-font-style: bold;
+    margin-top: 8px;
+    margin-bottom: 6px;
+}
+
+.equipment-slots {
+    flex-direction: column;
+}
+
+.grid {
+    flex-direction: row;
+    flex-wrap: wrap;
+    width: 320px;
+}
+
+.stash-grid-big {
+    width: 360px;
+    min-height: 360px;
+}
+
+.item-slot {
+    width: 56px;
+    height: 56px;
+    margin: 3px;
+    background-color: rgba(12, 12, 20, 0.9);
+    border-width: 2px;
+    border-color: rgba(255, 255, 255, 0.2);
+    border-radius: 6px;
+    justify-content: center;
+    align-items: center;
+}
+
+.item-slot:hover {
+    border-color: rgba(255, 255, 255, 0.6);
+}
+
+.equip-slot {
+    flex-direction: row;
+    width: 300px;
+    height: 40px;
+    margin: 3px;
+    background-color: rgba(12, 12, 20, 0.9);
+    border-width: 2px;
+    border-color: rgba(255, 255, 255, 0.2);
+    border-radius: 6px;
+    align-items: center;
+    padding-left: 8px;
+}
+
+.equip-slot-label {
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 11px;
+    width: 80px;
+}
+
+.item-name {
+    color: white;
+    font-size: 10px;
+    -unity-text-align: middle-center;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
+}
+
+.item-qty {
+    position: absolute;
+    bottom: 2px;
+    right: 4px;
+    color: white;
+    font-size: 10px;
+    -unity-font-style: bold;
+}
+
+.hint {
+    color: rgba(255, 255, 255, 0.45);
+    font-size: 12px;
+    -unity-font-style: italic;
+    margin-top: 14px;
+}
+
+.stash-close-btn {
+    width: 200px;
+    height: 44px;
+    margin-top: 16px;
+    font-size: 16px;
+    -unity-font-style: bold;
+    color: white;
+    background-color: rgba(90, 70, 140, 0.9);
+    border-width: 2px;
+    border-color: rgba(200, 170, 255, 0.5);
+    border-radius: 8px;
+}
+
+.stash-close-btn:hover { background-color: rgba(120, 95, 180, 0.95); }
+
+.cat-material { border-left-color: rgb(150, 110, 70); border-left-width: 4px; }
+.cat-resource { border-left-color: rgb(200, 60, 60); border-left-width: 4px; }
+.cat-equipment { border-left-color: rgb(70, 130, 200); border-left-width: 4px; }
+.cat-catalyst { border-left-color: rgb(170, 90, 200); border-left-width: 4px; }
+.cat-consumable { border-left-color: rgb(80, 180, 100); border-left-width: 4px; }
+.cat-misc { border-left-color: rgba(255,255,255,0.3); border-left-width: 4px; }

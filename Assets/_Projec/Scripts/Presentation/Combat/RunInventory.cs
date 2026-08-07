@@ -17,16 +17,13 @@ namespace Game.Presentation.Combat
         [SerializeField] private ItemDatabase _database;
         [SerializeField] private int _fallbackBackpackSlots = 8; // capacidad si no hay mochila equipada
         [SerializeField] private GameObject _lootContainerPrefab; // asignar en el Inspector
-
+        [SerializeField] private Game.Core.Items.StartingKitSO _startingKit;
 
         // Mochila: lista de stacks. Vacíos representan slots libres.
         private readonly SyncList<ItemStack> _backpack = new SyncList<ItemStack>();
 
         // Equipamiento por slot. Indexado por (int)EquipmentSlot. Vacío = nada equipado.
         private readonly SyncList<ItemStack> _equipment = new SyncList<ItemStack>();
-
-        // Stash server-side (inyectable a futuro; por ahora instancia directa en memoria).
-        private static IStashStorage _stash = new Game.Presentation.Run.InMemoryStash();
 
         public IReadOnlyList<ItemStack> Backpack => _backpack;
         public IReadOnlyList<ItemStack> Equipment => _equipment;
@@ -35,12 +32,16 @@ namespace Game.Presentation.Combat
 
         public override void OnStartServer()
         {
-            // Inicializa el equipamiento con un slot por cada EquipmentSlot (vacío).
+            // Inicializar los slots de equipamiento (uno por cada EquipmentSlot, vacío).
             int slotCount = System.Enum.GetValues(typeof(EquipmentSlot)).Length;
             for (int i = 0; i < slotCount; i++)
                 _equipment.Add(ItemStack.Empty);
 
             RebuildBackpackCapacity();
+
+            // Cargar el inventario propio persistente (o el kit inicial la primera vez).
+            Game.Presentation.Run.PlayerLoadoutService.EnsureInitialized(_startingKit);
+            ApplySnapshot(Game.Presentation.Run.PlayerLoadoutService.Current);
         }
 
         public override void OnStartClient()
@@ -113,6 +114,52 @@ namespace Game.Presentation.Combat
 
             return remaining; // lo que no entró (mochila llena)
         }
+
+
+        /// <summary>Server-only. Crea un snapshot del inventario actual (para persistir al extraer).</summary>
+        [Server]
+        public Game.Core.Items.InventorySnapshot TakeSnapshot()
+        {
+            var snap = new Game.Core.Items.InventorySnapshot();
+            foreach (var s in _equipment) snap.Equipment.Add(s);   // incluye vacíos: preserva los slots
+            foreach (var s in _backpack) if (!s.IsEmpty) snap.Backpack.Add(s);
+            return snap;
+        }
+
+
+        /// <summary>Server-only. Restaura el inventario desde un snapshot (inventario propio persistente).</summary>
+        [Server]
+        public void ApplySnapshot(Game.Core.Items.InventorySnapshot snap)
+        {
+            // Limpiar primero.
+            ClearAll();
+
+            if (snap == null) return;
+
+            // Restaurar equipamiento por slot (el snapshot guarda un stack por cada slot, en orden).
+            for (int i = 0; i < snap.Equipment.Count && i < _equipment.Count; i++)
+                _equipment[i] = snap.Equipment[i];
+
+            // Recalcular capacidad de mochila según la mochila equipada del snapshot.
+            RebuildBackpackCapacity();
+
+            // Restaurar items de mochila.
+            foreach (var stack in snap.Backpack)
+            {
+                if (stack.IsEmpty) continue;
+                // Colocar en el primer slot libre.
+                for (int i = 0; i < _backpack.Count; i++)
+                {
+                    if (_backpack[i].IsEmpty)
+                    {
+                        _backpack[i] = stack;
+                        break;
+                    }
+                }
+            }
+        }
+
+
 
         // ---------- Equipar / desequipar ----------
 
@@ -188,13 +235,12 @@ namespace Game.Presentation.Combat
         [Server]
         public void CommitToStash()
         {
-            var toDeposit = new List<ItemStack>();
-            foreach (var s in _backpack) if (!s.IsEmpty) toDeposit.Add(s);
-            foreach (var s in _equipment) if (!s.IsEmpty) toDeposit.Add(s);
-
-            _stash.Deposit(toDeposit);
-            Debug.Log($"[RunInventory] Extracción: {toDeposit.Count} items guardados al stash.");
-            ClearAll();
+            // Modelo actual: al extraer, el inventario NO va al stash automáticamente.
+            // Se persiste como inventario propio (volvés al menú con todo intacto).
+            var snapshot = TakeSnapshot();
+            Game.Presentation.Run.PlayerLoadoutService.Save(snapshot);
+            Debug.Log("[RunInventory] Extracción: inventario propio guardado (persistente).");
+            // No se limpia el inventario de la run acá: el jugador ya está extraído.
         }
 
         [Server]
@@ -224,7 +270,8 @@ namespace Game.Presentation.Combat
             {
                 Debug.Log("[RunInventory] Muerte: sin loot que soltar.");
             }
-
+            // Al morir, el inventario propio persistente se vacía: volvés "desnudo" al menú.
+            Game.Presentation.Run.PlayerLoadoutService.Clear();
             ClearAll();
         }
 

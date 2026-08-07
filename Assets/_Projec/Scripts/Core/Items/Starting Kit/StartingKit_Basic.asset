@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 11083657cc7a4ae49aa76b8df76da34a, type: 3}
+  m_Name: StartingKit_Basic
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Core.Items.StartingKitSO
+  _equipment:
+  - Slot: 4
+    Item: {fileID: 11400000, guid: c4ea9ce28285afc4cb3dbe9e8b0de257, type: 2}
+  - Slot: 2
+    Item: {fileID: 11400000, guid: f351658965e9ec3418d6280c00a81cb0, type: 2}
+  - Slot: 5
+    Item: {fileID: 11400000, guid: a44728bd5d6209544adc10c62d12a7ee, type: 2}
+  _backpack:
+  - Item: {fileID: 11400000, guid: 8a3c86e0affa8b842a45ff8a82211619, type: 2}
+    Quantity: 1

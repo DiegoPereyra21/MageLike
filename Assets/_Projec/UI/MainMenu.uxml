@@ -4,6 +4,7 @@
         <ui:Label text="MageLike" class="game-title" />
         <ui:VisualElement class="menu-buttons">
             <ui:Button name="start-button" text="Comenzar Partida" class="menu-button" />
+            <ui:Button name="stash-button" text="Stash" class="menu-button" />
             <ui:Button name="quit-button" text="Salir" class="menu-button quit" />
         </ui:VisualElement>
     </ui:VisualElement>

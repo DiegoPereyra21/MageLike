@@ -14,6 +14,7 @@ namespace Game.Presentation.UI
     public class MainMenuController : MonoBehaviour
     {
         [SerializeField] private string _runSceneName = "Run";
+        [SerializeField] private StashScreenController _stashScreen;
 
         private UIDocument _document;
 
@@ -30,6 +31,10 @@ namespace Game.Presentation.UI
             var quitBtn = root.Q<Button>("quit-button");
             if (quitBtn != null)
                 quitBtn.clicked += OnQuitClicked;
+
+            var stashBtn = root.Q<Button>("stash-button");
+            if (stashBtn != null)
+                stashBtn.clicked += () => { if (_stashScreen != null) _stashScreen.Show(); };
         }
 
         private void OnStartClicked()
