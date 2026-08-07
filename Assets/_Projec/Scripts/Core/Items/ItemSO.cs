@@ -21,6 +21,10 @@ namespace Game.Core.Items
         [SerializeField] private bool _isStackable = false;
         [SerializeField, Min(1)] private int _maxStack = 1;
         
+        [Header("Mundo")]
+        [Tooltip("Prefab 3D que aparece en el suelo al dropearse. Si está vacío usa el prefab genérico.")]
+        [SerializeField] public GameObject WorldPrefab;
+
         public string ItemId => _itemId;
         public string DisplayName => _displayName;
         public Sprite Icon => _icon;

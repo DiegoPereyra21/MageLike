@@ -18,6 +18,7 @@ namespace Game.Presentation.Combat
         [SerializeField] private int _fallbackBackpackSlots = 8; // capacidad si no hay mochila equipada
         [SerializeField] private GameObject _lootContainerPrefab; // asignar en el Inspector
         [SerializeField] private Game.Core.Items.StartingKitSO _startingKit;
+        [SerializeField] private GameObject _worldItemPrefab; // prefab con WorldItem + NetworkObject
 
         // Mochila: lista de stacks. Vacíos representan slots libres.
         private readonly SyncList<ItemStack> _backpack = new SyncList<ItemStack>();
@@ -97,20 +98,37 @@ namespace Game.Presentation.Combat
         [Server]
         private void SpawnWorldItem(ItemStack stack)
         {
-            if (_lootContainerPrefab == null) return;
+            SpawnWorldItemPublic(stack, transform.position);
+        }
 
-            Vector3 pos = transform.position;
-            if (Physics.Raycast(transform.position, Vector3.down, out RaycastHit hit, 5f))
-                pos = hit.point + Vector3.up * 0.1f;
 
-            // Offset aleatorio pequeño para que no se apilen si hay varios.
+
+        /// <summary>Server-only. Equipa una mochila que viene del mundo (sin origen en la mochila interna).</summary>
+        [Server]
+        public void EquipBackpackFromWorld(ItemStack stack)
+        {
+            int slotIndex = (int)EquipmentSlot.Backpack;
+            _equipment[slotIndex] = new ItemStack(stack.ItemId, 1, stack.Durability);
+            RebuildBackpackCapacity();
+        }
+
+        /// <summary>Server-only. Punto de entrada público para spawnear un WorldItem cerca de una posición.</summary>
+        [Server]
+        public void SpawnWorldItemPublic(ItemStack stack, Vector3 nearPosition)
+        {
+            if (_worldItemPrefab == null) return;
+
+            Vector3 pos = nearPosition;
+            if (Physics.Raycast(nearPosition + Vector3.up * 0.5f, Vector3.down, out RaycastHit hit, 5f))
+                pos = hit.point + Vector3.up * 0.15f;
+
             pos += new Vector3(Random.Range(-0.5f, 0.5f), 0f, Random.Range(-0.5f, 0.5f));
 
-            GameObject obj = Instantiate(_lootContainerPrefab, pos, Quaternion.identity);
-            if (obj.TryGetComponent(out LootContainer container))
+            GameObject obj = Instantiate(_worldItemPrefab, pos, Quaternion.identity);
+            if (obj.TryGetComponent(out WorldItem worldItem))
             {
                 InstanceFinder.ServerManager.Spawn(obj);
-                container.ServerFill(new[] { stack });
+                worldItem.ServerSetItem(stack);
             }
         }
 

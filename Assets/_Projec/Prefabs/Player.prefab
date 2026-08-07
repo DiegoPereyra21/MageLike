@@ -334,6 +334,7 @@ MonoBehaviour:
   _fallbackBackpackSlots: 8
   _lootContainerPrefab: {fileID: 2764254699792074859, guid: 3d07cbfe898310a45a89d7f2119ba857, type: 3}
   _startingKit: {fileID: 11400000, guid: fdfcad62ad451274c9103cfff992f2c4, type: 2}
+  _worldItemPrefab: {fileID: 2132299959280697645, guid: 871392e19bc3d75459b2c32fa36490cf, type: 3}
 --- !u!114 &6513846324524779194
 MonoBehaviour:
   m_ObjectHideFlags: 0

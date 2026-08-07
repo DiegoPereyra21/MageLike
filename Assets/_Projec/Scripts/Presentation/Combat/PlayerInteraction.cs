@@ -87,19 +87,48 @@ namespace Game.Presentation.Combat
             if (item == null) return;
 
             ItemStack stack = item.ToStack();
+            ItemSO def = _database.GetById(stack.ItemId);
+
+            // ¿Es una mochila? Intentar auto-equip si conviene.
+            if (def is EquipmentItemSO equip && equip.Slot == EquipmentSlot.Backpack)
+            {
+                int equipSlot = (int)EquipmentSlot.Backpack;
+                ItemStack current = _inventory.Equipment[equipSlot];
+
+                // Calcular capacidad actual vs nueva.
+                int currentCap = 0;
+                if (!current.IsEmpty && _database.GetById(current.ItemId) is EquipmentItemSO currentEquip)
+                    currentCap = currentEquip.BackpackSlots;
+
+                if (equip.BackpackSlots > currentCap)
+                {
+                    // Equipar la nueva mochila directamente.
+                    _inventory.EquipBackpackFromWorld(stack);
+
+                    // La mochila anterior (si había) va al suelo.
+                    if (!current.IsEmpty)
+                        SpawnWorldItemNear(current);
+
+                    item.Despawn();
+                    return;
+                }
+                // Si no es mejor, cae al flujo normal (intentar meter a mochila).
+            }
+
+            // Flujo normal: intentar agregar a la mochila.
             int notAdded = _inventory.TryAddItem(stack.ItemId, stack.Quantity);
 
             if (notAdded <= 0)
-            {
-                // Entró todo: despawnear el item del mundo.
                 item.Despawn();
-            }
             else if (notAdded < stack.Quantity)
-            {
-                // Entró una parte (apilable): reducir la cantidad restante en el mundo.
                 item.ServerSetItem(new ItemStack(stack.ItemId, notAdded, stack.Durability));
-            }
-            // Si no entró nada (mochila llena), queda igual en el suelo.
+        }
+
+        private void SpawnWorldItemNear(ItemStack stack)
+        {
+            // Reutiliza el mismo prefab y lógica que RunInventory, pero desde PlayerInteraction.
+            // Delegamos al RunInventory para no duplicar la lógica de spawn.
+            _inventory.SpawnWorldItemPublic(stack, transform.position);
         }
     }
 }

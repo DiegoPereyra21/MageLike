@@ -14,14 +14,22 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Game.Core.Items.LootTableSO
   _entries:
   - Item: {fileID: 11400000, guid: c8c4f03512b230f44886e711043cf735, type: 2}
-    Chance: 0.8
+    Chance: 0.1
     MinQuantity: 2
     MaxQuantity: 5
-  - Item: {fileID: 11400000, guid: 8a3c86e0affa8b842a45ff8a82211619, type: 2}
-    Chance: 0.3
+  - Item: {fileID: 11400000, guid: cc430c4ed9dc7af468a23137d83ab9fc, type: 2}
+    Chance: 0.1
     MinQuantity: 1
     MaxQuantity: 1
-  - Item: {fileID: 11400000, guid: cc430c4ed9dc7af468a23137d83ab9fc, type: 2}
+  - Item: {fileID: 11400000, guid: 9b48f05b0335ef5449e6e6007245a44f, type: 2}
+    Chance: 0.5
+    MinQuantity: 1
+    MaxQuantity: 1
+  - Item: {fileID: 11400000, guid: 5f931db816594734aa8f131c2885c692, type: 2}
+    Chance: 0.5
+    MinQuantity: 1
+    MaxQuantity: 1
+  - Item: {fileID: 11400000, guid: a44728bd5d6209544adc10c62d12a7ee, type: 2}
     Chance: 0.5
     MinQuantity: 1
     MaxQuantity: 1

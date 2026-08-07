@@ -8,30 +8,61 @@ namespace Game.Presentation.Combat
     /// <summary>
     /// Un item tirado en el mundo (NetworkObject). Guarda qué item es y cuánto (ItemStack),
     /// sincronizado. Server-authoritative: el servidor decide cuándo se recoge y despawnea.
+    /// Al spawnear en el cliente, instancia el mesh del item (o el genérico si no tiene).
     /// </summary>
     public class WorldItem : NetworkBehaviour
     {
-        // Estado sincronizado del item que representa.
-        private readonly SyncVar<string> _itemId = new SyncVar<string>();
-        private readonly SyncVar<int> _quantity = new SyncVar<int>();
-        private readonly SyncVar<float> _durability = new SyncVar<float>();
+        [SerializeField] private ItemDatabase _database;
+        [SerializeField] private GameObject _defaultWorldPrefab; // cubo placeholder
 
-        public string ItemId => _itemId.Value;
-        public int Quantity => _quantity.Value;
+        private readonly SyncVar<string> _itemId   = new SyncVar<string>();
+        private readonly SyncVar<int>    _quantity  = new SyncVar<int>();
+        private readonly SyncVar<float>  _durability = new SyncVar<float>();
 
-        /// <summary>Server-only. Configura qué item representa este WorldItem.</summary>
+        public string ItemId   => _itemId.Value;
+        public int    Quantity => _quantity.Value;
+
+        private GameObject _spawnedMesh;
+
         [Server]
         public void ServerSetItem(ItemStack stack)
         {
-            _itemId.Value = stack.ItemId;
-            _quantity.Value = stack.Quantity;
+            _itemId.Value    = stack.ItemId;
+            _quantity.Value  = stack.Quantity;
             _durability.Value = stack.Durability;
         }
 
-        /// <summary>Server-only. Devuelve el stack que contiene.</summary>
+        public override void OnStartClient()
+        {
+            base.OnStartClient();
+            ApplyMesh();
+            // Si el SyncVar llega después del OnStartClient (raro pero posible), re-aplicar.
+            _itemId.OnChange += (_, _, _) => ApplyMesh();
+        }
+
+        private void ApplyMesh()
+        {
+            if (string.IsNullOrEmpty(_itemId.Value)) return;
+
+            // Limpiar mesh anterior si hubiera.
+            if (_spawnedMesh != null) Destroy(_spawnedMesh);
+
+            GameObject prefabToUse = _defaultWorldPrefab;
+
+            if (_database != null)
+            {
+                ItemSO def = _database.GetById(_itemId.Value);
+                if (def != null && def.WorldPrefab != null)
+                    prefabToUse = def.WorldPrefab;
+            }
+
+            if (prefabToUse == null) return;
+
+            _spawnedMesh = Instantiate(prefabToUse, transform.position, transform.rotation, transform);
+        }
+
         public ItemStack ToStack() => new ItemStack(_itemId.Value, _quantity.Value, _durability.Value);
 
-        /// <summary>Nombre para el prompt (resuelto en cliente vía database).</summary>
         public string GetDisplayName(ItemDatabase db)
         {
             ItemSO def = db != null ? db.GetById(_itemId.Value) : null;
