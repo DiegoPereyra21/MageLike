@@ -12,8 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 696254234f6ab8a48b3a338d19b6b061, type: 3}
   m_Name: Backpack_2
   m_EditorClassIdentifier: Assembly-CSharp::Game.Core.Items.EquipmentItemSO
-  _itemId: backpack_3
-  _displayName: Backpack 3
+  _itemId: backpack_2
+  _displayName: Backpack 2
   _category: 2
   _icon: {fileID: 0}
   _description: 

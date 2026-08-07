@@ -66,8 +66,37 @@ namespace Game.Presentation.Combat
 
         public override void OnStartServer()
         {
-            if (Run.RunManager.Instance != null)
-                Run.RunManager.Instance.RegisterPlayer(base.ObjectId);
+            TryRegisterInRunManager();
+        }
+
+        private void TryRegisterInRunManager()
+        {
+            if (Game.Presentation.Run.RunManager.Instance != null)
+            {
+                Game.Presentation.Run.RunManager.Instance.RegisterPlayer(base.ObjectId);
+            }
+            else
+            {
+                // El RunManager todavía no existe (orden de spawn en la transición de escena).
+                // Reintentar el próximo frame.
+                StartCoroutine(RetryRegister());
+            }
+        }
+
+        private System.Collections.IEnumerator RetryRegister()
+        {
+            // Esperar hasta que el RunManager exista (unos pocos frames como mucho).
+            float timeout = 5f;
+            while (Game.Presentation.Run.RunManager.Instance == null && timeout > 0f && base.IsSpawned)
+            {
+                timeout -= Time.deltaTime;
+                yield return null;
+            }
+
+            if (Game.Presentation.Run.RunManager.Instance != null)
+                Game.Presentation.Run.RunManager.Instance.RegisterPlayer(base.ObjectId);
+            else
+                Debug.LogWarning("[PlayerExtractionState] No se encontró RunManager para registrar el jugador.");
         }
     }
 }
