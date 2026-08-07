@@ -124,6 +124,21 @@
     border-radius: 8px;
 }
 
+.drag-ghost {
+    position: absolute;
+    width: 56px;
+    height: 56px;
+    background-color: rgba(40, 40, 60, 0.95);
+    border-width: 2px;
+    border-color: rgba(255, 255, 255, 0.7);
+    border-radius: 6px;
+    justify-content: center;
+    align-items: center;
+    /* que no bloquee los eventos de puntero de los slots debajo */
+}
+
+
+
 .stash-close-btn:hover { background-color: rgba(120, 95, 180, 0.95); }
 
 .cat-material { border-left-color: rgb(150, 110, 70); border-left-width: 4px; }

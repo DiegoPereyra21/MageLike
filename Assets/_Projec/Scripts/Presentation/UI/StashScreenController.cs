@@ -8,19 +8,35 @@ namespace Game.Presentation.UI
     /// <summary>
     /// Pantalla de gestión en el menú: inventario propio (equipo + mochila) y stash lado a lado.
     /// Trabaja sobre datos planos (snapshot del PlayerLoadoutService + StashData del StashService),
-    /// sin red. Clic mueve items entre inventario y stash (y equipa/desequipa).
+    /// sin red. Clic mueve items; shift+clic equipa; arrastrar (drag & drop) mueve entre slots.
     /// </summary>
     [RequireComponent(typeof(UIDocument))]
     public class StashScreenController : MonoBehaviour
     {
         [SerializeField] private ItemDatabase _database;
-        [SerializeField] private StartingKitSO _startingKit; // para inicializar si nunca jugó
+        [SerializeField] private StartingKitSO _startingKit;
 
         private UIDocument _document;
         private VisualElement _root;
         private VisualElement _equipmentSlots;
         private VisualElement _backpackGrid;
         private VisualElement _stashGrid;
+
+        private enum SlotZone { Equipment, Backpack, Stash }
+
+        private struct DragInfo
+        {
+            public SlotZone Zone;
+            public int Index;
+            public ItemStack Stack;
+        }
+
+        private DragInfo _dragging;
+        private bool _isDragging;
+        private VisualElement _ghost;
+        private bool _dragMoved;
+
+        private const int FallbackBackpackSlots = 8;
 
         private void OnEnable()
         {
@@ -32,11 +48,13 @@ namespace Game.Presentation.UI
 
             var closeBtn = _root.Q<Button>("stash-close");
             if (closeBtn != null) closeBtn.clicked += Hide;
+
+            // Limpieza del drag si se suelta en cualquier lado (fuera de un slot).
+            _root.RegisterCallback<PointerUpEvent>(_ => { if (_isDragging) CancelDrag(); });
         }
 
         public void Show()
         {
-            // Asegurar que el inventario propio exista (kit inicial la primera vez).
             PlayerLoadoutService.EnsureInitialized(_startingKit);
             _root.style.display = DisplayStyle.Flex;
             Redraw();
@@ -60,12 +78,12 @@ namespace Game.Presentation.UI
             _equipmentSlots.Clear();
             var equip = Inv.Equipment;
 
-            // El snapshot guarda un stack por cada slot de equipo, en orden del enum.
             for (int i = 0; i < equip.Count; i++)
             {
                 int slotIndex = i;
                 var slot = new VisualElement();
                 slot.AddToClassList("equip-slot");
+                slot.userData = new DragInfo { Zone = SlotZone.Equipment, Index = slotIndex, Stack = equip[i] };
 
                 var label = new Label(((EquipmentSlot)i).ToString());
                 label.AddToClassList("equip-slot-label");
@@ -80,10 +98,20 @@ namespace Game.Presentation.UI
                     name.AddToClassList("item-name");
                     slot.Add(name);
 
-                    // Clic en equipo: desequipar → va a la mochila.
-                    slot.RegisterCallback<ClickEvent>(_ => UnequipToBackpack(slotIndex));
+                    slot.RegisterCallback<ClickEvent>(_ =>
+                    {
+                        if (_dragMoved) { _dragMoved = false; return; }
+                        UnequipToBackpack(slotIndex);
+                    });
+
+                    slot.RegisterCallback<PointerDownEvent>(evt =>
+                    {
+                        if (evt.button != 0) return;
+                        BeginDrag(SlotZone.Equipment, slotIndex, stack, evt.position);
+                    });
                 }
 
+                slot.RegisterCallback<PointerUpEvent>(_ => TryDrop(SlotZone.Equipment, slotIndex));
                 _equipmentSlots.Add(slot);
             }
         }
@@ -91,17 +119,37 @@ namespace Game.Presentation.UI
         // ---------- Mochila ----------
         private void DrawBackpack()
         {
+            NormalizeBackpack();
             _backpackGrid.Clear();
             var bp = Inv.Backpack;
             for (int i = 0; i < bp.Count; i++)
             {
                 int idx = i;
-                _backpackGrid.Add(BuildItemSlotWithShift(bp[i],
+                _backpackGrid.Add(BuildItemSlot(bp[i], SlotZone.Backpack, idx,
                     normalClick: () => MoveBackpackToStash(idx),
                     shiftClick: () => EquipFromBackpack(idx)));
             }
-            // Slots vacíos visuales para que se vea la grilla (hasta cierto número).
-            // Opcional: mostrar solo los ocupados. Acá mostramos los ocupados nada más.
+        }
+
+        private int BackpackCapacity()
+        {
+            int backpackSlotIndex = (int)EquipmentSlot.Backpack;
+            if (backpackSlotIndex < Inv.Equipment.Count)
+            {
+                ItemStack bp = Inv.Equipment[backpackSlotIndex];
+                if (!bp.IsEmpty && _database.GetById(bp.ItemId) is EquipmentItemSO e && e.Slot == EquipmentSlot.Backpack)
+                    return Mathf.Max(e.BackpackSlots, 0);
+            }
+            return FallbackBackpackSlots;
+        }
+
+        private void NormalizeBackpack()
+        {
+            int cap = BackpackCapacity();
+            var bp = Inv.Backpack;
+            while (bp.Count < cap) bp.Add(ItemStack.Empty);
+            while (bp.Count > cap && bp.Count > 0 && bp[bp.Count - 1].IsEmpty)
+                bp.RemoveAt(bp.Count - 1);
         }
 
         // ---------- Stash ----------
@@ -112,16 +160,19 @@ namespace Game.Presentation.UI
             for (int i = 0; i < slots.Count; i++)
             {
                 int idx = i;
-                _stashGrid.Add(BuildItemSlotWithShift(slots[i],
+                _stashGrid.Add(BuildItemSlot(slots[i], SlotZone.Stash, idx,
                     normalClick: () => MoveStashToInventory(idx),
                     shiftClick: () => EquipFromStash(idx)));
             }
         }
 
-        private VisualElement BuildItemSlotWithShift(ItemStack stack, System.Action normalClick, System.Action shiftClick)
+        // ---------- Construcción de slot (mochila / stash) ----------
+        private VisualElement BuildItemSlot(ItemStack stack, SlotZone zone, int index,
+            System.Action normalClick, System.Action shiftClick)
         {
             var slot = new VisualElement();
             slot.AddToClassList("item-slot");
+            slot.userData = new DragInfo { Zone = zone, Index = index, Stack = stack };
 
             if (!stack.IsEmpty)
             {
@@ -141,20 +192,135 @@ namespace Game.Presentation.UI
 
                 slot.RegisterCallback<ClickEvent>(evt =>
                 {
+                    if (_dragMoved) { _dragMoved = false; return; }
                     if (evt.shiftKey) shiftClick?.Invoke();
                     else normalClick?.Invoke();
                 });
+
+                slot.RegisterCallback<PointerDownEvent>(evt =>
+                {
+                    if (evt.button != 0) return;
+                    BeginDrag(zone, index, stack, evt.position);
+                });
             }
 
+            slot.RegisterCallback<PointerUpEvent>(_ => TryDrop(zone, index));
             return slot;
         }
 
+        // ---------- Drag & drop ----------
+        private void BeginDrag(SlotZone zone, int index, ItemStack stack, Vector2 pos)
+        {
+            _dragging = new DragInfo { Zone = zone, Index = index, Stack = stack };
+            _isDragging = true;
+            _dragMoved = false;
 
+            _ghost = new VisualElement();
+            _ghost.AddToClassList("drag-ghost");
+            _ghost.pickingMode = PickingMode.Ignore;
+            var def = _database.GetById(stack.ItemId);
+            var name = new Label(def != null ? def.DisplayName : stack.ItemId);
+            name.AddToClassList("item-name");
+            name.pickingMode = PickingMode.Ignore;
+            _ghost.Add(name);
+            _root.Add(_ghost);
+            MoveGhost(pos);
+
+            _root.RegisterCallback<PointerMoveEvent>(OnDragMove);
+        }
+
+        private void OnDragMove(PointerMoveEvent evt)
+        {
+            if (!_isDragging) return;
+            _dragMoved = true;
+            MoveGhost(evt.position);
+        }
+
+        private void MoveGhost(Vector2 pos)
+        {
+            if (_ghost == null) return;
+            _ghost.style.left = pos.x - 28;
+            _ghost.style.top = pos.y - 28;
+        }
+
+        private void TryDrop(SlotZone destZone, int destIndex)
+        {
+            if (!_isDragging) return;
+
+            var from = _dragging;
+            bool moved = _dragMoved;
+            EndDrag();
+
+            if (!moved) return; // fue un clic, no un arrastre
+
+            MoveItem(from.Zone, from.Index, destZone, destIndex);
+            Redraw();
+        }
+
+        private void CancelDrag()
+        {
+            // Se soltó fuera de un slot: limpiar sin mover.
+            EndDrag();
+        }
+
+        private void EndDrag()
+        {
+            _isDragging = false;
+            _root.UnregisterCallback<PointerMoveEvent>(OnDragMove);
+            if (_ghost != null) { _ghost.RemoveFromHierarchy(); _ghost = null; }
+        }
+
+        private void MoveItem(SlotZone fromZone, int fromIndex, SlotZone toZone, int toIndex)
+        {
+            if (fromZone == toZone && fromIndex == toIndex) return;
+
+            ItemStack item = GetStack(fromZone, fromIndex);
+            if (item.IsEmpty) return;
+
+            // Si el destino es slot de equipo, validar que el item corresponda.
+            if (toZone == SlotZone.Equipment)
+            {
+                if (_database.GetById(item.ItemId) is not EquipmentItemSO equip) return;
+                if ((int)equip.Slot != toIndex) return;
+            }
+
+            ItemStack existing = GetStack(toZone, toIndex);
+
+            SetStack(toZone, toIndex, new ItemStack(item.ItemId, item.Quantity, item.Durability));
+            SetStack(fromZone, fromIndex, ItemStack.Empty);
+
+            // Swap: lo que había en destino vuelve al origen.
+            if (!existing.IsEmpty)
+                SetStack(fromZone, fromIndex, existing);
+        }
+
+        private ItemStack GetStack(SlotZone zone, int index)
+        {
+            switch (zone)
+            {
+                case SlotZone.Equipment: return (index >= 0 && index < Inv.Equipment.Count) ? Inv.Equipment[index] : ItemStack.Empty;
+                case SlotZone.Backpack:  return (index >= 0 && index < Inv.Backpack.Count)  ? Inv.Backpack[index]  : ItemStack.Empty;
+                case SlotZone.Stash:     return (index >= 0 && index < Stash.Slots.Count)   ? Stash.Slots[index]   : ItemStack.Empty;
+            }
+            return ItemStack.Empty;
+        }
+
+        private void SetStack(SlotZone zone, int index, ItemStack stack)
+        {
+            switch (zone)
+            {
+                case SlotZone.Equipment: if (index >= 0 && index < Inv.Equipment.Count) Inv.Equipment[index] = stack; break;
+                case SlotZone.Backpack:  if (index >= 0 && index < Inv.Backpack.Count)  Inv.Backpack[index]  = stack; break;
+                case SlotZone.Stash:     if (index >= 0 && index < Stash.Slots.Count)   Stash.Slots[index]   = stack; break;
+            }
+        }
+
+        // ---------- Equipar (shift+clic) ----------
         private void EquipFromBackpack(int backpackIndex)
         {
             if (backpackIndex < 0 || backpackIndex >= Inv.Backpack.Count) return;
             ItemStack stack = Inv.Backpack[backpackIndex];
-            TryEquip(stack, () => Inv.Backpack.RemoveAt(backpackIndex));
+            TryEquip(stack, () => Inv.Backpack[backpackIndex] = ItemStack.Empty);
             Redraw();
         }
 
@@ -165,65 +331,25 @@ namespace Game.Presentation.UI
             Redraw();
         }
 
-        // ---------- Construcción de slot ----------
-        private VisualElement BuildItemSlot(ItemStack stack, System.Action onClick)
-        {
-            var slot = new VisualElement();
-            slot.AddToClassList("item-slot");
-
-            if (!stack.IsEmpty)
-            {
-                ItemSO def = _database.GetById(stack.ItemId);
-                ApplyCategoryClass(slot, def);
-
-                var name = new Label(def != null ? def.DisplayName : stack.ItemId);
-                name.AddToClassList("item-name");
-                slot.Add(name);
-
-                if (stack.Quantity > 1)
-                {
-                    var qty = new Label($"x{stack.Quantity}");
-                    qty.AddToClassList("item-qty");
-                    slot.Add(qty);
-                }
-
-                if (onClick != null)
-                    slot.RegisterCallback<ClickEvent>(_ => onClick());
-            }
-
-            return slot;
-        }
-
-        // ---------- Operaciones de movimiento ----------
-
-        /// <summary>Equipa un item equipable en su slot correcto. Si el slot está ocupado, intercambia.</summary>
         private bool TryEquip(ItemStack stack, System.Action removeFromSource)
         {
             if (stack.IsEmpty) return false;
-
-            // Solo equipable si su definición es equipamiento.
             if (_database.GetById(stack.ItemId) is not EquipmentItemSO equip) return false;
 
             int slotIndex = (int)equip.Slot;
             if (slotIndex < 0 || slotIndex >= Inv.Equipment.Count) return false;
 
             ItemStack current = Inv.Equipment[slotIndex];
-
-            // Sacar el item de su origen (mochila o stash).
             removeFromSource();
-
-            // Equipar el nuevo.
             Inv.Equipment[slotIndex] = new ItemStack(stack.ItemId, 1, stack.Durability);
 
-            // Si había algo equipado, va a la mochila (intercambio).
             if (!current.IsEmpty)
-                Inv.Backpack.Add(current);
+                AddToBackpack(current);
 
             return true;
         }
 
-
-        // Mochila → Stash
+        // ---------- Movimientos por clic ----------
         private void MoveBackpackToStash(int backpackIndex)
         {
             if (backpackIndex < 0 || backpackIndex >= Inv.Backpack.Count) return;
@@ -232,37 +358,43 @@ namespace Game.Presentation.UI
 
             int notAdded = Stash.Add(stack, id => _database.GetById(id));
             if (notAdded <= 0)
-                Inv.Backpack.RemoveAt(backpackIndex);
+                Inv.Backpack[backpackIndex] = ItemStack.Empty;
             else
             {
-                // Entró parte: actualizar la cantidad restante en la mochila.
                 var s = stack; s.Quantity = notAdded; Inv.Backpack[backpackIndex] = s;
             }
             Redraw();
         }
 
-        // Stash → Inventario (a la mochila)
         private void MoveStashToInventory(int stashIndex)
         {
             ItemStack stack = Stash.Slots[stashIndex];
             if (stack.IsEmpty) return;
 
-            // Agregar a la mochila del inventario propio (lista dinámica).
-            Inv.Backpack.Add(stack);
+            AddToBackpack(stack);
             Stash.TakeAt(stashIndex);
             Redraw();
         }
 
-        // Equipo → Mochila (desequipar)
         private void UnequipToBackpack(int equipSlotIndex)
         {
             if (equipSlotIndex < 0 || equipSlotIndex >= Inv.Equipment.Count) return;
             ItemStack stack = Inv.Equipment[equipSlotIndex];
             if (stack.IsEmpty) return;
 
-            Inv.Backpack.Add(stack);
+            AddToBackpack(stack);
             Inv.Equipment[equipSlotIndex] = ItemStack.Empty;
             Redraw();
+        }
+
+        private bool AddToBackpack(ItemStack stack)
+        {
+            var bp = Inv.Backpack;
+            for (int i = 0; i < bp.Count; i++)
+            {
+                if (bp[i].IsEmpty) { bp[i] = stack; return true; }
+            }
+            return false;
         }
 
         private void ApplyCategoryClass(VisualElement slot, ItemSO def)
