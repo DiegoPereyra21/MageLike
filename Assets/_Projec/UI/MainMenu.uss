@@ -1,0 +1,41 @@
+.menu-root {
+    flex-grow: 1;
+    justify-content: center;
+    align-items: center;
+    background-color: rgb(18, 16, 26);
+}
+
+.game-title {
+    color: rgb(200, 170, 255);
+    font-size: 56px;
+    -unity-font-style: bold;
+    margin-bottom: 50px;
+    text-shadow: 0 3px 8px rgba(0, 0, 0, 0.8);
+}
+
+.menu-buttons {
+    align-items: center;
+}
+
+.menu-button {
+    width: 280px;
+    height: 54px;
+    margin: 8px;
+    font-size: 18px;
+    -unity-font-style: bold;
+    color: white;
+    background-color: rgba(90, 70, 140, 0.9);
+    border-width: 2px;
+    border-color: rgba(200, 170, 255, 0.5);
+    border-radius: 8px;
+}
+
+.menu-button:hover {
+    background-color: rgba(120, 95, 180, 0.95);
+    border-color: rgba(220, 190, 255, 0.8);
+}
+
+.menu-button.quit {
+    background-color: rgba(60, 55, 75, 0.9);
+    border-color: rgba(150, 140, 170, 0.5);
+}

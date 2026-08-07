@@ -124,8 +124,8 @@ namespace Game.Presentation.Combat
             float best = radius;
             foreach (var p in players)
             {
-                // Ignorar jugadores muertos.
                 if (p.TryGetComponent(out Health h) && h.IsDead) continue;
+                if (p.TryGetComponent(out Game.Presentation.Combat.PlayerExtractionState ext) && ext.IsExtracted) continue;
 
                 float d = Vector3.Distance(transform.position, p.transform.position);
                 if (d <= best)
@@ -182,6 +182,11 @@ namespace Game.Presentation.Combat
         {
             if (_target == null) return false;
             if (_target.TryGetComponent(out Health h) && h.IsDead) return false;
+
+            // Ignorar jugadores que ya extrajeron (salieron de la run).
+            if (_target.TryGetComponent(out Game.Presentation.Combat.PlayerExtractionState ext) && ext.IsExtracted)
+                return false;
+
             return true;
         }
 

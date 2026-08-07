@@ -44,6 +44,9 @@ namespace Game.Presentation.Combat
             if (TryGetComponent(out IRunInventory inventory))
                 inventory.CommitToStash();
 
+            if (TryGetComponent(out Health health))
+                health.SetInvulnerable(true);
+                
             ExtractObserversRpc();
         }
 
@@ -52,7 +55,13 @@ namespace Game.Presentation.Combat
         {
             Debug.Log($"[Extraction] Jugador {base.ObjectId} EXTRAÍDO con éxito");
             if (_avatar != null) _avatar.DisableControl();
-            // TODO: cámara spectator / pantalla de "extracción exitosa".
+            
+
+            if (base.IsOwner)
+            {
+                var result = FindFirstObjectByType<Game.Presentation.UI.ResultScreenController>();
+                if (result != null) result.Show(true); // extrajo
+            }
         }
 
         public override void OnStartServer()

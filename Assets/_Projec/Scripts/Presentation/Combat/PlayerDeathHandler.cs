@@ -50,7 +50,12 @@ namespace Game.Presentation.Combat
             if (TryGetComponent(out Game.Core.Run.IRunInventory inventory))
                 inventory.DropAll();
 
-            // TODO: cámara spectator, pantalla de eliminación.
+
+            if (base.IsOwner)
+            {
+                var result = FindFirstObjectByType<Game.Presentation.UI.ResultScreenController>();
+                if (result != null) result.Show(false); // murió
+            }
         }
     }
 }

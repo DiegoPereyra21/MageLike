@@ -1,0 +1,10 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <Style src="MainMenu.uss" />
+    <ui:VisualElement name="menu-root" class="menu-root">
+        <ui:Label text="MageLike" class="game-title" />
+        <ui:VisualElement class="menu-buttons">
+            <ui:Button name="start-button" text="Comenzar Partida" class="menu-button" />
+            <ui:Button name="quit-button" text="Salir" class="menu-button quit" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

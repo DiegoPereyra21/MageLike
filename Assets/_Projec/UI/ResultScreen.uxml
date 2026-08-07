@@ -1,0 +1,10 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <Style src="ResultScreen.uss" />
+    <ui:VisualElement name="result-root" class="result-root">
+        <ui:VisualElement class="result-panel">
+            <ui:Label name="result-title" text="" class="result-title" />
+            <ui:Label name="result-subtitle" text="" class="result-subtitle" />
+            <ui:Button name="return-button" text="Volver al menú" class="return-button" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

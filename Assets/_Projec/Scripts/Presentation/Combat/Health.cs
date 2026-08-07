@@ -20,19 +20,28 @@ namespace Game.Presentation.Combat
         public float Max => _maxHealth;
         public bool IsDead => _current.Value <= 0f;
 
+        private bool _invulnerable;
+
         public override void OnStartServer()
         {
             _current.Value = _maxHealth;
         }
 
-        /// <summary>
+        /// <summary>Server-only. Vuelve la entidad inmune a daño (ej. tras extraer).</summary>
+        public void SetInvulnerable(bool value)
+        {
+            if (!base.IsServerStarted) return;
+            _invulnerable = value;
+        }
+                /// <summary>
         /// amount positivo = daño, negativo = cura. Solo corre en servidor.
         /// </summary>
         public void ApplyDamage(float amount, int instigatorNetworkId)
         {
             if (!base.IsServerStarted) return;
             if (IsDead) return;
-
+            if (_invulnerable && amount > 0f) return; // inmune a daño (no a curas, por si acaso)
+            
             // Protección: reduce solo el daño entrante (no afecta curas).
             if (amount > 0f && _stats != null)
                 amount *= (1f - _stats.ProtectionPercent);
