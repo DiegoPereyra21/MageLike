@@ -75,5 +75,10 @@
 
 .lobby-entry:hover {
     background-color: rgba(255, 255, 255, 0.12);
-    cursor: link;
+}
+
+.lobby-empty {
+    color: rgba(255, 255, 255, 0.5);
+    padding: 10px;
+    -unity-text-align: upper-center;
 }

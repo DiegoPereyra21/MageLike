@@ -2,6 +2,7 @@ using FishNet;
 using FishNet.Managing.Scened;
 using UnityEngine;
 using UnityEngine.UIElements;
+using Game.Presentation.Bootstrap;
 
 namespace Game.Presentation.UI
 {
@@ -58,11 +59,15 @@ namespace Game.Presentation.UI
 
         private void OnReturnClicked()
         {
-            // Cerrar la conexión y volver al menú (host local).
+            // Abandonar el lobby de Steam si estamos en uno.
+            var lobbyId = LobbySession.Current;
+            if (LobbySession.IsValid())
+                Steamworks.SteamMatchmaking.LeaveLobby(lobbyId);
+            LobbySession.Clear();
+
             if (InstanceFinder.IsServerStarted) InstanceFinder.ServerManager.StopConnection(true);
             if (InstanceFinder.IsClientStarted) InstanceFinder.ClientManager.StopConnection();
 
-            // Cargar la escena de menú localmente (ya no hay red que sincronizar).
             UnityEngine.SceneManagement.SceneManager.LoadScene(_menuSceneName);
         }
     }

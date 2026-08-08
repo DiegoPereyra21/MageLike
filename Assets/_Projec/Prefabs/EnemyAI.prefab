@@ -73,7 +73,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 31321ba15b8f8eb4c954353edc038b1d, type: 2}
+  - {fileID: 2100000, guid: 18c07fd24879d3c49a47caa0adbc9997, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -264,6 +264,10 @@ MonoBehaviour:
   _loseRadius: 16
   _moveSpeed: 3.5
   _repathInterval: 0.2
+  _attackRange: 2
+  _attackWindup: 0.4
+  _attackCooldown: 1.5
+  _attackDamage: 15
 --- !u!114 &4937824281593786330
 MonoBehaviour:
   m_ObjectHideFlags: 0

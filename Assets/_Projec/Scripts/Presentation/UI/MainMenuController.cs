@@ -5,6 +5,7 @@ using FishNet.Managing.Scened;
 using Steamworks;
 using UnityEngine;
 using UnityEngine.UIElements;
+using Game.Presentation.Bootstrap;
 
 namespace Game.Presentation.UI
 {
@@ -70,6 +71,7 @@ namespace Game.Presentation.UI
             SteamMatchmaking.SetLobbyData(lobbyId, "gameName", "MageLike");
 
             Debug.Log($"[Steam] Lobby creado: {lobbyId}");
+            LobbySession.Set(lobbyId);
 
             // Arrancar server+client y cargar la run.
             InstanceFinder.ServerManager.StartConnection();
@@ -98,7 +100,7 @@ namespace Game.Presentation.UI
             if (result.m_nLobbiesMatching == 0)
             {
                 var empty = new Label("No hay partidas disponibles.");
-                empty.AddToClassList("lobby-entry");
+                empty.AddToClassList("lobby-empty");
                 _lobbyList.Add(empty);
                 return;
             }
@@ -135,6 +137,7 @@ namespace Game.Presentation.UI
             }
 
             CSteamID lobbyId  = new CSteamID(result.m_ulSteamIDLobby);
+            LobbySession.Set(lobbyId);
             string hostSteamId = SteamMatchmaking.GetLobbyData(lobbyId, "hostSteamId");
 
             if (string.IsNullOrEmpty(hostSteamId))
