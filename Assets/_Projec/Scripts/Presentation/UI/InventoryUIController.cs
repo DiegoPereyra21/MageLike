@@ -10,12 +10,6 @@ using UnityEngine.UIElements;
 
 namespace Game.Presentation.UI
 {
-    /// <summary>
-    /// Pantalla de inventario (Tab). Dibuja equipo + mochila (+ contenedor si se está saqueando)
-    /// leyendo del RunInventory sincronizado. Clic izquierdo = acción principal contextual
-    /// (equipar / desequipar / tomar). Drag & drop = mover a slot exacto (con swap/merge).
-    /// Las acciones se piden por ServerRpc; el servidor valida.
-    /// </summary>
     public class InventoryUIController : NetworkBehaviour
     {
         [SerializeField] private ItemDatabase _database;
@@ -27,6 +21,7 @@ namespace Game.Presentation.UI
         [SerializeField] private UIDocument _document;
 
         private VisualElement _root;
+        private VisualElement _invPanel; // panel interior — para detectar drag fuera
         private VisualElement _equipmentSlots;
         private VisualElement _backpackGrid;
         private VisualElement _containerColumn;
@@ -44,6 +39,10 @@ namespace Game.Presentation.UI
         private bool _isDragging;
         private VisualElement _ghost;
         private bool _dragMoved;
+        private bool _dragOutside; // true cuando el puntero está fuera del inv-panel
+
+        private static readonly Color GhostColorNormal  = new Color(0.16f, 0.16f, 0.24f, 0.95f);
+        private static readonly Color GhostColorDrop    = new Color(0.55f, 0.08f, 0.08f, 0.95f);
 
         private void Awake()
         {
@@ -54,11 +53,7 @@ namespace Game.Presentation.UI
         {
             base.OnStartClient();
 
-            if (!base.IsOwner)
-            {
-                enabled = false;
-                return;
-            }
+            if (!base.IsOwner) { enabled = false; return; }
 
             var go = GameObject.Find("InventoryUIDocument");
             if (go != null) _document = go.GetComponent<UIDocument>();
@@ -69,17 +64,18 @@ namespace Game.Presentation.UI
                 return;
             }
 
-            _root = _document.rootVisualElement.Q<VisualElement>("inv-root");
+            _root         = _document.rootVisualElement.Q<VisualElement>("inv-root");
+            _invPanel     = _root.Q<VisualElement>("inv-panel");
             _equipmentSlots = _root.Q<VisualElement>("equipment-slots");
-            _backpackGrid = _root.Q<VisualElement>("backpack-grid");
+            _backpackGrid   = _root.Q<VisualElement>("backpack-grid");
             _containerColumn = _root.Q<VisualElement>("container-column");
-            _containerGrid = _root.Q<VisualElement>("container-grid");
+            _containerGrid   = _root.Q<VisualElement>("container-grid");
 
             _inventory.OnInventoryChanged += Redraw;
             _toggleAction.Enable();
 
-            // Si se suelta fuera de un slot, cancelar el arrastre.
-            _root.RegisterCallback<PointerUpEvent>(_ => { if (_isDragging) CancelDrag(); });
+            // Soltar fuera de un slot: drop al mundo si se arrastró, cancelar si no.
+            _root.RegisterCallback<PointerUpEvent>(OnRootPointerUp);
         }
 
         public override void OnStopClient()
@@ -92,8 +88,7 @@ namespace Game.Presentation.UI
         private void Update()
         {
             if (!base.IsOwner) return;
-            if (_toggleAction.WasPressedThisFrame())
-                SetOpen(!_isOpen);
+            if (_toggleAction.WasPressedThisFrame()) SetOpen(!_isOpen);
         }
 
         private void SetOpen(bool open)
@@ -103,9 +98,9 @@ namespace Game.Presentation.UI
 
             UnityEngine.Cursor.lockState = open ? CursorLockMode.None : CursorLockMode.Locked;
             UnityEngine.Cursor.visible = open;
-            if (_cameraLook != null) _cameraLook.enabled = !open;
-            if (_movement != null) _movement.SetInputBlocked(open);
-            if (_abilities != null) _abilities.SetInputBlocked(open);
+            if (_cameraLook != null)  _cameraLook.enabled = !open;
+            if (_movement != null)    _movement.SetInputBlocked(open);
+            if (_abilities != null)   _abilities.SetInputBlocked(open);
             if (_interaction != null) _interaction.SetInputBlocked(open);
 
             if (open) Redraw();
@@ -115,15 +110,13 @@ namespace Game.Presentation.UI
         public void OpenWithContainer(LootContainer container)
         {
             _openContainer = container;
-            if (container != null)
-                container.RegisterChangeCallback(Redraw);
+            if (container != null) container.RegisterChangeCallback(Redraw);
             SetOpen(true);
         }
 
         private void CloseContainer()
         {
-            if (_openContainer != null)
-                _openContainer.UnregisterChangeCallback(Redraw);
+            if (_openContainer != null) _openContainer.UnregisterChangeCallback(Redraw);
             _openContainer = null;
         }
 
@@ -273,9 +266,10 @@ namespace Game.Presentation.UI
 
         private void BeginDrag(SlotZone zone, int index, ItemStack stack, Vector2 pos)
         {
-            _dragging = new DragInfo { Zone = zone, Index = index, Stack = stack };
+            _dragging  = new DragInfo { Zone = zone, Index = index, Stack = stack };
             _isDragging = true;
-            _dragMoved = false;
+            _dragMoved  = false;
+            _dragOutside = false;
 
             _ghost = new VisualElement();
             _ghost.AddToClassList("drag-ghost");
@@ -296,20 +290,28 @@ namespace Game.Presentation.UI
             if (!_isDragging) return;
             _dragMoved = true;
             MoveGhost(evt.position);
+
+            // Detectar si el puntero está fuera del inv-panel y cambiar color del ghost.
+            bool outside = _invPanel != null && !_invPanel.worldBound.Contains(evt.position);
+            if (outside != _dragOutside)
+            {
+                _dragOutside = outside;
+                _ghost.style.backgroundColor = outside ? GhostColorDrop : GhostColorNormal;
+            }
         }
 
         private void MoveGhost(Vector2 pos)
         {
             if (_ghost == null) return;
             _ghost.style.left = pos.x - 28;
-            _ghost.style.top = pos.y - 28;
+            _ghost.style.top  = pos.y - 28;
         }
 
         private void TryDrop(SlotZone destZone, int destIndex)
         {
             if (!_isDragging) return;
 
-            var from = _dragging;
+            var from  = _dragging;
             bool moved = _dragMoved;
             EndDrag();
 
@@ -329,16 +331,29 @@ namespace Game.Presentation.UI
             }
         }
 
+        // Soltar en el root (fuera de cualquier slot): drop al mundo si se arrastró.
+        private void OnRootPointerUp(PointerUpEvent evt)
+        {
+            if (!_isDragging) return;
 
-[ServerRpc]
-        private void MoveSlotServerRpc(int fromZone, int fromIndex, int toZone, int toIndex)
-            => _inventory.TryMoveSlot(fromZone, fromIndex, toZone, toIndex);
+            var from  = _dragging;
+            bool moved = _dragMoved;
+            EndDrag();
+
+            if (!moved) return; // clic suelto fuera de slot, no arrastre
+
+            // Items del contenedor no se dropean al mundo desde acá (solo se pueden sacar a slots).
+            if (from.Zone == SlotZone.Container) return;
+
+            DropToWorldServerRpc((int)from.Zone, from.Index);
+        }
 
         private void CancelDrag() => EndDrag();
 
         private void EndDrag()
         {
-            _isDragging = false;
+            _isDragging  = false;
+            _dragOutside = false;
             _root.UnregisterCallback<PointerMoveEvent>(OnDragMove);
             if (_ghost != null) { _ghost.RemoveFromHierarchy(); _ghost = null; }
         }
@@ -347,11 +362,6 @@ namespace Game.Presentation.UI
 
         [ServerRpc] private void EquipServerRpc(int backpackIndex) => _inventory.TryEquipFromBackpack(backpackIndex);
         [ServerRpc] private void UnequipServerRpc(int equipmentSlotIndex) => _inventory.TryUnequip(equipmentSlotIndex);
-
-
-[ServerRpc]
-        private void MoveWithContainerServerRpc(int fromZone, int fromIndex, int toZone, int toIndex, LootContainer container)
-            => _inventory.TryMoveWithContainer(fromZone, fromIndex, toZone, toIndex, container);
 
         [ServerRpc]
         private void TakeFromContainerServerRpc(LootContainer container, int index)
@@ -363,5 +373,17 @@ namespace Game.Presentation.UI
             if (notAdded > 0)
                 container.ServerFill(new[] { new ItemStack(taken.ItemId, notAdded, taken.Durability) });
         }
+
+        [ServerRpc]
+        private void MoveSlotServerRpc(int fromZone, int fromIndex, int toZone, int toIndex)
+            => _inventory.TryMoveSlot(fromZone, fromIndex, toZone, toIndex);
+
+        [ServerRpc]
+        private void MoveWithContainerServerRpc(int fromZone, int fromIndex, int toZone, int toIndex, LootContainer container)
+            => _inventory.TryMoveWithContainer(fromZone, fromIndex, toZone, toIndex, container);
+
+        [ServerRpc]
+        private void DropToWorldServerRpc(int zone, int index)
+            => _inventory.TryDropToWorld(zone, index, transform.position);
     }
 }

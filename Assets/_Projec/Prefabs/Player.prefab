@@ -25,7 +25,7 @@ GameObject:
   - component: {fileID: 7481302007928117156}
   - component: {fileID: 8706064901918070629}
   - component: {fileID: 2259917246576972072}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Player
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -103,7 +103,7 @@ MonoBehaviour:
   _spectatorInterpolation: 2
   _enableTeleport: 0
   _teleportThreshold: 1
-  <PrefabId>k__BackingField: 1
+  <PrefabId>k__BackingField: 2
   <SpawnableCollectionId>k__BackingField: 0
   <AssetPathHash>k__BackingField: 10523460009225210850
   SceneId: 0
@@ -130,6 +130,8 @@ MonoBehaviour:
   - {fileID: -6873126794131237326}
   - {fileID: 6513846324524779194}
   - {fileID: 7481302007928117156}
+  - {fileID: 8706064901918070629}
+  - {fileID: 2259917246576972072}
   InitializedParentNetworkBehaviour: {fileID: 0}
   InitializedNestedNetworkObjects: []
   RuntimeParentNetworkBehaviour: {fileID: 0}
@@ -140,7 +142,7 @@ MonoBehaviour:
   _initializeOrder: 0
   _preventDespawnOnDisconnect: 0
   _defaultDespawnType: 0
-  _initializedTimestamp: -8584156269837897097
+  _initializedTimestamp: -8584154600264763655
 --- !u!114 &303123316450518896
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -387,9 +389,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fe44c88af8dc3d94688e03e09b4a76aa, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Game.Presentation.Combat.PlayerInteraction
-  _componentIndexCache: 255
+  _componentIndexCache: 11
   _addedNetworkObject: {fileID: 4708353133064893462}
-  _networkObjectCache: {fileID: 0}
+  _networkObjectCache: {fileID: 4708353133064893462}
   _aimOrigin: {fileID: 6013468344885175688}
   _range: 3.5
   _interactMask:
@@ -410,9 +412,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3ea9e6da033aa7649b55304ee922f092, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Game.Presentation.UI.InventoryUIController
-  _componentIndexCache: 255
+  _componentIndexCache: 12
   _addedNetworkObject: {fileID: 4708353133064893462}
-  _networkObjectCache: {fileID: 0}
+  _networkObjectCache: {fileID: 4708353133064893462}
   _database: {fileID: 11400000, guid: 102308c18b8226846a202b06693b2687, type: 2}
   _inventory: {fileID: -6873126794131237326}
   _movement: {fileID: 303123316450518896}
@@ -433,7 +435,7 @@ GameObject:
   - component: {fileID: 7096531162554931996}
   - component: {fileID: 7719687377624193090}
   - component: {fileID: 4541030088272683536}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Camera
   m_TagString: Untagged
   m_Icon: {fileID: 0}

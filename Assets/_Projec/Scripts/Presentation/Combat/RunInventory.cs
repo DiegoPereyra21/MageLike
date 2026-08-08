@@ -103,6 +103,24 @@ namespace Game.Presentation.Combat
 
 
 
+/// <summary>Server-only. Dropea un item del inventario al mundo.</summary>
+        [Server]
+        public bool TryDropToWorld(int zone, int index, Vector3 nearPosition)
+        {
+            ItemStack stack = GetSlot(zone, index);
+            if (stack.IsEmpty) return false;
+
+            SetSlot(zone, index, ItemStack.Empty);
+
+            // Si era la mochila equipada, RebuildBackpackCapacity rescata/dropea el contenido.
+            if (zone == 0 && index == (int)EquipmentSlot.Backpack)
+                RebuildBackpackCapacity();
+
+            SpawnWorldItemPublic(stack, nearPosition);
+            return true;
+        }
+
+
         /// <summary>Server-only. Equipa una mochila que viene del mundo (sin origen en la mochila interna).</summary>
         [Server]
         public void EquipBackpackFromWorld(ItemStack stack)
@@ -118,13 +136,11 @@ namespace Game.Presentation.Combat
         {
             if (_worldItemPrefab == null) return;
 
-            Vector3 pos = nearPosition;
-            if (Physics.Raycast(nearPosition + Vector3.up * 0.5f, Vector3.down, out RaycastHit hit, 5f))
-                pos = hit.point + Vector3.up * 0.15f;
+            // Spawnear a la altura del jugador con offset aleatorio — el Rigidbody hace caer.
+            Vector3 pos = nearPosition + Vector3.up * 0.5f;
+            pos += new Vector3(Random.Range(-0.3f, 0.3f), 0f, Random.Range(-0.3f, 0.3f));
 
-            pos += new Vector3(Random.Range(-0.5f, 0.5f), 0f, Random.Range(-0.5f, 0.5f));
-
-            GameObject obj = Instantiate(_worldItemPrefab, pos, Quaternion.identity);
+            GameObject obj = Instantiate(_worldItemPrefab, pos, Random.rotation);
             if (obj.TryGetComponent(out WorldItem worldItem))
             {
                 InstanceFinder.ServerManager.Spawn(obj);
