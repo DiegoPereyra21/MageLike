@@ -165,6 +165,7 @@ MonoBehaviour:
   _gravity: -20
   _mouseSensitivity: 0.65
   _cameraLook: {fileID: 4541030088272683536}
+  _cameraRoot: {fileID: 5589743811304467652}
 --- !u!114 &815632673414522861
 MonoBehaviour:
   m_ObjectHideFlags: 0

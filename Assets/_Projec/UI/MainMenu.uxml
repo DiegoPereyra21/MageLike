@@ -3,9 +3,17 @@
     <ui:VisualElement name="menu-root" class="menu-root">
         <ui:Label text="MageLike" class="game-title" />
         <ui:VisualElement class="menu-buttons">
-            <ui:Button name="start-button" text="Comenzar Partida" class="menu-button" />
+            <ui:Button name="host-button" text="Crear Partida" class="menu-button" />
+            <ui:Button name="join-button" text="Unirse a Partida" class="menu-button" />
             <ui:Button name="stash-button" text="Stash" class="menu-button" />
             <ui:Button name="quit-button" text="Salir" class="menu-button quit" />
+        </ui:VisualElement>
+
+        <!-- Panel de lobbies (oculto por defecto) -->
+        <ui:VisualElement name="lobby-panel" class="lobby-panel">
+            <ui:Label text="Partidas disponibles" class="lobby-title" />
+            <ui:ScrollView name="lobby-list" class="lobby-list" />
+            <ui:Button name="lobby-cancel" text="Cancelar" class="menu-button quit" />
         </ui:VisualElement>
     </ui:VisualElement>
 </ui:UXML>

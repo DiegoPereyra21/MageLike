@@ -34,7 +34,7 @@ namespace Game.Presentation.Player
         [Header("Mirada")]
         [SerializeField] private float _mouseSensitivity = 0.65f;
         [SerializeField] private CameraLookController _cameraLook;
-
+        [SerializeField] private GameObject _cameraRoot; // el GameObject "Camera" hijo del Player
         //para al abrir el inventario no siga moviendo la vista
         private bool _inputBlocked;
         /// <summary>Bloquea/desbloquea la lectura de input (para cuando se abre UI como el inventario).</summary>
@@ -128,6 +128,18 @@ namespace Game.Presentation.Player
         {
             base.TimeManager.OnTick -= TimeManager_OnTick;
             base.TimeManager.OnPostTick -= TimeManager_OnPostTick;
+        }
+
+        public override void OnStartClient()
+        {
+            base.OnStartClient();
+
+            if (!base.IsOwner)
+            {
+                // Desactivar cámara y input para jugadores que no son nuestros.
+                if (_cameraRoot != null) _cameraRoot.SetActive(false);
+                enabled = false;
+            }
         }
 
         private void Update()

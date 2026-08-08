@@ -39,3 +39,41 @@
     background-color: rgba(60, 55, 75, 0.9);
     border-color: rgba(150, 140, 170, 0.5);
 }
+
+.lobby-panel {
+    display: none;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    translate: -50% -50%;
+    width: 400px;
+    background-color: rgba(20, 20, 30, 0.97);
+    border-radius: 10px;
+    padding: 20px;
+}
+
+.lobby-title {
+    font-size: 18px;
+    color: white;
+    margin-bottom: 12px;
+    -unity-text-align: upper-center;
+}
+
+.lobby-list {
+    min-height: 200px;
+    max-height: 300px;
+    margin-bottom: 12px;
+}
+
+.lobby-entry {
+    background-color: rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
+    padding: 10px;
+    margin-bottom: 6px;
+    color: white;
+}
+
+.lobby-entry:hover {
+    background-color: rgba(255, 255, 255, 0.12);
+    cursor: link;
+}
