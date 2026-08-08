@@ -54,18 +54,17 @@ namespace Game.Presentation.Combat
                 _agent.enabled = false;
         }
 
-          public override void OnStopServer()
-          {
-          if (_health != null) _health.OnDied -= HandleDied;
-          }
+        public override void OnStopServer()
+        {
+            if (_health != null) _health.OnDied -= HandleDied;
+        }
 
-          private void HandleDied(int instigator)
-          {
-          // Detener la IA y despawnear el cuerpo (el LootDropper ya soltó el loot por su cuenta).
-          _state = State.Idle;
-          if (_agent != null && _agent.isOnNavMesh) _agent.ResetPath();
-          Despawn();
-          }
+        private void HandleDied(int instigator)
+        {
+            _state = State.Idle;
+            if (_agent != null && _agent.isOnNavMesh) _agent.ResetPath();
+            Despawn();
+        }
 
         private void Update()
         {
@@ -117,27 +116,6 @@ namespace Game.Presentation.Combat
             }
         }
 
-        private Transform FindNearestPlayer(float radius)
-        {
-            var players = FindObjectsByType<Game.Presentation.Player.PlayerMovementController>(FindObjectsSortMode.None);
-            Transform nearest = null;
-            float best = radius;
-            foreach (var p in players)
-            {
-                if (p.TryGetComponent(out Health h) && h.IsDead) continue;
-                if (p.TryGetComponent(out Game.Presentation.Combat.PlayerExtractionState ext) && ext.IsExtracted) continue;
-
-                float d = Vector3.Distance(transform.position, p.transform.position);
-                if (d <= best)
-                {
-                    best = d;
-                    nearest = p.transform;
-                }
-            }
-            return nearest;
-        }
-
-
         private void TickAttack()
         {
             // Si el objetivo se fue o se alejó del rango de ataque, volver a perseguir.
@@ -178,6 +156,26 @@ namespace Game.Presentation.Combat
             }
         }
 
+        private Transform FindNearestPlayer(float radius)
+        {
+            var players = FindObjectsByType<Game.Presentation.Player.PlayerMovementController>(FindObjectsSortMode.None);
+            Transform nearest = null;
+            float best = radius;
+            foreach (var p in players)
+            {
+                if (p.TryGetComponent(out Health h) && h.IsDead) continue;
+                if (p.TryGetComponent(out Game.Presentation.Combat.PlayerExtractionState ext) && ext.IsExtracted) continue;
+
+                float d = Vector3.Distance(transform.position, p.transform.position);
+                if (d <= best)
+                {
+                    best = d;
+                    nearest = p.transform;
+                }
+            }
+            return nearest;
+        }
+
         private bool TargetIsValid()
         {
             if (_target == null) return false;
@@ -195,10 +193,7 @@ namespace Game.Presentation.Combat
             if (!TargetIsValid() || DistanceTo(_target) > _attackRange) return;
 
             if (_target.TryGetComponent(out Game.Core.Abilities.IDamageable dmg))
-            {
                 dmg.ApplyDamage(_attackDamage, base.ObjectId);
-                Debug.Log($"[EnemyAI] Golpe a {_target.name} por {_attackDamage}");
-            }
         }
 
         private float DistanceTo(Transform t) => Vector3.Distance(transform.position, t.position);

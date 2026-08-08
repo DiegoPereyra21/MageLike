@@ -81,14 +81,14 @@ namespace Game.Presentation.Combat
 
 
 
-        //inv
         public override void OnStartClient()
-          {
-          base.OnStartClient();
-          _contents.OnChange += (op, index, oldItem, newItem, asServer) => OnContentsChanged?.Invoke();
-          }
-          public void RegisterChangeCallback(System.Action cb) => OnContentsChanged += cb;
-          public void UnregisterChangeCallback(System.Action cb) => OnContentsChanged -= cb;
+        {
+            base.OnStartClient();
+            _contents.OnChange += (op, index, oldItem, newItem, asServer) => OnContentsChanged?.Invoke();
+        }
+
+        public void RegisterChangeCallback(System.Action cb) => OnContentsChanged += cb;
+        public void UnregisterChangeCallback(System.Action cb) => OnContentsChanged -= cb;
 
         public bool IsEmpty => _contents.Count == 0;
     }

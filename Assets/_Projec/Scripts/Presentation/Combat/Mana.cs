@@ -42,7 +42,5 @@ namespace Game.Presentation.Combat
             _current.Value -= amount;
             return true;
         }
-
-
     }
 }

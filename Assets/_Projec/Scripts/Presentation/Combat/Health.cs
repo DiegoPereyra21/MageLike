@@ -49,9 +49,6 @@ namespace Game.Presentation.Combat
             float newValue = Mathf.Clamp(_current.Value - amount, 0f, _maxHealth);
             _current.Value = newValue;
 
-            string verbo = amount >= 0 ? "recibió daño" : "se curó";
-            Debug.Log($"[Health] {gameObject.name} {verbo} {Mathf.Abs(amount):0} → HP: {newValue:0}/{_maxHealth:0} (instigator: {instigatorNetworkId})");
-
             if (newValue <= 0f)
                 OnDied?.Invoke(instigatorNetworkId);
         }

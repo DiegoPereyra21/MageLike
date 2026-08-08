@@ -84,7 +84,6 @@ namespace Game.Presentation.Run
             if (_phase.Value != RunPhase.InProgress) return;
 
             _phase.Value = RunPhase.DangerPhase;
-            Debug.Log("[RunManager] ¡Fase de peligro iniciada! (aquí spawnearán los hunters cuando exista la IA)");
             OnDangerPhaseStarted?.Invoke();
             // TODO: al implementar IA de enemigos, suscribirse a OnDangerPhaseStarted y spawnear hunters
             //       cerca de cada jugador vivo.
@@ -158,7 +157,6 @@ namespace Game.Presentation.Run
             if (_aliveCount.Value <= 0)
             {
                 _phase.Value = RunPhase.Ended;
-                Debug.Log($"[RunManager] Run terminada. Extraídos: {_extractedCount.Value}, Muertos: {_deadCount.Value}");
                 OnRunEnded?.Invoke();
             }
         }

@@ -87,11 +87,7 @@ namespace Game.Presentation.Combat
                 }
 
                 if (!rescued)
-                {
-                    // No hay espacio: spawnear en el mundo.
                     SpawnWorldItem(orphan);
-                    Debug.Log($"[RunInventory] Sin espacio al quitar mochila: {orphan.ItemId} dropeado al mundo.");
-                }
             }
         }
 
@@ -254,10 +250,7 @@ namespace Game.Presentation.Combat
 
             // Regla de mochila: no se puede equipar una mochila si ya hay una puesta.
             if (equip.Slot == EquipmentSlot.Backpack && !_equipment[slotIndex].IsEmpty)
-            {
-                Debug.Log("[RunInventory] Ya tenés una mochila equipada. Sacala primero.");
                 return false;
-            }
 
             // Si el slot está ocupado (no-mochila), mover lo actual a la mochila.
             if (!_equipment[slotIndex].IsEmpty)
@@ -456,12 +449,9 @@ namespace Game.Presentation.Combat
         [Server]
         public void CommitToStash()
         {
-            // Modelo actual: al extraer, el inventario NO va al stash automáticamente.
-            // Se persiste como inventario propio (volvés al menú con todo intacto).
+            // Al extraer, el inventario se persiste como inventario propio (volvés al menú con todo intacto).
             var snapshot = TakeSnapshot();
             Game.Presentation.Run.PlayerLoadoutService.Save(snapshot);
-            Debug.Log("[RunInventory] Extracción: inventario propio guardado (persistente).");
-            // No se limpia el inventario de la run acá: el jugador ya está extraído.
         }
 
         [Server]
@@ -473,10 +463,9 @@ namespace Game.Presentation.Combat
 
             if (loot.Count > 0 && _lootContainerPrefab != null)
             {
-                // Spawnear el contenedor en la posición del jugador, un poco arriba del piso.
                 Vector3 pos = transform.position;
                 if (Physics.Raycast(transform.position, Vector3.down, out RaycastHit groundHit, 5f))
-                    pos = groundHit.point + Vector3.up * 0.1f; // justo sobre el suelo
+                    pos = groundHit.point + Vector3.up * 0.1f;
 
                 GameObject obj = Instantiate(_lootContainerPrefab, pos, Quaternion.identity);
 
@@ -485,11 +474,6 @@ namespace Game.Presentation.Combat
                     InstanceFinder.ServerManager.Spawn(obj);
                     container.ServerFill(loot);
                 }
-                Debug.Log($"[RunInventory] Muerte: {loot.Count} items soltados en un contenedor.");
-            }
-            else
-            {
-                Debug.Log("[RunInventory] Muerte: sin loot que soltar.");
             }
             // Al morir, el inventario propio persistente se vacía: volvés "desnudo" al menú.
             Game.Presentation.Run.PlayerLoadoutService.Clear();

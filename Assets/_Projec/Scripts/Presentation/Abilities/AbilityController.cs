@@ -29,7 +29,6 @@ namespace Game.Presentation.Abilities
         private InputAction[] _castActions;
 
         private bool _inputBlocked;
-        public void SetInputBlocked(bool blocked) => _inputBlocked = blocked;
 
         // VContainer no puede inyectar automáticamente en prefabs instanciados por el
         // NetworkManager de Fish-Net (spawn fuera del LifetimeScope normal). Por eso se
@@ -167,6 +166,8 @@ namespace Game.Presentation.Abilities
             // El maná se corrige solo vía SyncVar en el próximo sync.
         }
 
+
+        public void SetInputBlocked(bool blocked) => _inputBlocked = blocked;
 
         public int AbilitySlotCount => _equippedAbilities.Length;
 

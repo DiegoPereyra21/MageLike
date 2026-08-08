@@ -22,48 +22,6 @@ namespace Game.Presentation.Combat
         public float ExtractionProgress => _extractionProgress.Value;
         public bool IsExtracted => _isExtracted.Value;
 
-        /// <summary>Server-only. Llamado por la ExtractionZone cada tick con el progreso actual.</summary>
-        public void ServerSetProgress(float value)
-        {
-            if (!base.IsServerInitialized) return;
-            _extractionProgress.Value = Mathf.Clamp01(value);
-        }
-
-        /// <summary>Server-only. Marca extracción exitosa.</summary>
-        public void ServerCompleteExtraction()
-        {
-            if (!base.IsServerInitialized) return;
-            if (_isExtracted.Value) return;
-
-            _isExtracted.Value = true;
-            if (Game.Presentation.Run.RunManager.Instance != null)
-                Game.Presentation.Run.RunManager.Instance.SetExtracted(base.ObjectId);
-            _extractionProgress.Value = 1f;
-
-            // Salvar loot (si hay inventario implementado).
-            if (TryGetComponent(out IRunInventory inventory))
-                inventory.CommitToStash();
-
-            if (TryGetComponent(out Health health))
-                health.SetInvulnerable(true);
-                
-            ExtractObserversRpc();
-        }
-
-        [ObserversRpc(RunLocally = true)]
-        private void ExtractObserversRpc()
-        {
-            Debug.Log($"[Extraction] Jugador {base.ObjectId} EXTRAÍDO con éxito");
-            if (_avatar != null) _avatar.DisableControl();
-            
-
-            if (base.IsOwner)
-            {
-                var result = FindFirstObjectByType<Game.Presentation.UI.ResultScreenController>();
-                if (result != null) result.Show(true); // extrajo
-            }
-        }
-
         public override void OnStartServer()
         {
             TryRegisterInRunManager();
@@ -85,7 +43,6 @@ namespace Game.Presentation.Combat
 
         private System.Collections.IEnumerator RetryRegister()
         {
-            // Esperar hasta que el RunManager exista (unos pocos frames como mucho).
             float timeout = 5f;
             while (Game.Presentation.Run.RunManager.Instance == null && timeout > 0f && base.IsSpawned)
             {
@@ -97,6 +54,45 @@ namespace Game.Presentation.Combat
                 Game.Presentation.Run.RunManager.Instance.RegisterPlayer(base.ObjectId);
             else
                 Debug.LogWarning("[PlayerExtractionState] No se encontró RunManager para registrar el jugador.");
+        }
+
+        /// <summary>Server-only. Llamado por la ExtractionZone cada tick con el progreso actual.</summary>
+        public void ServerSetProgress(float value)
+        {
+            if (!base.IsServerInitialized) return;
+            _extractionProgress.Value = Mathf.Clamp01(value);
+        }
+
+        /// <summary>Server-only. Marca extracción exitosa.</summary>
+        public void ServerCompleteExtraction()
+        {
+            if (!base.IsServerInitialized) return;
+            if (_isExtracted.Value) return;
+
+            _isExtracted.Value = true;
+            if (Game.Presentation.Run.RunManager.Instance != null)
+                Game.Presentation.Run.RunManager.Instance.SetExtracted(base.ObjectId);
+            _extractionProgress.Value = 1f;
+
+            if (TryGetComponent(out IRunInventory inventory))
+                inventory.CommitToStash();
+
+            if (TryGetComponent(out Health health))
+                health.SetInvulnerable(true);
+
+            ExtractObserversRpc();
+        }
+
+        [ObserversRpc(RunLocally = true)]
+        private void ExtractObserversRpc()
+        {
+            if (_avatar != null) _avatar.DisableControl();
+
+            if (base.IsOwner)
+            {
+                var result = FindFirstObjectByType<Game.Presentation.UI.ResultScreenController>();
+                if (result != null) result.Show(true);
+            }
         }
     }
 }

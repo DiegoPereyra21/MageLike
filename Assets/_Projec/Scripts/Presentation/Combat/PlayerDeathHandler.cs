@@ -35,8 +35,6 @@ namespace Game.Presentation.Combat
         {
             if (Game.Presentation.Run.RunManager.Instance != null)
                 Game.Presentation.Run.RunManager.Instance.SetDead(base.ObjectId);
-            Debug.Log($"[Death] Jugador {base.ObjectId} eliminado (por {instigatorNetworkId})");
-            // Propaga el efecto de muerte a todos (desactivar control/colisión).
             DieObserversRpc();
         }
 

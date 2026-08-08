@@ -24,7 +24,6 @@ namespace Game.Presentation.UI
             var root = _document.rootVisualElement;
 
             var startBtn = root.Q<Button>("start-button");
-            Debug.Log($"[MainMenu] start-button encontrado: {startBtn != null}");
             if (startBtn != null)
                 startBtn.clicked += OnStartClicked;
 
@@ -39,7 +38,6 @@ namespace Game.Presentation.UI
 
         private void OnStartClicked()
         {
-            Debug.Log("[MainMenu] Comenzar Partida clickeado");
             InstanceFinder.ServerManager.StartConnection();
             InstanceFinder.ClientManager.StartConnection();
             StartCoroutine(LoadRunWhenReady());
@@ -50,7 +48,6 @@ namespace Game.Presentation.UI
             while (!InstanceFinder.IsServerStarted)
                 yield return null;
 
-            Debug.Log("[MainMenu] Server iniciado, cargando escena de Run");
             SceneLoadData sld = new SceneLoadData(_runSceneName);
             sld.ReplaceScenes = ReplaceOption.All;
             InstanceFinder.SceneManager.LoadGlobalScenes(sld);
