@@ -160,9 +160,10 @@ namespace Game.Presentation.UI
                     ApplyCategoryClass(slot, def);
                     slot.Add(name);
 
-                    slot.RegisterCallback<ClickEvent>(_ =>
+                    slot.RegisterCallback<ClickEvent>(evt =>
                     {
                         if (_dragMoved) { _dragMoved = false; return; }
+                        if (evt.ctrlKey) { DropItemServerRpc((int)SlotZone.Equipment, slotIndex); return; }
                         UnequipServerRpc(slotIndex);
                     });
 
@@ -185,8 +186,15 @@ namespace Game.Presentation.UI
             for (int i = 0; i < bp.Count; i++)
             {
                 int slotIndex = i;
-                _backpackGrid.Add(BuildItemSlot(bp[i], SlotZone.Backpack, slotIndex,
-                    () => EquipServerRpc(slotIndex)));
+                ItemStack stack = bp[i];
+
+                // Si es equipo, el clic lo manda al slot correcto vía TryMoveSlot (soporta swap de mochila).
+                // Si no es equipo, EquipServerRpc igual falla — no hay acción de clic para no-equipo.
+                System.Action onClick = null;
+                if (!stack.IsEmpty && _database.GetById(stack.ItemId) is EquipmentItemSO equip)
+                    onClick = () => QuickEquipServerRpc(1, slotIndex);
+
+                _backpackGrid.Add(BuildItemSlot(stack, SlotZone.Backpack, slotIndex, onClick));
             }
         }
 
@@ -231,9 +239,11 @@ namespace Game.Presentation.UI
                     slot.Add(qty);
                 }
 
-                slot.RegisterCallback<ClickEvent>(_ =>
+                slot.RegisterCallback<ClickEvent>(evt =>
                 {
                     if (_dragMoved) { _dragMoved = false; return; }
+                    if (evt.ctrlKey)  { DropItemServerRpc((int)zone, index); return; }
+                    if (evt.shiftKey) { QuickEquipServerRpc((int)zone, index); return; }
                     onClick?.Invoke();
                 });
 
@@ -385,5 +395,20 @@ namespace Game.Presentation.UI
         [ServerRpc]
         private void DropToWorldServerRpc(int zone, int index)
             => _inventory.TryDropToWorld(zone, index, transform.position);
+
+        [ServerRpc]
+        private void DropItemServerRpc(int zone, int index)
+            => _inventory.TryDropToWorld(zone, index, transform.position);
+
+        [ServerRpc]
+        private void QuickEquipServerRpc(int zone, int index)
+        {
+            ItemStack stack = zone == 1 ? _inventory.Backpack[index] : ItemStack.Empty;
+            if (stack.IsEmpty) return;
+            if (_database.GetById(stack.ItemId) is not EquipmentItemSO equip) return;
+            _inventory.TryMoveSlot(zone, index, 0, (int)equip.Slot);
+        }
+
+
     }
 }

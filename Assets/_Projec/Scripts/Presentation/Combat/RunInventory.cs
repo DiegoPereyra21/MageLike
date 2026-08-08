@@ -315,11 +315,6 @@ namespace Game.Presentation.Combat
             {
                 if (_database.GetById(from.ItemId) is not EquipmentItemSO equip) return false;
                 if ((int)equip.Slot != toIndex) return false;
-
-                // Regla de mochila: no se puede equipar una mochila si ya hay una puesta
-                // y el origen no es ese mismo slot de equipo.
-                if (equip.Slot == EquipmentSlot.Backpack && !_equipment[toIndex].IsEmpty
-                    && !(fromZone == 0 && fromIndex == toIndex)) return false;
             }
 
             ItemStack to = GetSlot(toZone, toIndex);
@@ -345,6 +340,39 @@ namespace Game.Presentation.Combat
             }
 
             // Swap normal.
+            // Si el origen es equipo y el destino es mochila, validar que el item
+            // del destino (si hay) pueda ir al slot de equipo origen.
+            if (fromZone == 0 && toZone == 1 && !to.IsEmpty)
+            {
+                if (_database.GetById(to.ItemId) is not EquipmentItemSO toEquip || (int)toEquip.Slot != fromIndex)
+                {
+                    // No puede ir al slot de equipo: mover el equipo al primer slot libre de mochila.
+                    int freeSlot = -1;
+                    for (int i = 0; i < _backpack.Count; i++)
+                    {
+                        if (_backpack[i].IsEmpty) { freeSlot = i; break; }
+                    }
+
+                    if (freeSlot >= 0)
+                    {
+                        // Hay slot libre: mover equipo ahí, el slot origen queda vacío.
+                        SetSlot(1, freeSlot, from);
+                        SetSlot(0, fromIndex, ItemStack.Empty);
+                    }
+                    else
+                    {
+                        // No hay slot libre: mover igualmente al slot destino (pisa el item).
+                        // El item pisado se dropea al mundo.
+                        SpawnWorldItemPublic(to, transform.position);
+                        SetSlot(1, toIndex, from);
+                        SetSlot(0, fromIndex, ItemStack.Empty);
+                    }
+
+                    RebuildBackpackCapacity();
+                    return true;
+                }
+            }
+
             SetSlot(toZone, toIndex, from);
             SetSlot(fromZone, fromIndex, to.IsEmpty ? ItemStack.Empty : to);
 

@@ -102,12 +102,14 @@ namespace Game.Presentation.Combat
 
                 if (equip.BackpackSlots > currentCap)
                 {
-                    // Equipar la nueva mochila directamente.
                     _inventory.EquipBackpackFromWorld(stack);
 
-                    // La mochila anterior (si había) va al suelo.
                     if (!current.IsEmpty)
-                        SpawnWorldItemNear(current);
+                    {
+                        int leftover = _inventory.TryAddStack(current);
+                        if (leftover > 0)
+                            SpawnWorldItemNear(new ItemStack(current.ItemId, leftover, current.Durability));
+                    }
 
                     item.Despawn();
                     return;
