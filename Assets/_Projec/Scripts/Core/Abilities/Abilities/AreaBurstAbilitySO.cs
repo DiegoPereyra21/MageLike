@@ -8,7 +8,6 @@ namespace Game.Core.Abilities.Abilities
         [Header("Área")]
         [SerializeField] private float _radius = 4f;
         [SerializeField] private float _damage = 35f;
-        [SerializeField] private float _maxCastDistance = 15f;
 
         public override void Execute(AbilityExecutor executor, in AbilityCastContext context)
         {

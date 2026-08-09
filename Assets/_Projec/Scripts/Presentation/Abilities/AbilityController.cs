@@ -17,6 +17,7 @@ namespace Game.Presentation.Abilities
     {
         [SerializeField] private AbilitySO[] _equippedAbilities = new AbilitySO[4];
         [SerializeField] private Transform _aimOrigin;
+        [SerializeField] private Transform _spellOrigin; // punto de salida del hechizo (báculo, mano, etc.)
         [SerializeField] private LayerMask _aimMask;
         [SerializeField] private float _maxAimDistance = 50f;
 
@@ -102,12 +103,19 @@ namespace Game.Presentation.Abilities
 
         private void ResolveAim(out Vector3 origin, out Vector3 direction, out Vector3 aimPoint)
         {
-            origin = _aimOrigin.position;
-            direction = _aimOrigin.forward;
-            aimPoint = origin + direction * _maxAimDistance;
+            // El aimPoint se calcula desde la cámara (donde mira el jugador).
+            Vector3 cameraOrigin = _aimOrigin != null ? _aimOrigin.position : transform.position;
+            Vector3 cameraForward = _aimOrigin != null ? _aimOrigin.forward : transform.forward;
 
-            if (Physics.Raycast(origin, direction, out RaycastHit hit, _maxAimDistance, _aimMask))
+            aimPoint = cameraOrigin + cameraForward * _maxAimDistance;
+            if (Physics.Raycast(cameraOrigin, cameraForward, out RaycastHit hit, _maxAimDistance, _aimMask))
                 aimPoint = hit.point;
+
+            // El proyectil sale del SpellOrigin si existe, sino de la cámara.
+            origin = _spellOrigin != null ? _spellOrigin.position : cameraOrigin;
+
+            // La dirección va desde el origen del hechizo hacia el aimPoint.
+            direction = (aimPoint - origin).normalized;
         }
 
         [ServerRpc]
