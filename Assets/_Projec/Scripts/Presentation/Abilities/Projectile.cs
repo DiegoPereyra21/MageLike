@@ -1,15 +1,11 @@
+using FishNet;
 using FishNet.Object;
 using Game.Core.Abilities;
+using Game.Presentation.Combat;
 using UnityEngine;
 
 namespace Game.Presentation.Abilities
 {
-    /// <summary>
-    /// Proyectil server-authoritative con detección por tramo (SphereCast entre la posición
-    /// del tick anterior y la nueva). Evita tunneling a cualquier velocidad y respeta el
-    /// grosor del proyectil. El caster se descarta por ObjectId.
-    /// Prefab con NetworkObject (Default Despawn Type = Pool). El collider es solo visual/opcional.
-    /// </summary>
     public class Projectile : NetworkBehaviour
     {
         [SerializeField] private float _lifetime = 5f;
@@ -31,28 +27,50 @@ namespace Game.Presentation.Abilities
             _spawnTime = Time.time;
         }
 
-        private void Update()
+private void Update()
         {
+            Debug.Log($"[Projectile] Update - IsServer: {base.IsServerStarted}, IsClient: {base.IsClientStarted}");
             if (!base.IsServerStarted) return;
 
             float stepDistance = _speed * Time.deltaTime;
             Vector3 startPos = transform.position;
 
-            // SphereCast por el tramo que recorrería este frame.
             if (Physics.SphereCast(startPos, _radius, _direction, out RaycastHit hit, stepDistance, ~0, QueryTriggerInteraction.Ignore))
             {
-                // Ignorar al propio caster.
+                Debug.Log($"[Projectile] SphereCast hit: {hit.collider.name}");
+
                 if (hit.collider.TryGetComponent(out NetworkObject nob) && nob.ObjectId == _casterNetworkId)
                 {
-                    // Sigue de largo: avanzá igual y no impactes al caster.
+                    Debug.Log("[Projectile] Hit al caster, ignorando");
                     transform.position = startPos + _direction * stepDistance;
                 }
                 else
                 {
+                    Debug.Log("[Projectile] Hit a otro objeto, procesando impacto");
+
                     if (hit.collider.TryGetComponent(out IDamageable damageable))
                         damageable.ApplyDamage(_damage, _casterNetworkId);
 
                     transform.position = hit.point;
+
+                    if (InstanceFinder.ServerManager.Objects.Spawned.TryGetValue(_casterNetworkId, out NetworkObject casterNob))
+                    {
+                        Debug.Log($"[Projectile] Caster encontrado: {casterNob.name}");
+                        if (casterNob.TryGetComponent(out AbilityController abilityController))
+                        {
+                            Debug.Log("[Projectile] AbilityController encontrado, llamando NotifyProjectileImpact");
+                            abilityController.NotifyProjectileImpact();
+                        }
+                        else
+                        {
+                            Debug.LogWarning("[Projectile] AbilityController NO encontrado en caster");
+                        }
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"[Projectile] Caster NO encontrado. ID: {_casterNetworkId}");
+                    }
+
                     base.Despawn();
                     return;
                 }
@@ -63,7 +81,10 @@ namespace Game.Presentation.Abilities
             }
 
             if (Time.time - _spawnTime >= _lifetime)
+            {
+                Debug.Log("[Projectile] Lifetime expirado, despawneando");
                 base.Despawn();
+            }
         }
     }
 }

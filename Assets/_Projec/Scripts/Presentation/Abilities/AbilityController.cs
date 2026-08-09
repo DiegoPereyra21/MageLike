@@ -175,6 +175,23 @@ namespace Game.Presentation.Abilities
         }
 
 
+[Server]
+        public void NotifyProjectileImpact()
+        {
+            Debug.Log($"[AbilityController] NotifyProjectileImpact - Owner: {base.Owner}");
+            NotifyImpactTargetRpc(base.Owner);
+        }
+
+        [TargetRpc]
+        private void NotifyImpactTargetRpc(FishNet.Connection.NetworkConnection conn)
+        {
+            Debug.Log("[AbilityController] NotifyImpactTargetRpc recibido en cliente");
+            Game.Presentation.Combat.ScreenShake.Shake(0.8f);
+        }
+
+
+
+
         public void SetInputBlocked(bool blocked) => _inputBlocked = blocked;
 
         public int AbilitySlotCount => _equippedAbilities.Length;
