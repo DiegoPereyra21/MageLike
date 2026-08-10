@@ -36,6 +36,10 @@ namespace Game.Core.Abilities
         [SerializeField] private float _cooldown = 1f;
         [SerializeField] private float _resourceCost = 10f;
 
+        [Header("VFX")]
+        [SerializeField] private GameObject _muzzlePrefab;
+        public GameObject MuzzlePrefab => _muzzlePrefab;
+        
         public string AbilityId => _abilityId;
         public string DisplayName => _displayName;
         public Sprite Icon => _icon;

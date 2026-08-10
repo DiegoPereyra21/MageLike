@@ -1153,6 +1153,56 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 950780821}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!1 &1226519077
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1226519079}
+  - component: {fileID: 1226519078}
+  m_Layer: 0
+  m_Name: VFXManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1226519078
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1226519077}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 74c56d4e6b8b6154a9140bfe3f74372e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Presentation.Combat.VFXManager
+  _projectileHitPrefab: {fileID: 3305186517166574312, guid: d580ed1b1b80a62458cc13be9bb06c0e, type: 3}
+  _projectileHitPoolSize: 8
+  _orbExplosionPrefab: {fileID: 3305186517166574312, guid: 789c76a54f6d20c41aeef29ac5a59dd4, type: 3}
+  _orbExplosionPoolSize: 4
+  _projectileMuzzlePrefab: {fileID: 69906001918393884, guid: e6dd55251f893294c9a27e9e669cd3a4, type: 3}
+  _projectileMuzzlePoolSize: 8
+--- !u!4 &1226519079
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1226519077}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 13.49278, y: -0, z: 6.36656}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1305760057
 GameObject:
   m_ObjectHideFlags: 0
@@ -1683,3 +1733,4 @@ SceneRoots:
   - {fileID: 616505953}
   - {fileID: 875887966}
   - {fileID: 716664649}
+  - {fileID: 1226519079}

@@ -17,4 +17,5 @@ MonoBehaviour:
   _icon: {fileID: 0}
   _cooldown: 1
   _resourceCost: 35
+  _muzzlePrefab: {fileID: 69906001918393858, guid: d36b831d690a3814f99d8ffda84bbb39, type: 3}
   _orbPrefab: {fileID: 3486604965629168673, guid: c6757498e20ffc043a8718b25780c951, type: 3}

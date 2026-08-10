@@ -50,12 +50,8 @@ private void Update()
                     transform.position = hit.point;
 
                     if (InstanceFinder.ServerManager.Objects.Spawned.TryGetValue(_casterNetworkId, out NetworkObject casterNob))
-                    {
-                        if (casterNob.TryGetComponent(out AbilityController abilityController))
-                        {
-                            abilityController.NotifyProjectileImpact();
-                        }
-                    }
+                        if (casterNob.TryGetComponent(out AbilityController ac))
+                            ac.NotifyProjectileImpact(hit.point, hit.normal);
 
                     base.Despawn();
                     return;

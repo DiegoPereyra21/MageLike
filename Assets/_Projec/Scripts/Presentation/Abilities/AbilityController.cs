@@ -56,9 +56,11 @@ namespace Game.Presentation.Abilities
             _castActions = new InputAction[4];
             _mana = GetComponent<Mana>();
             _stats = GetComponent<Game.Presentation.Combat.PlayerStats>();
-            string[] keys = { "1", "2", "3", "4" };
-            for (int i = 0; i < 4; i++)
-                _castActions[i] = new InputAction($"CastSlot{i}", InputActionType.Button, $"<Keyboard>/{keys[i]}");
+
+            _castActions[0] = new InputAction("CastSlot0", InputActionType.Button, "<Mouse>/leftButton");
+            _castActions[1] = new InputAction("CastSlot1", InputActionType.Button, "<Keyboard>/leftShift");
+            _castActions[2] = new InputAction("CastSlot2", InputActionType.Button, "<Mouse>/rightButton");
+            _castActions[3] = new InputAction("CastSlot3", InputActionType.Button, "<Keyboard>/q");
         }
 
         private void OnEnable()
@@ -98,6 +100,12 @@ namespace Game.Presentation.Abilities
             _localCooldownEndTime[slot] = Time.time + effectiveCooldown;
 
             ResolveAim(out Vector3 origin, out Vector3 direction, out Vector3 aimPoint);
+            
+        // Muzzle VFX local — solo si la habilidad tiene uno definido.
+            if (base.IsOwner && ability.MuzzlePrefab != null)
+                VFXManager.PlayProjectileMuzzle(_spellOrigin != null ? _spellOrigin.position : origin,
+                    Quaternion.LookRotation(direction));
+            
             CastServerRpc(slot, origin, direction, aimPoint);
         }
 
@@ -175,16 +183,17 @@ namespace Game.Presentation.Abilities
         }
 
 
-[Server]
-        public void NotifyProjectileImpact()
+        [Server]
+        public void NotifyProjectileImpact(Vector3 point, Vector3 normal)
         {
-            NotifyImpactTargetRpc(base.Owner);
+            NotifyImpactTargetRpc(base.Owner, point, normal);
         }
 
         [TargetRpc]
-        private void NotifyImpactTargetRpc(FishNet.Connection.NetworkConnection conn)
+        private void NotifyImpactTargetRpc(FishNet.Connection.NetworkConnection conn, Vector3 point, Vector3 normal)
         {
-            Game.Presentation.Combat.ScreenShake.Shake(0.8f);
+            ScreenShake.Shake(0.8f);
+            VFXManager.PlayProjectileHit(point, Quaternion.LookRotation(normal));
         }
 
 

@@ -102,7 +102,7 @@ namespace Game.Presentation.Abilities
             // Screen shake al caster.
             if (InstanceFinder.ServerManager.Objects.Spawned.TryGetValue(_casterNetworkId, out NetworkObject casterNob))
                 if (casterNob.TryGetComponent(out AbilityController ac))
-                    ac.NotifyProjectileImpact();
+                    ac.NotifyProjectileImpact(point, Vector3.up);
 
             base.Despawn();
         }
@@ -110,7 +110,7 @@ namespace Game.Presentation.Abilities
         [ObserversRpc]
         private void ShowExplosionObserversRpc(Vector3 point, float radius)
         {
-            VFXManager.PlayExplosion(point, radius, _radiusIndicator != null && _radiusIndicator.TryGetComponent(out Renderer r) ? r.material : null);
+        VFXManager.PlayOrbExplosion(point);        
         }
     }
 }
