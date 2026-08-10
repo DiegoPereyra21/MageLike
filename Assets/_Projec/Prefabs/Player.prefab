@@ -164,11 +164,11 @@ MonoBehaviour:
   _addedNetworkObject: {fileID: 4708353133064893462}
   _networkObjectCache: {fileID: 4708353133064893462}
   _stats: {fileID: 7481302007928117156}
-  _moveSpeed: 6
+  _moveSpeed: 7
   _sprintMultiplier: 1.5
-  _jumpForce: 6
+  _jumpForce: 8
   _gravity: -20
-  _mouseSensitivity: 0.65
+  _mouseSensitivity: 0.15
   _cameraLook: {fileID: 4541030088272683536}
   _cameraRoot: {fileID: 5589743811304467652}
 --- !u!114 &815632673414522861
@@ -491,7 +491,6 @@ MonoBehaviour:
   _componentIndexCache: 255
   _addedNetworkObject: {fileID: 4708353133064893462}
   _networkObjectCache: {fileID: 0}
-  _aimOrigin: {fileID: 6013468344885175688}
 --- !u!1 &5589743811304467652
 GameObject:
   m_ObjectHideFlags: 0

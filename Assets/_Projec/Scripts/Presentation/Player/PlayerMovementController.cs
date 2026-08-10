@@ -45,16 +45,14 @@ namespace Game.Presentation.Player
             public Vector2 Move;
             public bool Jump;
             public bool Sprint;
-            public float YawDelta;
-            public float PitchDelta;
+            public float Yaw; // rotación absoluta, no delta
 
-            public ReplicateData(Vector2 move, bool jump, bool sprint, float yawDelta, float pitchDelta) : this()
+            public ReplicateData(Vector2 move, bool jump, bool sprint, float yaw) : this()
             {
                 Move = move;
                 Jump = jump;
                 Sprint = sprint;
-                YawDelta = yawDelta;
-                PitchDelta = pitchDelta;
+                Yaw = yaw;
             }
 
             private uint _tick;
@@ -144,9 +142,22 @@ namespace Game.Presentation.Player
 
         private void Update()
         {
-            // Solo el owner acumula input de "single frame" como el jump.
-            if (base.IsOwner && _jumpAction.WasPressedThisFrame())
+            if (!base.IsOwner) return;
+
+            if (_jumpAction.WasPressedThisFrame())
                 _jumpQueued = true;
+
+            // Mirada aplicada cada frame de render (fluidez tipo CS:GO).
+            if (!_inputBlocked)
+            {
+                Vector2 look = _lookAction.ReadValue<Vector2>();
+                float yawDelta = look.x * _mouseSensitivity;
+                float pitchDelta = -look.y * _mouseSensitivity;
+
+                transform.Rotate(Vector3.up, yawDelta);
+                if (_cameraLook != null)
+                    _cameraLook.AddPitch(pitchDelta);
+            }
         }
 
         private void TimeManager_OnTick()
@@ -161,22 +172,15 @@ namespace Game.Presentation.Player
 
         private ReplicateData CreateReplicateData()
         {
-            if (!base.IsOwner)
-                return default;
-
-            if (_inputBlocked)
-                return default; // sin movimiento ni mirada mientras la UI está abierta
+            if (!base.IsOwner) return default;
+            if (_inputBlocked) return new ReplicateData(Vector2.zero, false, false, transform.eulerAngles.y);
 
             Vector2 move = _moveAction.ReadValue<Vector2>();
             bool sprint = _sprintAction.IsPressed();
             bool jump = _jumpQueued;
             _jumpQueued = false;
 
-            Vector2 look = _lookAction.ReadValue<Vector2>();
-            float yawDelta = look.x * _mouseSensitivity;
-            float pitchDelta = -look.y * _mouseSensitivity;
-
-            return new ReplicateData(move, jump, sprint, yawDelta, pitchDelta);
+            return new ReplicateData(move, jump, sprint, transform.eulerAngles.y);
         }
 
         [Replicate]
@@ -184,12 +188,13 @@ namespace Game.Presentation.Player
         {
             float delta = (float)base.TimeManager.TickDelta;
             if (!_controller.enabled)
-                    return;
-                    
-            transform.Rotate(Vector3.up, data.YawDelta);
+                return;
 
-            if (_cameraLook != null)
-                _cameraLook.AddPitch(data.PitchDelta);
+            // El owner ya aplicó su rotación en Update (fluidez por frame).
+            // Servidor y replays usan el yaw absoluto que vino en el input.
+            if (!base.IsOwner || state.ContainsReplayed())
+                transform.rotation = Quaternion.Euler(0f, data.Yaw, 0f);
+
             // Movimiento horizontal relativo a la orientación del jugador.
             float baseSpeed = _stats != null ? _stats.MoveSpeed : _moveSpeed;
             float speed = baseSpeed * (data.Sprint ? _sprintMultiplier : 1f);
@@ -198,23 +203,22 @@ namespace Game.Presentation.Player
             // Gravedad y salto en el eje vertical, integrados aparte del horizontal.
             if (_controller.isGrounded)
             {
-                _verticalVelocity.y = -1f; // pequeño valor negativo para mantener grounded check estable
+                _verticalVelocity.y = -1f;
+
+                float jumpForce = _stats != null ? _stats.JumpForce : _jumpForce;
                 if (data.Jump)
-                {
-                    float jump = _stats != null ? _stats.JumpForce : _jumpForce;
-                    _verticalVelocity.y = jump;
-                }
+                    _verticalVelocity.y = jumpForce;
             }
             else
             {
                 _verticalVelocity.y += _gravity * delta;
             }
-            // Impulso de dash (consumido en este tick).
-            Vector3 impulseThisTick = _pendingImpulse;
+
+            // Impulso pendiente (dash) consumido en el tick.
+            Vector3 impulse = _pendingImpulse;
             _pendingImpulse = Vector3.zero;
 
-            Vector3 motion = (horizontal + _verticalVelocity + impulseThisTick / delta) * delta;
-            _controller.Move(motion);
+            _controller.Move((horizontal + _verticalVelocity + impulse / delta) * delta);
         }
 
         public override void CreateReconcile()
@@ -226,10 +230,18 @@ namespace Game.Presentation.Player
         [Reconcile]
         private void ReconcileState(ReconcileData data, FishNet.Transporting.Channel channel = FishNet.Transporting.Channel.Unreliable)
         {
-            // CharacterController debe desactivarse antes de forzar posición/rotación
-            // y reactivarse después, o el estado interno queda desincronizado (ver docs Fish-Net).
             _controller.enabled = false;
-            transform.SetPositionAndRotation(data.Position, data.Rotation);
+
+            if (base.IsOwner)
+            {
+                // Conservar la rotación local del owner (la mirada es responsiva, no se corrige).
+                transform.position = data.Position;
+            }
+            else
+            {
+                transform.SetPositionAndRotation(data.Position, data.Rotation);
+            }
+
             _verticalVelocity = data.VerticalVelocity;
             _controller.enabled = true;
         }

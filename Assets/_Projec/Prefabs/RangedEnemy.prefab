@@ -194,7 +194,7 @@ MonoBehaviour:
   _initializeOrder: 0
   _preventDespawnOnDisconnect: 0
   _defaultDespawnType: 0
-  _initializedTimestamp: -8584152619211442837
+  _initializedTimestamp: -8584152609051049250
 --- !u!114 &135492877755782589
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -210,7 +210,7 @@ MonoBehaviour:
   _componentIndexCache: 1
   _addedNetworkObject: {fileID: 5032515547589133333}
   _networkObjectCache: {fileID: 5032515547589133333}
-  _detectionRadius: 20
+  _detectionRadius: 15
   _projectilePrefab: {fileID: 9077845970666463845, guid: 007947feaa3cedf4b975548e3fa50a77, type: 3}
   _fireRate: 2
   _projectileSpeed: 25
