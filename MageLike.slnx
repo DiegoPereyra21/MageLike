@@ -7,4 +7,5 @@
   <Project Path="GameKit.Dependencies.csproj" />
   <Project Path="Unity.FishNet.Codegen.csproj" />
   <Project Path="com.rlabrecque.steamworks.net.editor.csproj" />
+  <Project Path="Assembly-CSharp-Editor.csproj" />
 </Solution>

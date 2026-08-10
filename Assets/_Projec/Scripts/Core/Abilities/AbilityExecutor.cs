@@ -19,5 +19,7 @@ namespace Game.Core.Abilities
 
         /// <summary>Aplica curación/buff directo al caster.</summary>
         void ApplySelfEffect(int casterNetworkId, float healAmount);
+
+        public abstract void SpawnOrb(GameObject orbPrefab, Vector3 origin, Vector3 direction, int casterNetworkId, float damageMultiplier);
     }
 }

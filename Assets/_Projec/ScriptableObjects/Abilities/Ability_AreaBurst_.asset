@@ -17,6 +17,4 @@ MonoBehaviour:
   _icon: {fileID: 0}
   _cooldown: 1
   _resourceCost: 35
-  _radius: 4
-  _damage: 35
-  _maxCastDistance: 15
+  _orbPrefab: {fileID: 3486604965629168673, guid: c6757498e20ffc043a8718b25780c951, type: 3}

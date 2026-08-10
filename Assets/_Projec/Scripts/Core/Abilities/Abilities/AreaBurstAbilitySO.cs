@@ -5,14 +5,12 @@ namespace Game.Core.Abilities.Abilities
     [CreateAssetMenu(menuName = "Game/Abilities/Area Burst Ability", fileName = "Ability_AreaBurst_")]
     public class AreaBurstAbilitySO : AbilitySO
     {
-        [Header("Área")]
-        [SerializeField] private float _radius = 4f;
-        [SerializeField] private float _damage = 35f;
+        [Header("Orbe")]
+        [SerializeField] private GameObject _orbPrefab;
 
         public override void Execute(AbilityExecutor executor, in AbilityCastContext context)
         {
-            float finalDamage = _damage * context.DamageMultiplier;
-            executor.ApplyAreaEffect(context.AimPoint, _radius, finalDamage, context.CasterNetworkId);
+            executor.SpawnOrb(_orbPrefab, context.Origin, context.AimDirection, context.CasterNetworkId, context.DamageMultiplier);
         }
     }
 }

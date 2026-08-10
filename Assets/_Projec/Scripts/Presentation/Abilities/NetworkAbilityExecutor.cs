@@ -30,6 +30,20 @@ namespace Game.Presentation.Abilities
             InstanceFinder.ServerManager.Spawn(instance);
         }
 
+        public void SpawnOrb(GameObject orbPrefab, Vector3 origin, Vector3 direction, int casterNetworkId, float damageMultiplier)
+        {
+            if (!InstanceFinder.IsServerStarted) return;
+            if (orbPrefab == null) return;
+
+            GameObject instance = UnityEngine.Object.Instantiate(orbPrefab, origin + direction.normalized * 0.5f, Quaternion.LookRotation(direction));
+            if (instance.TryGetComponent(out OrbProjectile orb))
+            {
+                InstanceFinder.ServerManager.Spawn(instance);
+                orb.Initialize(direction, casterNetworkId, damageMultiplier);
+            }
+        }
+
+
         public void ApplyAreaEffect(Vector3 point, float radius, float damage, int casterNetworkId)
         {
             if (!InstanceFinder.IsServerStarted) return;
