@@ -154,9 +154,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a2836e36774ca1c4bbbee976e17b649c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: FishNet.Runtime::FishNet.Component.Transforming.NetworkTransform
-  _componentIndexCache: 255
+  _componentIndexCache: 0
   _addedNetworkObject: {fileID: 2819803591878320542}
-  _networkObjectCache: {fileID: 0}
+  _networkObjectCache: {fileID: 2819803591878320542}
   _componentConfiguration: 0
   _synchronizeParent: 0
   _packing:
@@ -218,22 +218,26 @@ MonoBehaviour:
   _spectatorInterpolation: 2
   _enableTeleport: 0
   _teleportThreshold: 1
-  <PrefabId>k__BackingField: 65535
+  <PrefabId>k__BackingField: 3
   <SpawnableCollectionId>k__BackingField: 0
   <AssetPathHash>k__BackingField: 9846106734176810210
   SceneId: 0
   SerializedTransformProperties:
-    Position: {x: 0, y: 0, z: 0}
-    Rotation: {x: 0, y: 0, z: 0, w: 0}
-    Scale: {x: 0, y: 0, z: 0}
-    IsValid: 0
+    Position: {x: -4.21258, y: -0, z: -7.23312}
+    Rotation: {x: 0, y: 0, z: 0, w: 1}
+    Scale: {x: 1, y: 1, z: 1}
+    IsValid: 1
   <IsNested>k__BackingField: 0
   WasActiveDuringEdit: 0
   WasActiveDuringEdit_Set1: 1
   <ComponentIndex>k__BackingField: 0
   <PredictedSpawn>k__BackingField: {fileID: 0}
   <PredictedOwner>k__BackingField: {fileID: 0}
-  NetworkBehaviours: []
+  NetworkBehaviours:
+  - {fileID: 2718307936415553}
+  - {fileID: 811073443594022513}
+  - {fileID: 4937824281593786330}
+  - {fileID: 4387372629207907042}
   InitializedParentNetworkBehaviour: {fileID: 0}
   InitializedNestedNetworkObjects: []
   RuntimeParentNetworkBehaviour: {fileID: 0}
@@ -244,7 +248,7 @@ MonoBehaviour:
   _initializeOrder: 0
   _preventDespawnOnDisconnect: 0
   _defaultDespawnType: 0
-  _initializedTimestamp: 0
+  _initializedTimestamp: -8584152019366985345
 --- !u!114 &811073443594022513
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -257,17 +261,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8cb949ac3bb0a7a4dbfc9420735ceb10, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Game.Presentation.Combat.EnemyAI
-  _componentIndexCache: 255
+  _componentIndexCache: 1
   _addedNetworkObject: {fileID: 2819803591878320542}
-  _networkObjectCache: {fileID: 0}
-  _detectionRadius: 12
-  _loseRadius: 16
-  _moveSpeed: 3.5
+  _networkObjectCache: {fileID: 2819803591878320542}
+  _detectionRadius: 24
+  _loseRadius: 25
+  _moveSpeed: 12
   _repathInterval: 0.2
   _attackRange: 2
   _attackWindup: 0.4
   _attackCooldown: 1.5
-  _attackDamage: 15
+  _attackDamage: 25
 --- !u!114 &4937824281593786330
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -280,9 +284,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 51fa6685c6e0d0b4ba863cad47424ff4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Game.Presentation.Combat.Health
-  _componentIndexCache: 255
+  _componentIndexCache: 2
   _addedNetworkObject: {fileID: 2819803591878320542}
-  _networkObjectCache: {fileID: 0}
+  _networkObjectCache: {fileID: 2819803591878320542}
   _stats: {fileID: 0}
   _maxHealth: 100
 --- !u!114 &4387372629207907042
@@ -297,8 +301,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f130ded5f8b49eb46be84f4db5f2f24e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Game.Presentation.Combat.LootDropper
-  _componentIndexCache: 255
+  _componentIndexCache: 3
   _addedNetworkObject: {fileID: 2819803591878320542}
-  _networkObjectCache: {fileID: 0}
+  _networkObjectCache: {fileID: 2819803591878320542}
   _lootTable: {fileID: 11400000, guid: c76f1cd9d97f13e48b4731c4af082371, type: 2}
   _lootContainerPrefab: {fileID: 2764254699792074859, guid: 3d07cbfe898310a45a89d7f2119ba857, type: 3}

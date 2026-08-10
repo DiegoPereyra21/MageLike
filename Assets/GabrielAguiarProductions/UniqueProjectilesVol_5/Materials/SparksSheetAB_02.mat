@@ -65,10 +65,12 @@ Material:
     - _Cull: 0
     - _DissolveFeather: 1
     - _DstBlend: 10
+    - _DstBlendAlpha: 10
     - _QueueControl: 0
     - _QueueOffset: 0
     - _SoftParticle: 20
     - _SrcBlend: 5
+    - _SrcBlendAlpha: 1
     - _Surface: 1
     - _ZTest: 4
     - _ZWrite: 0
