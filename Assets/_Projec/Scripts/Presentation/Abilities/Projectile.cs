@@ -17,19 +17,23 @@ namespace Game.Presentation.Abilities
         private int _casterNetworkId;
         private float _spawnTime;
 
+        private bool _initialized;
+
         public void Initialize(Vector3 direction, float speed, float damage, float radius, int casterNetworkId)
         {
-            _direction = direction.normalized;
-            _speed = speed;
-            _damage = damage;
-            _radius = radius;
+            _direction   = direction.normalized;
+            _speed       = speed;
+            _damage      = damage;
+            _radius      = radius;
             _casterNetworkId = casterNetworkId;
-            _spawnTime = Time.time;
+            _spawnTime   = Time.time;
+            _initialized = true;
         }
 
-private void Update()
+        private void Update()
         {
             if (!base.IsServerStarted) return;
+            if (!_initialized) return;
 
             float stepDistance = _speed * Time.deltaTime;
             Vector3 startPos = transform.position;
