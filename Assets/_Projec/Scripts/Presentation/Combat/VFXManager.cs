@@ -58,14 +58,20 @@ namespace Game.Presentation.Combat
         public static void PlayProjectileMuzzle(Vector3 point, Quaternion rotation)
             => _instance?.PlayVFX(_instance._projectileMuzzlePool, point, rotation);
 
-        public static void PlayParryActive(Vector3 point)
-        {
-            Debug.Log($"[VFXManager] PlayParryActive en {point}. Instance: {_instance != null}, Pool: {_instance?._parryActivePool != null}");
-            _instance?.PlayVFX(_instance._parryActivePool, point, Quaternion.identity);
-        }
+        public static void PlayParryActive(Vector3 point, float scale = 1f)
+            => _instance?.PlayVFXScaled(_instance._parryActivePool, point, Quaternion.identity, scale);
 
-        public static void PlayParrySuccess(Vector3 point)
-            => _instance?.PlayVFX(_instance._parrySuccessPool, point, Quaternion.identity);
+        public static void PlayParrySuccess(Vector3 point, float scale = 1f)
+            => _instance?.PlayVFXScaled(_instance._parrySuccessPool, point, Quaternion.identity, scale);
+
+        private void PlayVFXScaled(ObjectPool<ParticleSystem> pool, Vector3 point, Quaternion rotation, float scale)
+        {
+            if (pool == null) return;
+            ParticleSystem ps = pool.Get(point, rotation);
+            ps.transform.localScale = Vector3.one * scale;
+            ps.Play();
+            StartCoroutine(ReleaseWhenDone(ps, pool));
+        }
 
         private void PlayVFX(ObjectPool<ParticleSystem> pool, Vector3 point, Quaternion rotation)
         {

@@ -87,14 +87,7 @@ namespace Game.Presentation.Abilities
             }
 
             if (casterNob.TryGetComponent(out ParryHandler handler))
-            {
-                Debug.Log("[NetworkAbilityExecutor] ParryHandler encontrado, llamando StartParry");
-                handler.StartParry(data, context.CasterNetworkId);
-            }
-            else
-            {
-                Debug.LogWarning("[NetworkAbilityExecutor] ParryHandler NO encontrado en el caster");
-            }
+                handler.StartParry(data, context.CasterNetworkId, context.AimDirection);
         }
     }
 }
