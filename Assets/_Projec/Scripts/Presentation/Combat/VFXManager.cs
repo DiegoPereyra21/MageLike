@@ -7,11 +7,11 @@ namespace Game.Presentation.Combat
     {
         private static VFXManager _instance;
 
-        [Header("Impacto proyectil básico")]
+        [Header("Proyectil básico")]
         [SerializeField] private ParticleSystem _projectileHitPrefab;
         [SerializeField] private int _projectileHitPoolSize = 8;
 
-        [Header("Explosión orbe")]
+        [Header("Orbe explosivo")]
         [SerializeField] private ParticleSystem _orbExplosionPrefab;
         [SerializeField] private int _orbExplosionPoolSize = 4;
 
@@ -19,9 +19,17 @@ namespace Game.Presentation.Combat
         [SerializeField] private ParticleSystem _projectileMuzzlePrefab;
         [SerializeField] private int _projectileMuzzlePoolSize = 8;
 
+        [Header("Parry")]
+        [SerializeField] private ParticleSystem _parryActivePrefab;
+        [SerializeField] private int _parryActivePoolSize = 4;
+        [SerializeField] private ParticleSystem _parrySuccessPrefab;
+        [SerializeField] private int _parrySuccessPoolSize = 4;
+
         private ObjectPool<ParticleSystem> _projectileHitPool;
         private ObjectPool<ParticleSystem> _orbExplosionPool;
         private ObjectPool<ParticleSystem> _projectileMuzzlePool;
+        private ObjectPool<ParticleSystem> _parryActivePool;
+        private ObjectPool<ParticleSystem> _parrySuccessPool;
 
         private void Awake()
         {
@@ -31,12 +39,14 @@ namespace Game.Presentation.Combat
 
             if (_projectileHitPrefab != null)
                 _projectileHitPool = new ObjectPool<ParticleSystem>(_projectileHitPrefab, _projectileHitPoolSize, transform);
-
             if (_orbExplosionPrefab != null)
                 _orbExplosionPool = new ObjectPool<ParticleSystem>(_orbExplosionPrefab, _orbExplosionPoolSize, transform);
-
             if (_projectileMuzzlePrefab != null)
                 _projectileMuzzlePool = new ObjectPool<ParticleSystem>(_projectileMuzzlePrefab, _projectileMuzzlePoolSize, transform);
+            if (_parryActivePrefab != null)
+                _parryActivePool = new ObjectPool<ParticleSystem>(_parryActivePrefab, _parryActivePoolSize, transform);
+            if (_parrySuccessPrefab != null)
+                _parrySuccessPool = new ObjectPool<ParticleSystem>(_parrySuccessPrefab, _parrySuccessPoolSize, transform);
         }
 
         public static void PlayProjectileHit(Vector3 point, Quaternion rotation)
@@ -47,6 +57,15 @@ namespace Game.Presentation.Combat
 
         public static void PlayProjectileMuzzle(Vector3 point, Quaternion rotation)
             => _instance?.PlayVFX(_instance._projectileMuzzlePool, point, rotation);
+
+        public static void PlayParryActive(Vector3 point)
+        {
+            Debug.Log($"[VFXManager] PlayParryActive en {point}. Instance: {_instance != null}, Pool: {_instance?._parryActivePool != null}");
+            _instance?.PlayVFX(_instance._parryActivePool, point, Quaternion.identity);
+        }
+
+        public static void PlayParrySuccess(Vector3 point)
+            => _instance?.PlayVFX(_instance._parrySuccessPool, point, Quaternion.identity);
 
         private void PlayVFX(ObjectPool<ParticleSystem> pool, Vector3 point, Quaternion rotation)
         {

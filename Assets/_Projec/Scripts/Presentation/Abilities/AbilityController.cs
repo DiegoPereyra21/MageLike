@@ -111,18 +111,16 @@ namespace Game.Presentation.Abilities
 
         private void ResolveAim(out Vector3 origin, out Vector3 direction, out Vector3 aimPoint)
         {
-            // El aimPoint se calcula desde la cámara (donde mira el jugador).
-            Vector3 cameraOrigin = _aimOrigin != null ? _aimOrigin.position : transform.position;
-            Vector3 cameraForward = _aimOrigin != null ? _aimOrigin.forward : transform.forward;
+            // Siempre desde la cámara para que la dirección sea exacta.
+            Vector3 cameraOrigin = _aimOrigin.position;
+            Vector3 cameraForward = _aimOrigin.forward;
 
             aimPoint = cameraOrigin + cameraForward * _maxAimDistance;
             if (Physics.Raycast(cameraOrigin, cameraForward, out RaycastHit hit, _maxAimDistance, _aimMask))
                 aimPoint = hit.point;
 
-            // El proyectil sale del SpellOrigin si existe, sino de la cámara.
-            origin = _spellOrigin != null ? _spellOrigin.position : cameraOrigin;
-
-            // La dirección va desde el origen del hechizo hacia el aimPoint.
+            // El proyectil sale desde la cámara, no desde el SpellOrigin.
+            origin = cameraOrigin;
             direction = (aimPoint - origin).normalized;
         }
 

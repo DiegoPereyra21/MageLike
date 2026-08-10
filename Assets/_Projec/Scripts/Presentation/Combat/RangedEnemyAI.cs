@@ -1,0 +1,110 @@
+using FishNet;
+using FishNet.Object;
+using Game.Presentation.Abilities;
+using UnityEngine;
+
+namespace Game.Presentation.Combat
+{
+    /// <summary>
+    /// Enemigo a distancia simple: detecta al jugador más cercano, lo mira y dispara
+    /// proyectiles a intervalos. No se mueve. Server-authoritative.
+    /// </summary>
+    [RequireComponent(typeof(Health))]
+    public class RangedEnemyAI : NetworkBehaviour
+    {
+        [Header("Detección")]
+        [SerializeField] private float _detectionRadius = 15f;
+
+        [Header("Disparo")]
+        [SerializeField] private GameObject _projectilePrefab;
+        [SerializeField] private float _fireRate = 2f;
+        [SerializeField] private float _projectileSpeed = 12f;
+        [SerializeField] private float _projectileDamage = 10f;
+        [SerializeField] private float _projectileRadius = 0.25f;
+
+        private Health _health;
+        private Transform _target;
+        private float _fireTimer;
+
+        private void Awake()
+        {
+            _health = GetComponent<Health>();
+        }
+
+        public override void OnStartServer()
+        {
+            _health.OnDied += _ => enabled = false;
+            _fireTimer = _fireRate; // esperar un ciclo antes del primer disparo
+        }
+
+        private void Update()
+        {
+            if (!base.IsServerStarted) return;
+
+            // Buscar target si no tenemos.
+            if (!TargetIsValid())
+                _target = FindNearestPlayer(_detectionRadius);
+
+            if (_target == null) return;
+
+            // Mirar al target.
+            Vector3 dir = (_target.position - transform.position);
+            dir.y = 0f;
+            if (dir.sqrMagnitude > 0.01f)
+                transform.rotation = Quaternion.Slerp(transform.rotation,
+                    Quaternion.LookRotation(dir), Time.deltaTime * 5f);
+
+            // Disparo con cooldown.
+            _fireTimer -= Time.deltaTime;
+            if (_fireTimer <= 0f)
+            {
+                _fireTimer = _fireRate;
+                FireProjectile();
+            }
+        }
+
+        [Server]
+        private void FireProjectile()
+        {
+            if (_projectilePrefab == null) return;
+
+            // Dirección hacia el target con algo de altura para que no vaya al suelo.
+            Vector3 origin = transform.position + Vector3.up * 1.2f;
+            Vector3 dir = (_target.position + Vector3.up * 1f - origin).normalized;
+
+            GameObject instance = UnityEngine.Object.Instantiate(
+                _projectilePrefab, origin, Quaternion.LookRotation(dir));
+
+            if (instance.TryGetComponent(out Projectile projectile))
+            {
+                InstanceFinder.ServerManager.Spawn(instance);
+                projectile.Initialize(dir, _projectileSpeed, _projectileDamage,
+                    _projectileRadius, base.ObjectId);
+            }
+        }
+
+        private Transform FindNearestPlayer(float radius)
+        {
+            var players = FindObjectsByType<Player.PlayerMovementController>(FindObjectsSortMode.None);
+            Transform nearest = null;
+            float best = radius;
+            foreach (var p in players)
+            {
+                if (p.TryGetComponent(out Health h) && h.IsDead) continue;
+                if (p.TryGetComponent(out PlayerExtractionState ext) && ext.IsExtracted) continue;
+                float d = Vector3.Distance(transform.position, p.transform.position);
+                if (d <= best) { best = d; nearest = p.transform; }
+            }
+            return nearest;
+        }
+
+        private bool TargetIsValid()
+        {
+            if (_target == null) return false;
+            if (_target.TryGetComponent(out Health h) && h.IsDead) return false;
+            if (_target.TryGetComponent(out PlayerExtractionState ext) && ext.IsExtracted) return false;
+            if (Vector3.Distance(transform.position, _target.position) > _detectionRadius) return false;
+            return true;
+        }
+    }
+}

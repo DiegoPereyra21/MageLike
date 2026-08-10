@@ -1,3 +1,4 @@
+using Game.Core.Abilities.Abilities;
 using UnityEngine;
 
 namespace Game.Core.Abilities
@@ -21,5 +22,6 @@ namespace Game.Core.Abilities
         void ApplySelfEffect(int casterNetworkId, float healAmount);
 
         public abstract void SpawnOrb(GameObject orbPrefab, Vector3 origin, Vector3 direction, int casterNetworkId, float damageMultiplier);
+        void StartParry(Game.Core.Abilities.Abilities.ParryAbilitySO data, in AbilityCastContext context);
     }
 }

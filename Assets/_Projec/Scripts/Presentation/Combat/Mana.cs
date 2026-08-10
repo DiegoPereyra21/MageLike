@@ -42,5 +42,13 @@ namespace Game.Presentation.Combat
             _current.Value -= amount;
             return true;
         }
+
+        /// <summary>Server-only. Restaura maná hasta el máximo.</summary>
+        [Server]
+        public void Restore(float amount)
+        {
+            if (!base.IsServerStarted) return;
+            _current.Value = Mathf.Min(_maxMana, _current.Value + amount);
+        }
     }
 }
