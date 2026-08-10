@@ -68,9 +68,22 @@ namespace Game.Presentation.Combat
         {
             if (pool == null) return;
             ParticleSystem ps = pool.Get(point, rotation);
+
+            // Forzar que el ParticleSystem (y sus hijos) respeten la escala del transform.
+            ApplyHierarchyScaling(ps);
             ps.transform.localScale = Vector3.one * scale;
+
             ps.Play();
             StartCoroutine(ReleaseWhenDone(ps, pool));
+        }
+
+        private void ApplyHierarchyScaling(ParticleSystem root)
+        {
+            foreach (ParticleSystem ps in root.GetComponentsInChildren<ParticleSystem>(true))
+            {
+                var main = ps.main;
+                main.scalingMode = ParticleSystemScalingMode.Hierarchy;
+            }
         }
 
         private void PlayVFX(ObjectPool<ParticleSystem> pool, Vector3 point, Quaternion rotation)
@@ -84,6 +97,7 @@ namespace Game.Presentation.Combat
         private System.Collections.IEnumerator ReleaseWhenDone(ParticleSystem ps, ObjectPool<ParticleSystem> pool)
         {
             yield return new WaitUntil(() => !ps.isPlaying);
+            ps.transform.localScale = Vector3.one; // resetear para el próximo uso del pool
             pool.Release(ps);
         }
     }

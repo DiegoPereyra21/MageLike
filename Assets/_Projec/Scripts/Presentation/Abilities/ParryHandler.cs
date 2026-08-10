@@ -7,16 +7,11 @@ using UnityEngine;
 namespace Game.Presentation.Abilities
 {
     /// <summary>
-    /// Maneja las tres fases del parry (startup → active → recovery) en el servidor.
-    /// Durante la fase activa detecta proyectiles frente al jugador (en la dirección de
-    /// mirada), los despawnea y restaura maná. VFX y detección comparten el mismo punto.
+    /// Fases del parry (startup → active → recovery) en el servidor. Detección y VFX
+    /// comparten centro y tamaño, ambos definidos en el ParryAbilitySO.
     /// </summary>
     public class ParryHandler : NetworkBehaviour
     {
-        [Header("Posición del parry (relativa al jugador)")]
-        [SerializeField] private float _heightOffset = 1f;   // altura del efecto
-        [SerializeField] private float _forwardOffset = 1.5f; // distancia al frente
-
         private Mana _mana;
         private bool _parrying;
 
@@ -29,27 +24,26 @@ namespace Game.Presentation.Abilities
         public void StartParry(ParryAbilitySO data, int casterNetworkId, Vector3 aimDirection)
         {
             if (_parrying) return;
-            StartCoroutine(ParryRoutine(data, casterNetworkId, aimDirection.normalized));
+            StartCoroutine(ParryRoutine(data, aimDirection.normalized));
         }
 
         [Server]
-        private IEnumerator ParryRoutine(ParryAbilitySO data, int casterNetworkId, Vector3 aimDir)
+        private IEnumerator ParryRoutine(ParryAbilitySO data, Vector3 aimDir)
         {
             _parrying = true;
 
             yield return new WaitForSeconds(data.StartupDuration);
 
-            ShowParryVFXObserversRpc(ParryPhase.Active, aimDir, data.ParryRadius);
-            float elapsed = 0f;
-            bool succeeded = false;
+            Vector3 parryPoint = GetParryPoint(data, aimDir);
+            ShowParryVFXObserversRpc(ParryPhase.Active, parryPoint, data.VfxScale);
 
+            float elapsed = 0f;
             while (elapsed < data.ActiveDuration)
             {
-                if (TryDetectProjectile(data.ParryRadius, aimDir))
+                if (TryDetectProjectile(parryPoint, data.ParryRadius, aimDir))
                 {
                     _mana?.Restore(data.ManaRestore);
-                    ShowParryVFXObserversRpc(ParryPhase.Success, aimDir, data.ParryRadius);
-                    succeeded = true;
+                    ShowParryVFXObserversRpc(ParryPhase.Success, parryPoint, data.VfxScale);
                     break;
                 }
                 elapsed += Time.deltaTime;
@@ -60,25 +54,22 @@ namespace Game.Presentation.Abilities
             _parrying = false;
         }
 
-        /// <summary>Punto central del parry: al frente del jugador siguiendo la mirada.</summary>
-        private Vector3 GetParryPoint(Vector3 aimDir)
-            => transform.position + Vector3.up * _heightOffset + aimDir * _forwardOffset;
+        /// <summary>Centro del parry: altura fija + adelante en la dirección de mirada.</summary>
+        private Vector3 GetParryPoint(ParryAbilitySO data, Vector3 aimDir)
+            => transform.position + Vector3.up * data.HeightOffset + aimDir * data.ForwardOffset;
 
         [Server]
-        private bool TryDetectProjectile(float radius, Vector3 aimDir)
+        private bool TryDetectProjectile(Vector3 origin, float radius, Vector3 aimDir)
         {
-            Vector3 origin = GetParryPoint(aimDir);
             Collider[] hits = Physics.OverlapSphere(origin, radius, ~0, QueryTriggerInteraction.Ignore);
 
             foreach (Collider hit in hits)
             {
                 if (!hit.TryGetComponent(out Projectile projectile)) continue;
-
-                NetworkObject nob = projectile.GetComponent<NetworkObject>();
-                if (nob == null) continue;
+                if (!projectile.TryGetComponent(out NetworkObject _)) continue;
 
                 Vector3 toProjectile = (hit.transform.position - origin).normalized;
-                if (Vector3.Dot(aimDir, toProjectile) < 0f) continue; // solo hemisferio frontal
+                if (Vector3.Dot(aimDir, toProjectile) < -0.2f) continue; // descartar lo que quedó atrás
 
                 projectile.Despawn();
                 return true;
@@ -87,16 +78,15 @@ namespace Game.Presentation.Abilities
         }
 
         [ObserversRpc]
-        private void ShowParryVFXObserversRpc(ParryPhase phase, Vector3 aimDir, float radius)
+        private void ShowParryVFXObserversRpc(ParryPhase phase, Vector3 point, float vfxScale)
         {
-            Vector3 vfxPos = GetParryPoint(aimDir.normalized);
             switch (phase)
             {
                 case ParryPhase.Active:
-                    VFXManager.PlayParryActive(vfxPos, radius);
+                    VFXManager.PlayParryActive(point, vfxScale);
                     break;
                 case ParryPhase.Success:
-                    VFXManager.PlayParrySuccess(vfxPos, radius);
+                    VFXManager.PlayParrySuccess(point, vfxScale);
                     break;
             }
         }

@@ -21,5 +21,8 @@ MonoBehaviour:
   _startupDuration: 0.1
   _activeDuration: 0.2
   _recoveryDuration: 0.15
-  _parryRadius: 2.5
+  _heightOffset: 0.6
+  _forwardOffset: 1.8
+  _parryRadius: 1
+  _vfxScalePerUnit: 0.5
   _manaRestore: 25

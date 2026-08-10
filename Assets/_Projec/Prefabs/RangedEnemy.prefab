@@ -130,9 +130,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 51fa6685c6e0d0b4ba863cad47424ff4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Game.Presentation.Combat.Health
-  _componentIndexCache: 255
+  _componentIndexCache: 0
   _addedNetworkObject: {fileID: 5032515547589133333}
-  _networkObjectCache: {fileID: 0}
+  _networkObjectCache: {fileID: 5032515547589133333}
   _stats: {fileID: 0}
   _maxHealth: 100
 --- !u!114 &5032515547589133333
@@ -165,22 +165,25 @@ MonoBehaviour:
   _spectatorInterpolation: 2
   _enableTeleport: 0
   _teleportThreshold: 1
-  <PrefabId>k__BackingField: 65535
+  <PrefabId>k__BackingField: 1
   <SpawnableCollectionId>k__BackingField: 0
   <AssetPathHash>k__BackingField: 5574488590146536312
   SceneId: 0
   SerializedTransformProperties:
-    Position: {x: 0, y: 0, z: 0}
-    Rotation: {x: 0, y: 0, z: 0, w: 0}
-    Scale: {x: 0, y: 0, z: 0}
-    IsValid: 0
+    Position: {x: 15.94219, y: -0, z: 0.44584}
+    Rotation: {x: 0, y: 0, z: 0, w: 1}
+    Scale: {x: 1, y: 1, z: 1}
+    IsValid: 1
   <IsNested>k__BackingField: 0
   WasActiveDuringEdit: 0
   WasActiveDuringEdit_Set1: 1
   <ComponentIndex>k__BackingField: 0
   <PredictedSpawn>k__BackingField: {fileID: 0}
   <PredictedOwner>k__BackingField: {fileID: 0}
-  NetworkBehaviours: []
+  NetworkBehaviours:
+  - {fileID: 5228042524330920301}
+  - {fileID: 135492877755782589}
+  - {fileID: 946084980062771227}
   InitializedParentNetworkBehaviour: {fileID: 0}
   InitializedNestedNetworkObjects: []
   RuntimeParentNetworkBehaviour: {fileID: 0}
@@ -191,7 +194,7 @@ MonoBehaviour:
   _initializeOrder: 0
   _preventDespawnOnDisconnect: 0
   _defaultDespawnType: 0
-  _initializedTimestamp: 0
+  _initializedTimestamp: -8584152619211442837
 --- !u!114 &135492877755782589
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -204,14 +207,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: eaa9f1caf5976624b8de9b8829707118, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Game.Presentation.Combat.RangedEnemyAI
-  _componentIndexCache: 255
+  _componentIndexCache: 1
   _addedNetworkObject: {fileID: 5032515547589133333}
-  _networkObjectCache: {fileID: 0}
-  _detectionRadius: 15
+  _networkObjectCache: {fileID: 5032515547589133333}
+  _detectionRadius: 20
   _projectilePrefab: {fileID: 9077845970666463845, guid: 007947feaa3cedf4b975548e3fa50a77, type: 3}
   _fireRate: 2
-  _projectileSpeed: 12
-  _projectileDamage: 10
+  _projectileSpeed: 25
+  _projectileDamage: 15
   _projectileRadius: 0.25
 --- !u!114 &946084980062771227
 MonoBehaviour:
@@ -225,9 +228,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a2836e36774ca1c4bbbee976e17b649c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: FishNet.Runtime::FishNet.Component.Transforming.NetworkTransform
-  _componentIndexCache: 255
+  _componentIndexCache: 2
   _addedNetworkObject: {fileID: 5032515547589133333}
-  _networkObjectCache: {fileID: 0}
+  _networkObjectCache: {fileID: 5032515547589133333}
   _componentConfiguration: 0
   _synchronizeParent: 0
   _packing:
