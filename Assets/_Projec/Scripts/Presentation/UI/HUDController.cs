@@ -35,6 +35,10 @@ namespace Game.Presentation.UI
         private Label _interactPrompt;
         private readonly VisualElement[] _cooldownOverlays = new VisualElement[4];
 
+        private VisualElement _dashRing;
+        private float _dashRingProgress; // 0 = vacío (en cooldown), 1 = lleno (listo)
+
+
         private void Awake()
         {
             _document = GetComponent<UIDocument>();
@@ -69,6 +73,9 @@ namespace Game.Presentation.UI
             _runDanger = root.Q<Label>("run-danger");
             _runCounter = root.Q<Label>("run-counter");
             _interactPrompt = root.Q<Label>("interact-prompt");
+            _dashRing = root.Q<VisualElement>("dash-ring");
+                        if (_dashRing != null)
+                            _dashRing.generateVisualContent += DrawDashRing;
 
             for (int i = 0; i < 4; i++)
                 _cooldownOverlays[i] = root.Q<VisualElement>($"slot-{i}-cd");
@@ -157,6 +164,45 @@ namespace Game.Presentation.UI
                 {
                     _interactPrompt.style.display = DisplayStyle.None;
                 }
+            }
+
+            if (_dashRing != null && _abilities != null)
+            {
+                float newProgress = 1f - _abilities.GetCooldownProgress(1); // slot 1 = dash
+                if (!Mathf.Approximately(newProgress, _dashRingProgress))
+                {
+                    _dashRingProgress = newProgress;
+                    _dashRing.MarkDirtyRepaint(); // redibujar el aro
+                }
+            }
+        }
+
+        private void DrawDashRing(MeshGenerationContext ctx)
+        {
+            var painter = ctx.painter2D;
+            float size = _dashRing.resolvedStyle.width;
+            if (size <= 0f) return;
+
+            Vector2 center = new Vector2(size / 2f, size / 2f);
+            float radius = size / 2f - 3f;
+
+            // Fondo del aro (tenue).
+            painter.strokeColor = new Color(1f, 1f, 1f, 0.15f);
+            painter.lineWidth = 3f;
+            painter.BeginPath();
+            painter.Arc(center, radius, 0f, 360f);
+            painter.Stroke();
+
+            // Progreso: se llena de vacío a completo. Empieza arriba (-90°) en sentido horario.
+            if (_dashRingProgress > 0f)
+            {
+                painter.strokeColor = _dashRingProgress >= 1f
+                    ? new Color(0.4f, 0.9f, 1f, 0.95f)   // listo: cian brillante
+                    : new Color(0.4f, 0.9f, 1f, 0.5f);   // cargando: cian tenue
+                painter.lineWidth = 3f;
+                painter.BeginPath();
+                painter.Arc(center, radius, -90f, -90f + 360f * _dashRingProgress);
+                painter.Stroke();
             }
         }
     }

@@ -15,7 +15,7 @@ MonoBehaviour:
   _abilityId: id_dash
   _displayName: Dash
   _icon: {fileID: 0}
-  _cooldown: 1
+  _cooldown: 2
   _resourceCost: 20
   _muzzlePrefab: {fileID: 0}
   _dashSpeed: 40
