@@ -6,12 +6,17 @@ namespace Game.Core.Abilities.Abilities
     public class DashAbilitySO : AbilitySO
     {
         [Header("Dash")]
-        [SerializeField] private float _dashForce = 12f;
+        [Tooltip("Velocidad inicial del dash (unidades/seg).")]
+        [SerializeField] private float _dashSpeed = 22f;
+        [Tooltip("Duración del dash en segundos.")]
+        [SerializeField] private float _dashDuration = 0.2f;
+
+        public float DashSpeed => _dashSpeed;
+        public float DashDuration => _dashDuration;
 
         public override void Execute(AbilityExecutor executor, in AbilityCastContext context)
         {
-            Vector3 impulse = context.AimDirection.normalized * _dashForce;
-            executor.ApplyMovementImpulse(context.CasterNetworkId, impulse);
+            executor.StartDash(context.CasterNetworkId, context.AimDirection.normalized, _dashSpeed, _dashDuration);
         }
     }
 }

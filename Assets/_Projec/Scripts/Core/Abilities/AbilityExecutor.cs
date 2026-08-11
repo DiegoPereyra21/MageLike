@@ -1,3 +1,5 @@
+using FishNet;
+using FishNet.Object;
 using Game.Core.Abilities.Abilities;
 using UnityEngine;
 
@@ -16,7 +18,13 @@ namespace Game.Core.Abilities
         void ApplyAreaEffect(Vector3 point, float radius, float damage, int casterNetworkId);
 
         /// <summary>Aplica un impulso de movimiento al caster (ej. dash), respetando predicción.</summary>
-        void ApplyMovementImpulse(int casterNetworkId, Vector3 impulse);
+        public void StartDash(int casterNetworkId, Vector3 direction, float speed, float duration)
+        {
+            if (!InstanceFinder.IsServerStarted) return;
+            if (!InstanceFinder.ServerManager.Objects.Spawned.TryGetValue(casterNetworkId, out NetworkObject nob)) return;
+            if (nob.TryGetComponent(out Game.Presentation.Player.PlayerMovementController movement))
+                movement.StartDash(direction, speed, duration);
+        }
 
         /// <summary>Aplica curación/buff directo al caster.</summary>
         void ApplySelfEffect(int casterNetworkId, float healAmount);

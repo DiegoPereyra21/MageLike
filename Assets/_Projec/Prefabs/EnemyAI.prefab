@@ -131,10 +131,10 @@ NavMeshAgent:
   m_AgentTypeID: 0
   m_Radius: 0.5
   m_Speed: 3.5
-  m_Acceleration: 8
+  m_Acceleration: 40
   avoidancePriority: 50
-  m_AngularSpeed: 120
-  m_StoppingDistance: 0
+  m_AngularSpeed: 500
+  m_StoppingDistance: 1
   m_AutoTraverseOffMeshLink: 1
   m_AutoBraking: 1
   m_AutoRepath: 1
@@ -248,7 +248,7 @@ MonoBehaviour:
   _initializeOrder: 0
   _preventDespawnOnDisconnect: 0
   _defaultDespawnType: 0
-  _initializedTimestamp: -8584152019366985345
+  _initializedTimestamp: -8584151889853465347
 --- !u!114 &811073443594022513
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -267,8 +267,8 @@ MonoBehaviour:
   _detectionRadius: 24
   _loseRadius: 25
   _moveSpeed: 12
-  _repathInterval: 0.2
-  _attackRange: 2
+  _repathInterval: 0.1
+  _attackRange: 3
   _attackWindup: 0.4
   _attackCooldown: 1.5
   _attackDamage: 25

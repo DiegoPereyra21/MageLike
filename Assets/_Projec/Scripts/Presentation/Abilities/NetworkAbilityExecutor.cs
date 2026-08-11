@@ -56,15 +56,12 @@ namespace Game.Presentation.Abilities
             }
         }
 
-        public void ApplyMovementImpulse(int casterNetworkId, Vector3 impulse)
+        public void StartDash(int casterNetworkId, Vector3 direction, float speed, float duration)
         {
             if (!InstanceFinder.IsServerStarted) return;
             if (!InstanceFinder.ServerManager.Objects.Spawned.TryGetValue(casterNetworkId, out NetworkObject nob)) return;
-
-            // Delega al controller de movimiento para que el impulso pase por el flujo de
-            // predicción/reconciliación en vez de mover el transform crudo (que sería sobrescrito).
-            if (nob.TryGetComponent(out Game.Presentation.Player.PlayerMovementController movement))
-                movement.ApplyDashImpulse(impulse);
+            if (nob.TryGetComponent(out Player.PlayerMovementController movement))
+                movement.StartDash(direction, speed, duration);
         }
 
         public void ApplySelfEffect(int casterNetworkId, float healAmount)

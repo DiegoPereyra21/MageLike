@@ -28,7 +28,15 @@ namespace Game.Presentation.Player
         private InputAction _lookAction;
 
         private Vector3 _verticalVelocity;
-        private Vector3 _pendingImpulse;
+        private Vector3 _dashVelocity;
+        private float _dashTimeRemaining;
+        private float _dashDuration;
+
+        // Solicitud de dash pendiente (seteada por StartDash en el server, aplicada en el próximo tick).
+        private Vector3 _pendingDashDir;
+        private float _pendingDashSpeed;
+        private float _pendingDashDuration;
+        private bool _dashRequested;
         private bool _jumpQueued;
         
         [Header("Mirada")]
@@ -66,12 +74,16 @@ namespace Game.Presentation.Player
             public Vector3 Position;
             public Vector3 VerticalVelocity;
             public Quaternion Rotation;
+            public Vector3 DashVelocity;      // velocidad de dash restante
+            public float DashTimeRemaining;   // tiempo de dash restante
 
-            public ReconcileData(Vector3 position, Vector3 verticalVelocity, Quaternion rotation) : this()
+            public ReconcileData(Vector3 position, Vector3 verticalVelocity, Quaternion rotation, Vector3 dashVelocity, float dashTimeRemaining) : this()
             {
                 Position = position;
                 VerticalVelocity = verticalVelocity;
                 Rotation = rotation;
+                DashVelocity = dashVelocity;
+                DashTimeRemaining = dashTimeRemaining;
             }
 
             private uint _tick;
@@ -214,16 +226,32 @@ namespace Game.Presentation.Player
                 _verticalVelocity.y += _gravity * delta;
             }
 
-            // Impulso pendiente (dash) consumido en el tick.
-            Vector3 impulse = _pendingImpulse;
-            _pendingImpulse = Vector3.zero;
+            // Iniciar dash si hay una solicitud pendiente.
+            if (_dashRequested)
+            {
+                _dashVelocity = _pendingDashDir * _pendingDashSpeed;
+                _dashTimeRemaining = _pendingDashDuration;
+                _dashDuration = _pendingDashDuration;
+                _dashRequested = false;
+            }
 
-            _controller.Move((horizontal + _verticalVelocity + impulse / delta) * delta);
+            // Integrar dash con decaimiento suave (ease-out).
+            Vector3 dashStep = Vector3.zero;
+            if (_dashTimeRemaining > 0f)
+            {
+                float t = Mathf.Clamp01(_dashTimeRemaining / _dashDuration);
+                // Curva ease-out: mantiene velocidad alta al inicio y decae al final.
+                float speedFactor = Mathf.SmoothStep(0f, 1f, t);
+                dashStep = _dashVelocity * speedFactor;
+                _dashTimeRemaining -= delta;
+            }
+
+            _controller.Move((horizontal + _verticalVelocity + dashStep) * delta);
         }
 
         public override void CreateReconcile()
         {
-            ReconcileData rd = new ReconcileData(transform.position, _verticalVelocity, transform.rotation);
+            ReconcileData rd = new ReconcileData(transform.position, _verticalVelocity, transform.rotation, _dashVelocity, _dashTimeRemaining);
             ReconcileState(rd);
         }
 
@@ -233,25 +261,26 @@ namespace Game.Presentation.Player
             _controller.enabled = false;
 
             if (base.IsOwner)
-            {
-                // Conservar la rotación local del owner (la mirada es responsiva, no se corrige).
                 transform.position = data.Position;
-            }
             else
-            {
                 transform.SetPositionAndRotation(data.Position, data.Rotation);
-            }
 
             _verticalVelocity = data.VerticalVelocity;
+            _dashVelocity = data.DashVelocity;
+            _dashTimeRemaining = data.DashTimeRemaining;
             _controller.enabled = true;
         }
 
         /// <summary>
         /// Encola un impulso de dash. Solo debe llamarse en el servidor (el owner lo verá vía reconcile).
         /// </summary>
-        public void ApplyDashImpulse(Vector3 impulse)
+        /// <summary>Server-only. Solicita un dash; se inicia en el próximo tick replicado.</summary>
+        public void StartDash(Vector3 direction, float speed, float duration)
         {
-            _pendingImpulse += impulse;
+            _pendingDashDir = direction.normalized;
+            _pendingDashSpeed = speed;
+            _pendingDashDuration = duration;
+            _dashRequested = true;
         }
 
         public void DisableMovement()

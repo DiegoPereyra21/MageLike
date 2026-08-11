@@ -17,4 +17,6 @@ MonoBehaviour:
   _icon: {fileID: 0}
   _cooldown: 1
   _resourceCost: 20
-  _dashForce: 8
+  _muzzlePrefab: {fileID: 0}
+  _dashSpeed: 40
+  _dashDuration: 0.35
