@@ -100,7 +100,7 @@ namespace Game.Presentation.UI
                 for (int i = 0; i < _cooldownOverlays.Length; i++)
                 {
                     if (_cooldownOverlays[i] == null) continue;
-                    float cd = _abilities.GetCooldownNormalized(i);
+                    float cd = _abilities.GetCooldownProgress(i);
                     _cooldownOverlays[i].style.height = Length.Percent(cd * 100f);
                 }
             }

@@ -44,6 +44,7 @@ namespace Game.Presentation.Player
         [SerializeField] private CameraLookController _cameraLook;
         [SerializeField] private GameObject _cameraRoot; // el GameObject "Camera" hijo del Player
         [SerializeField] private CameraEffects _cameraEffects;
+        [SerializeField] private TrailRenderer _dashTrail;
         //para al abrir el inventario no siga moviendo la vista
         private bool _inputBlocked;
         /// <summary>Bloquea/desbloquea la lectura de input (para cuando se abre UI como el inventario).</summary>
@@ -252,6 +253,10 @@ namespace Game.Presentation.Player
             }
 
             _controller.Move((horizontal + _verticalVelocity + dashStep) * delta);
+
+            // Trail visible mientras dura el dash (en todos los clientes, dash es estado replicado).
+            if (_dashTrail != null)
+                _dashTrail.emitting = _dashTimeRemaining > 0f;
         }
 
         public override void CreateReconcile()

@@ -51,6 +51,20 @@ namespace Game.Presentation.Abilities
             }
         }
 
+        /// <summary>Progreso de cooldown del slot (0 = listo, 1 = recién usado). Usa la predicción local del owner.</summary>
+        public float GetCooldownProgress(int slot)
+        {
+            if (slot < 0 || slot >= _localCooldownEndTime.Length) return 0f;
+
+            AbilitySO ability = _equippedAbilities[slot];
+            if (ability == null || ability.Cooldown <= 0f) return 0f;
+
+            float remaining = _localCooldownEndTime[slot] - Time.time;
+            if (remaining <= 0f) return 0f;
+
+            return Mathf.Clamp01(remaining / ability.Cooldown);
+        }
+
         private void Awake()
         {
             _castActions = new InputAction[4];
