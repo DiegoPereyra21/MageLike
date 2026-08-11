@@ -19,6 +19,10 @@ namespace Game.Presentation.Abilities
 
         private bool _initialized;
 
+        // Buffer compartido para el OverlapSphere sin allocations. Los proyectiles corren
+        // en Update del server (single-thread), así que reutilizarlo secuencialmente es seguro.
+        private static readonly Collider[] _overlapBuffer = new Collider[16];
+
         public void Initialize(Vector3 direction, float speed, float damage, float radius, int casterNetworkId)
         {
             _direction   = direction.normalized;
@@ -38,26 +42,37 @@ namespace Game.Presentation.Abilities
             float stepDistance = _speed * Time.deltaTime;
             Vector3 startPos = transform.position;
 
+            // 1) Caso "el enemigo se mete encima del proyectil": SphereCast NO detecta
+            //    colliders que ya solapan la esfera en el origen. Un OverlapSphere previo
+            //    cubre ese hueco (típico con enemigos que corren de frente a alta velocidad).
+            int count = Physics.OverlapSphereNonAlloc(startPos, _radius, _overlapBuffer, ~0, QueryTriggerInteraction.Ignore);
+            for (int i = 0; i < count; i++)
+            {
+                Collider col = _overlapBuffer[i];
+
+                // Ignorar el propio collider del proyectil (y cualquier hijo suyo).
+                if (col.transform.IsChildOf(transform)) continue;
+
+                // Ignorar al caster.
+                if (col.TryGetComponent(out NetworkObject nob) && nob.ObjectId == _casterNetworkId) continue;
+
+                col.TryGetComponent(out IDamageable dmg); // null si es geometría estática
+                ResolveImpact(startPos, -_direction, dmg);
+                return;
+            }
+
+            // 2) Sweep normal a lo largo del paso de este frame.
             if (Physics.SphereCast(startPos, _radius, _direction, out RaycastHit hit, stepDistance, ~0, QueryTriggerInteraction.Ignore))
             {
-
-                if (hit.collider.TryGetComponent(out NetworkObject nob) && nob.ObjectId == _casterNetworkId)
+                if (hit.collider.TryGetComponent(out NetworkObject hitNob) && hitNob.ObjectId == _casterNetworkId)
                 {
+                    // Atravesar al caster.
                     transform.position = startPos + _direction * stepDistance;
                 }
                 else
                 {
-
-                    if (hit.collider.TryGetComponent(out IDamageable damageable))
-                        damageable.ApplyDamage(_damage, _casterNetworkId);
-
-                    transform.position = hit.point;
-
-                    if (InstanceFinder.ServerManager.Objects.Spawned.TryGetValue(_casterNetworkId, out NetworkObject casterNob))
-                        if (casterNob.TryGetComponent(out AbilityController ac))
-                            ac.NotifyProjectileImpact(hit.point, hit.normal);
-
-                    base.Despawn();
+                    hit.collider.TryGetComponent(out IDamageable damageable); // null = pared
+                    ResolveImpact(hit.point, hit.normal, damageable);
                     return;
                 }
             }
@@ -67,9 +82,26 @@ namespace Game.Presentation.Abilities
             }
 
             if (Time.time - _spawnTime >= _lifetime)
-            {
                 base.Despawn();
-            }
+        }
+
+        /// <summary>
+        /// Aplica el daño (si golpeó algo con vida), reposiciona en el punto de impacto,
+        /// notifica al caster (screenshake + VFX vía AbilityController persistente, porque
+        /// este NetworkObject se despawnea acá mismo) y despawnea.
+        /// </summary>
+        private void ResolveImpact(Vector3 point, Vector3 normal, IDamageable damageable)
+        {
+            if (damageable != null)
+                damageable.ApplyDamage(_damage, _casterNetworkId);
+
+            transform.position = point;
+
+            if (InstanceFinder.ServerManager.Objects.Spawned.TryGetValue(_casterNetworkId, out NetworkObject casterNob))
+                if (casterNob.TryGetComponent(out AbilityController ac))
+                    ac.NotifyProjectileImpact(point, normal);
+
+            base.Despawn();
         }
     }
 }

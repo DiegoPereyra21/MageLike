@@ -18,6 +18,7 @@ GameObject:
   - component: {fileID: 811073443594022513}
   - component: {fileID: 4937824281593786330}
   - component: {fileID: 4387372629207907042}
+  - component: {fileID: 7800704485703209974}
   m_Layer: 0
   m_Name: EnemyAI
   m_TagString: Untagged
@@ -248,7 +249,7 @@ MonoBehaviour:
   _initializeOrder: 0
   _preventDespawnOnDisconnect: 0
   _defaultDespawnType: 0
-  _initializedTimestamp: -8584151889853465347
+  _initializedTimestamp: -8584151169676541707
 --- !u!114 &811073443594022513
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -289,6 +290,7 @@ MonoBehaviour:
   _networkObjectCache: {fileID: 2819803591878320542}
   _stats: {fileID: 0}
   _maxHealth: 100
+  _damageFlash: {fileID: 7800704485703209974}
 --- !u!114 &4387372629207907042
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -306,3 +308,24 @@ MonoBehaviour:
   _networkObjectCache: {fileID: 2819803591878320542}
   _lootTable: {fileID: 11400000, guid: c76f1cd9d97f13e48b4731c4af082371, type: 2}
   _lootContainerPrefab: {fileID: 2764254699792074859, guid: 3d07cbfe898310a45a89d7f2119ba857, type: 3}
+--- !u!114 &7800704485703209974
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2052082940192421505}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 492efe70a06769e48b9e5bb99e2fab94, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Presentation.Combat.DamageFlash
+  _renderers:
+  - {fileID: 1679955142243148997}
+  _mode: 1
+  _flashColor: {r: 1, g: 1, b: 1, a: 1}
+  _tintStrength: 0.85
+  _emissionIntensity: 3
+  _duration: 0.12
+  _baseColorProperty: _BaseColor
+  _emissionProperty: _EmissionColor

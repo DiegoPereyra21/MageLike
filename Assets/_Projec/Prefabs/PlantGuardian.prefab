@@ -106,6 +106,7 @@ GameObject:
   - component: {fileID: 3771095809241588230}
   - component: {fileID: 2765869109636165105}
   - component: {fileID: -7344314472633128359}
+  - component: {fileID: 6910067746919599885}
   m_Layer: 0
   m_Name: PlantGuardian
   m_TagString: Untagged
@@ -146,6 +147,7 @@ MonoBehaviour:
   _networkObjectCache: {fileID: 3536709759041560106}
   _stats: {fileID: 0}
   _maxHealth: 100
+  _damageFlash: {fileID: 6910067746919599885}
 --- !u!114 &3536709759041560106
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -206,7 +208,7 @@ MonoBehaviour:
   _initializeOrder: 0
   _preventDespawnOnDisconnect: 0
   _defaultDespawnType: 0
-  _initializedTimestamp: -8584151895513688490
+  _initializedTimestamp: -8584151169676541707
 --- !u!114 &4297230460876061587
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -325,6 +327,27 @@ MonoBehaviour:
   _networkObjectCache: {fileID: 3536709759041560106}
   _lootTable: {fileID: 11400000, guid: c76f1cd9d97f13e48b4731c4af082371, type: 2}
   _lootContainerPrefab: {fileID: 2764254699792074859, guid: 3d07cbfe898310a45a89d7f2119ba857, type: 3}
+--- !u!114 &6910067746919599885
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6363106951221882465}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 492efe70a06769e48b9e5bb99e2fab94, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Presentation.Combat.DamageFlash
+  _renderers:
+  - {fileID: 1844686693855928155}
+  _mode: 1
+  _flashColor: {r: 1, g: 1, b: 1, a: 1}
+  _tintStrength: 0.85
+  _emissionIntensity: 3
+  _duration: 0.12
+  _baseColorProperty: _BaseColor
+  _emissionProperty: _EmissionColor
 --- !u!1 &7258749314488519498
 GameObject:
   m_ObjectHideFlags: 0

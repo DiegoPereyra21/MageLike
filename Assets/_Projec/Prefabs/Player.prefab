@@ -27,6 +27,7 @@ GameObject:
   - component: {fileID: 2259917246576972072}
   - component: {fileID: 5108485273257738210}
   - component: {fileID: 4993243696847190182}
+  - component: {fileID: 1777269769133244397}
   m_Layer: 8
   m_Name: Player
   m_TagString: Untagged
@@ -110,7 +111,7 @@ MonoBehaviour:
   _spectatorInterpolation: 2
   _enableTeleport: 0
   _teleportThreshold: 1
-  <PrefabId>k__BackingField: 2
+  <PrefabId>k__BackingField: 4
   <SpawnableCollectionId>k__BackingField: 0
   <AssetPathHash>k__BackingField: 10523460009225210850
   SceneId: 0
@@ -139,6 +140,8 @@ MonoBehaviour:
   - {fileID: 7481302007928117156}
   - {fileID: 8706064901918070629}
   - {fileID: 2259917246576972072}
+  - {fileID: 5108485273257738210}
+  - {fileID: 4993243696847190182}
   InitializedParentNetworkBehaviour: {fileID: 0}
   InitializedNestedNetworkObjects: []
   RuntimeParentNetworkBehaviour: {fileID: 0}
@@ -149,7 +152,7 @@ MonoBehaviour:
   _initializeOrder: 0
   _preventDespawnOnDisconnect: 0
   _defaultDespawnType: 0
-  _initializedTimestamp: -8584154600264763655
+  _initializedTimestamp: -8584151169676541707
 --- !u!114 &303123316450518896
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -162,9 +165,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f7afb0dda8493f540b181a4872d667be, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Game.Presentation.Player.PlayerMovementController
-  _componentIndexCache: 255
+  _componentIndexCache: 0
   _addedNetworkObject: {fileID: 4708353133064893462}
-  _networkObjectCache: {fileID: 0}
+  _networkObjectCache: {fileID: 4708353133064893462}
   _stats: {fileID: 7481302007928117156}
   _moveSpeed: 6
   _sprintMultiplier: 1
@@ -293,6 +296,7 @@ MonoBehaviour:
   _networkObjectCache: {fileID: 4708353133064893462}
   _stats: {fileID: 7481302007928117156}
   _maxHealth: 100
+  _damageFlash: {fileID: 1777269769133244397}
 --- !u!114 &5943440516833520504
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -447,9 +451,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a2836e36774ca1c4bbbee976e17b649c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: FishNet.Runtime::FishNet.Component.Transforming.NetworkTransform
-  _componentIndexCache: 255
+  _componentIndexCache: 13
   _addedNetworkObject: {fileID: 4708353133064893462}
-  _networkObjectCache: {fileID: 0}
+  _networkObjectCache: {fileID: 4708353133064893462}
   _componentConfiguration: 0
   _synchronizeParent: 0
   _packing:
@@ -493,9 +497,30 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6e64c2025b09bd74b891f1790e633760, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Game.Presentation.Abilities.ParryHandler
-  _componentIndexCache: 255
+  _componentIndexCache: 14
   _addedNetworkObject: {fileID: 4708353133064893462}
-  _networkObjectCache: {fileID: 0}
+  _networkObjectCache: {fileID: 4708353133064893462}
+--- !u!114 &1777269769133244397
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 708038747777476914}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 492efe70a06769e48b9e5bb99e2fab94, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Presentation.Combat.DamageFlash
+  _renderers:
+  - {fileID: 4566678718236958889}
+  _mode: 1
+  _flashColor: {r: 1, g: 1, b: 1, a: 1}
+  _tintStrength: 0.85
+  _emissionIntensity: 3
+  _duration: 0.12
+  _baseColorProperty: _BaseColor
+  _emissionProperty: _EmissionColor
 --- !u!1 &3919668258133352585
 GameObject:
   m_ObjectHideFlags: 0

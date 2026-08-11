@@ -13,6 +13,8 @@ namespace Game.Presentation.Combat
     {
         [SerializeField] private PlayerStats _stats;
         [SerializeField] private float _maxHealth = 100f;
+        [Tooltip("Parpadeo de daño; se dispara a todos los clientes cuando esta entidad recibe daño.")]
+        [SerializeField] private DamageFlash _damageFlash;
 
         private readonly SyncVar<float> _current = new SyncVar<float>();
 
@@ -33,7 +35,8 @@ namespace Game.Presentation.Combat
             if (!base.IsServerStarted) return;
             _invulnerable = value;
         }
-                /// <summary>
+
+        /// <summary>
         /// amount positivo = daño, negativo = cura. Solo corre en servidor.
         /// </summary>
         public void ApplyDamage(float amount, int instigatorNetworkId)
@@ -41,16 +44,30 @@ namespace Game.Presentation.Combat
             if (!base.IsServerStarted) return;
             if (IsDead) return;
             if (_invulnerable && amount > 0f) return; // inmune a daño (no a curas, por si acaso)
-            
+
+            bool isDamage = amount > 0f;
+
             // Protección: reduce solo el daño entrante (no afecta curas).
-            if (amount > 0f && _stats != null)
+            if (isDamage && _stats != null)
                 amount *= (1f - _stats.ProtectionPercent);
 
             float newValue = Mathf.Clamp(_current.Value - amount, 0f, _maxHealth);
             _current.Value = newValue;
 
+            // Feedback visible para todos: parpadeo en la entidad golpeada.
+            if (isDamage)
+                FlashObserversRpc();
+
             if (newValue <= 0f)
                 OnDied?.Invoke(instigatorNetworkId);
+        }
+
+        /// <summary>Reproduce el parpadeo de daño en todos los clientes que observan la entidad.</summary>
+        [ObserversRpc]
+        private void FlashObserversRpc()
+        {
+            if (_damageFlash != null)
+                _damageFlash.Play();
         }
 
         /// <summary>Se dispara solo en el servidor cuando la vida llega a 0. El instigador es quién causó la muerte.</summary>
