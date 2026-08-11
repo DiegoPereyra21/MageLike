@@ -43,6 +43,7 @@ namespace Game.Presentation.Player
         [SerializeField] private float _mouseSensitivity = 0.65f;
         [SerializeField] private CameraLookController _cameraLook;
         [SerializeField] private GameObject _cameraRoot; // el GameObject "Camera" hijo del Player
+        [SerializeField] private CameraEffects _cameraEffects;
         //para al abrir el inventario no siga moviendo la vista
         private bool _inputBlocked;
         /// <summary>Bloquea/desbloquea la lectura de input (para cuando se abre UI como el inventario).</summary>
@@ -233,6 +234,10 @@ namespace Game.Presentation.Player
                 _dashTimeRemaining = _pendingDashDuration;
                 _dashDuration = _pendingDashDuration;
                 _dashRequested = false;
+
+                // FOV kick local (solo owner, solo la primera ejecución no-replay).
+                if (base.IsOwner && !state.ContainsReplayed() && _cameraEffects != null)
+                    _cameraEffects.FovKick(6f, 0.08f, 0.3f);
             }
 
             // Integrar dash con decaimiento suave (ease-out).

@@ -171,6 +171,7 @@ MonoBehaviour:
   _mouseSensitivity: 0.15
   _cameraLook: {fileID: 4541030088272683536}
   _cameraRoot: {fileID: 5589743811304467652}
+  _cameraEffects: {fileID: 771112038768061846}
 --- !u!114 &815632673414522861
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -508,6 +509,7 @@ GameObject:
   - component: {fileID: 4541030088272683536}
   - component: {fileID: 7719687377624193090}
   - component: {fileID: 1762347598842665774}
+  - component: {fileID: 771112038768061846}
   m_Layer: 8
   m_Name: Camera
   m_TagString: Untagged
@@ -797,6 +799,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 62f02da5c958a46438cd0d5868346132, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ScreenShake
+--- !u!114 &771112038768061846
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5589743811304467652}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6e8bfa7dbcf7cca46a87e33441b2553c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Presentation.Player.CameraEffects
 --- !u!1 &5723800257238090652
 GameObject:
   m_ObjectHideFlags: 0
