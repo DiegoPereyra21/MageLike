@@ -19,12 +19,12 @@ namespace Game.Presentation.Abilities
         private float _damage;
         private float _radius;
         private int _casterNetworkId;
-        private float _spawnTime;
+        private float _aliveTime;
 
         private bool _initialized;
 
         // Buffer compartido para el OverlapSphere sin allocations. Los proyectiles corren
-        // en Update del server (single-thread), así que reutilizarlo secuencialmente es seguro.
+        // en el tick del server (single-thread), así que reutilizarlo secuencialmente es seguro.
         private static readonly Collider[] _overlapBuffer = new Collider[16];
 
         private void Awake()
@@ -35,6 +35,19 @@ namespace Game.Presentation.Abilities
                 _hitMask = LayerMask.GetMask("Hitbox", "Ground");
         }
 
+        public override void OnStartServer()
+        {
+            base.OnStartServer();
+            base.TimeManager.OnTick += OnTick;
+        }
+
+        public override void OnStopServer()
+        {
+            base.OnStopServer();
+            if (base.TimeManager != null)
+                base.TimeManager.OnTick -= OnTick;
+        }
+
         public void Initialize(Vector3 direction, float speed, float damage, float radius, int casterNetworkId)
         {
             _direction   = direction.normalized;
@@ -42,16 +55,18 @@ namespace Game.Presentation.Abilities
             _damage      = damage;
             _radius      = radius;
             _casterNetworkId = casterNetworkId;
-            _spawnTime   = Time.time;
+            _aliveTime   = 0f;
             _initialized = true;
         }
 
-        private void Update()
+        // Simulación a paso fijo (tick de red). Requisito del lag compensation: el hit se
+        // resuelve en un tick concreto, que es al que el servidor puede rebobinar los colliders.
+        private void OnTick()
         {
-            if (!base.IsServerStarted) return;
             if (!_initialized) return;
 
-            float stepDistance = _speed * Time.deltaTime;
+            float delta = (float)base.TimeManager.TickDelta;
+            float stepDistance = _speed * delta;
             Vector3 startPos = transform.position;
 
             // 1) Caso "el enemigo se mete encima del proyectil": SphereCast NO detecta
@@ -76,7 +91,7 @@ namespace Game.Presentation.Abilities
                 return;
             }
 
-            // 2) Sweep normal a lo largo del paso de este frame.
+            // 2) Sweep normal a lo largo del paso de este tick.
             if (Physics.SphereCast(startPos, _radius, _direction, out RaycastHit hit, stepDistance, _hitMask, QueryTriggerInteraction.Ignore))
             {
                 NetworkObject hitNob = hit.collider.GetComponentInParent<NetworkObject>();
@@ -98,7 +113,8 @@ namespace Game.Presentation.Abilities
                 transform.position = startPos + _direction * stepDistance;
             }
 
-            if (Time.time - _spawnTime >= _lifetime)
+            _aliveTime += delta;
+            if (_aliveTime >= _lifetime)
                 base.Despawn();
         }
 
