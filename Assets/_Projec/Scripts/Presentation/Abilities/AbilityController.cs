@@ -113,19 +113,23 @@ namespace Game.Presentation.Abilities
             float effectiveCooldown = ability.Cooldown / Mathf.Max(0.1f, castSpeed);
             _localCooldownEndTime[slot] = Time.time + effectiveCooldown;
 
-            ResolveAim(out Vector3 origin, out Vector3 direction, out Vector3 aimPoint);
-            
-        // Muzzle VFX local — solo si la habilidad tiene uno definido.
+            ResolveAim(out Vector3 aimDirection, out Vector3 aimPoint);
+
+            // Muzzle VFX local en el báculo — solo si la habilidad tiene uno definido.
             if (base.IsOwner && ability.MuzzlePrefab != null)
-                VFXManager.PlayProjectileMuzzle(_spellOrigin != null ? _spellOrigin.position : origin,
-                    Quaternion.LookRotation(direction));
-            
-            CastServerRpc(slot, origin, direction, aimPoint);
+            {
+                Vector3 muzzlePos = _spellOrigin != null ? _spellOrigin.position : _aimOrigin.position;
+                VFXManager.PlayProjectileMuzzle(muzzlePos, Quaternion.LookRotation(aimDirection));
+            }
+
+            CastServerRpc(slot, aimDirection, aimPoint);
         }
 
-        private void ResolveAim(out Vector3 origin, out Vector3 direction, out Vector3 aimPoint)
+        // Cliente. Calcula hacia dónde mira el jugador. La aimDirection (mirada con pitch) la usan
+        // dash/parry; el aimPoint (objetivo del crosshair) lo usa el proyectil para converger.
+        // El origen del disparo NO se calcula acá: el servidor lo pone desde su SpellOrigin autoritativo.
+        private void ResolveAim(out Vector3 aimDirection, out Vector3 aimPoint)
         {
-            // Siempre desde la cámara para que la dirección sea exacta.
             Vector3 cameraOrigin = _aimOrigin.position;
             Vector3 cameraForward = _aimOrigin.forward;
 
@@ -133,13 +137,11 @@ namespace Game.Presentation.Abilities
             if (Physics.Raycast(cameraOrigin, cameraForward, out RaycastHit hit, _maxAimDistance, _aimMask))
                 aimPoint = hit.point;
 
-            // El proyectil sale desde la cámara, no desde el SpellOrigin.
-            origin = cameraOrigin;
-            direction = (aimPoint - origin).normalized;
+            aimDirection = cameraForward;
         }
 
         [ServerRpc]
-        private void CastServerRpc(int slot, Vector3 origin, Vector3 direction, Vector3 aimPoint)
+        private void CastServerRpc(int slot, Vector3 aimDirection, Vector3 aimPoint)
         {
             if (slot < 0 || slot >= _equippedAbilities.Length) return;
             AbilitySO ability = _equippedAbilities[slot];
@@ -166,10 +168,20 @@ namespace Game.Presentation.Abilities
 
             float dmgMul = _stats != null ? _stats.DamageMultiplier : 1f;
 
+            // Anti-cheat: el origen NO se confía al cliente. Se toma del SpellOrigin autoritativo
+            // del servidor (cuelga del root: posición + yaw autoritativos, no depende del pitch).
+            Vector3 head = _aimOrigin != null ? _aimOrigin.position : transform.position;
+            Vector3 origin = _spellOrigin != null ? _spellOrigin.position : head;
+
+            // Sanidad del aimPoint: acotar su distancia a la cabeza para descartar valores absurdos.
+            Vector3 toAim = aimPoint - head;
+            if (toAim.magnitude > _maxAimDistance)
+                aimPoint = head + toAim.normalized * _maxAimDistance;
+
             var context = new AbilityCastContext(
                 casterNetworkId: base.ObjectId,
                 origin: origin,
-                aimDirection: direction.normalized,
+                aimDirection: aimDirection.normalized,
                 aimPoint: aimPoint,
                 tick: base.TimeManager.LocalTick,
                 damageMultiplier: dmgMul

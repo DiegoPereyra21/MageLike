@@ -16,7 +16,7 @@ GameObject:
   - component: {fileID: 5032515547589133333}
   - component: {fileID: 135492877755782589}
   - component: {fileID: 946084980062771227}
-  m_Layer: 0
+  m_Layer: 11
   m_Name: RangedEnemy
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -135,6 +135,7 @@ MonoBehaviour:
   _networkObjectCache: {fileID: 5032515547589133333}
   _stats: {fileID: 0}
   _maxHealth: 100
+  _damageFlash: {fileID: 0}
 --- !u!114 &5032515547589133333
 MonoBehaviour:
   m_ObjectHideFlags: 0

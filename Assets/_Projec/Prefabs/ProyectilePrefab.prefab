@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 4678567420185808498}
   - component: {fileID: 4071179547152105402}
   - component: {fileID: 5257276106424424497}
-  m_Layer: 0
+  m_Layer: 10
   m_Name: Head_01
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -4846,7 +4846,7 @@ GameObject:
   m_Component:
   - component: {fileID: 4302884841777316615}
   - component: {fileID: 162672785870868111}
-  m_Layer: 0
+  m_Layer: 10
   m_Name: Trail_01
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -4998,7 +4998,7 @@ GameObject:
   - component: {fileID: 8510681492949235731}
   - component: {fileID: 2708273713246154766}
   - component: {fileID: 5658598586028745421}
-  m_Layer: 0
+  m_Layer: 10
   m_Name: Smoke_01
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -9834,7 +9834,7 @@ GameObject:
   - component: {fileID: 553480449749319212}
   - component: {fileID: 8675520409114273252}
   - component: {fileID: 1688594924861037564}
-  m_Layer: 0
+  m_Layer: 10
   m_Name: MiniHead_01
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -14707,7 +14707,7 @@ GameObject:
   - component: {fileID: 2510682931423068687}
   - component: {fileID: 513666494237882304}
   - component: {fileID: 7331760673942472830}
-  m_Layer: 0
+  m_Layer: 10
   m_Name: MiniHead_02
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -19580,7 +19580,7 @@ GameObject:
   - component: {fileID: 5769268634258387834}
   - component: {fileID: 3562752840574864379}
   - component: {fileID: 6360322521110069811}
-  m_Layer: 0
+  m_Layer: 10
   m_Name: Debris_01
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -24416,7 +24416,7 @@ GameObject:
   - component: {fileID: 5611785286952835937}
   - component: {fileID: 6308313769371326437}
   - component: {fileID: 1024226468166752127}
-  m_Layer: 0
+  m_Layer: 10
   m_Name: HeadWind_01
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -29254,7 +29254,7 @@ GameObject:
   - component: {fileID: 1193530342131679477}
   - component: {fileID: 6509815930719459171}
   - component: {fileID: 5759525869034842789}
-  m_Layer: 0
+  m_Layer: 10
   m_Name: ProyectilePrefab
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -29359,6 +29359,9 @@ MonoBehaviour:
   _addedNetworkObject: {fileID: 6708061512554698612}
   _networkObjectCache: {fileID: 6708061512554698612}
   _lifetime: 0.9
+  _hitMask:
+    serializedVersion: 2
+    m_Bits: 576
 --- !u!135 &6509815930719459171
 SphereCollider:
   m_ObjectHideFlags: 0
@@ -29437,7 +29440,7 @@ GameObject:
   - component: {fileID: 6208330395686447256}
   - component: {fileID: 1497979328441399775}
   - component: {fileID: 3261012857497415346}
-  m_Layer: 0
+  m_Layer: 10
   m_Name: Wind_01
   m_TagString: Untagged
   m_Icon: {fileID: 0}

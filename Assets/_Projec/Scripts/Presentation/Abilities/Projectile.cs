@@ -10,6 +10,10 @@ namespace Game.Presentation.Abilities
     {
         [SerializeField] private float _lifetime = 5f;
 
+        [Tooltip("Contra qué castea el proyectil. Debe incluir Hitbox (objetivos) y Ground (paredes/piso). " +
+                 "Si queda vacío, se resuelve por nombre en Awake.")]
+        [SerializeField] private LayerMask _hitMask;
+
         private Vector3 _direction;
         private float _speed;
         private float _damage;
@@ -22,6 +26,14 @@ namespace Game.Presentation.Abilities
         // Buffer compartido para el OverlapSphere sin allocations. Los proyectiles corren
         // en Update del server (single-thread), así que reutilizarlo secuencialmente es seguro.
         private static readonly Collider[] _overlapBuffer = new Collider[16];
+
+        private void Awake()
+        {
+            // Red de seguridad: si el prefab existente todavía no tiene la máscara seteada,
+            // la resolvemos por nombre (independiente del índice de layer) para no castear contra Nothing.
+            if (_hitMask.value == 0)
+                _hitMask = LayerMask.GetMask("Hitbox", "Ground");
+        }
 
         public void Initialize(Vector3 direction, float speed, float damage, float radius, int casterNetworkId)
         {
@@ -45,7 +57,7 @@ namespace Game.Presentation.Abilities
             // 1) Caso "el enemigo se mete encima del proyectil": SphereCast NO detecta
             //    colliders que ya solapan la esfera en el origen. Un OverlapSphere previo
             //    cubre ese hueco (típico con enemigos que corren de frente a alta velocidad).
-            int count = Physics.OverlapSphereNonAlloc(startPos, _radius, _overlapBuffer, ~0, QueryTriggerInteraction.Ignore);
+            int count = Physics.OverlapSphereNonAlloc(startPos, _radius, _overlapBuffer, _hitMask, QueryTriggerInteraction.Ignore);
             for (int i = 0; i < count; i++)
             {
                 Collider col = _overlapBuffer[i];
@@ -53,25 +65,30 @@ namespace Game.Presentation.Abilities
                 // Ignorar el propio collider del proyectil (y cualquier hijo suyo).
                 if (col.transform.IsChildOf(transform)) continue;
 
-                // Ignorar al caster.
-                if (col.TryGetComponent(out NetworkObject nob) && nob.ObjectId == _casterNetworkId) continue;
+                // El collider golpeable es un hijo (capa Hitbox); Health/NetworkObject están en el root.
+                NetworkObject nob = col.GetComponentInParent<NetworkObject>();
 
-                col.TryGetComponent(out IDamageable dmg); // null si es geometría estática
+                // Ignorar al caster.
+                if (nob != null && nob.ObjectId == _casterNetworkId) continue;
+
+                IDamageable dmg = nob != null ? nob.GetComponent<IDamageable>() : null; // null = geometría (Ground)
                 ResolveImpact(startPos, -_direction, dmg);
                 return;
             }
 
             // 2) Sweep normal a lo largo del paso de este frame.
-            if (Physics.SphereCast(startPos, _radius, _direction, out RaycastHit hit, stepDistance, ~0, QueryTriggerInteraction.Ignore))
+            if (Physics.SphereCast(startPos, _radius, _direction, out RaycastHit hit, stepDistance, _hitMask, QueryTriggerInteraction.Ignore))
             {
-                if (hit.collider.TryGetComponent(out NetworkObject hitNob) && hitNob.ObjectId == _casterNetworkId)
+                NetworkObject hitNob = hit.collider.GetComponentInParent<NetworkObject>();
+
+                if (hitNob != null && hitNob.ObjectId == _casterNetworkId)
                 {
                     // Atravesar al caster.
                     transform.position = startPos + _direction * stepDistance;
                 }
                 else
                 {
-                    hit.collider.TryGetComponent(out IDamageable damageable); // null = pared
+                    IDamageable damageable = hitNob != null ? hitNob.GetComponent<IDamageable>() : null; // null = pared
                     ResolveImpact(hit.point, hit.normal, damageable);
                     return;
                 }
