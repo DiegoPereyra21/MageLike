@@ -22,6 +22,15 @@ namespace Game.Presentation.Abilities
         private float _aliveTime;
         private bool _active;
 
+        // Tope de recorrido: distancia al primer objetivo/pared en la trayectoria al momento de
+        // disparar. Respaldo para cuando ese objetivo muere/despawnea antes de que el cosmético
+        // llegue (el golpe letal despawnea al enemigo al instante) — así frena donde estaba.
+        private bool _hasCap;
+        private float _maxDistance;
+        private Vector3 _capPoint;
+        private Vector3 _capNormal;
+        private float _traveled;
+
         private static readonly RaycastHit[] _hits = new RaycastHit[8];
 
         private void Awake()
@@ -32,13 +41,17 @@ namespace Game.Presentation.Abilities
 
         public void Launch(Vector3 direction, float speed, Transform ignoreRoot, System.Action onDone)
         {
-            _direction = direction.normalized;
-            _speed     = speed;
+            _direction  = direction.normalized;
+            _speed      = speed;
             _ignoreRoot = ignoreRoot;
-            _onDone    = onDone;
-            _aliveTime = 0f;
-            _active    = true;
+            _onDone     = onDone;
+            _aliveTime  = 0f;
+            _traveled   = 0f;
+            _active     = true;
             transform.rotation = Quaternion.LookRotation(_direction);
+
+            // Calcular el tope: primer impacto en la trayectoria AHORA (cuando el objetivo aún existe).
+            _hasCap = TryRaycast(transform.position, _lifetime * _speed, out _capPoint, out _capNormal, out _maxDistance);
         }
 
         private void Update()
@@ -48,31 +61,45 @@ namespace Game.Presentation.Abilities
             float step = _speed * Time.deltaTime;
             Vector3 pos = transform.position;
 
-            if (TryHit(pos, step, out Vector3 point, out Vector3 normal))
+            // Frenado exacto en objetivos vivos / paredes (por si algo se mueve dentro del camino).
+            if (TryRaycast(pos, step, out Vector3 point, out Vector3 normal, out _))
             {
-                transform.position = point;
-                VFXManager.PlayProjectileHit(point, Quaternion.LookRotation(normal));
-                ScreenShake.Shake(0.8f); // feedback de impacto del caster, instantáneo (local)
-                Stop();
+                Impact(point, normal);
                 return;
             }
 
             transform.position = pos + _direction * step;
+            _traveled += step;
+
+            // Respaldo: alcanzó la distancia del objetivo que había al disparar (aunque ya no exista).
+            if (_hasCap && _traveled >= _maxDistance)
+            {
+                Impact(_capPoint, _capNormal);
+                return;
+            }
 
             _aliveTime += Time.deltaTime;
             if (_aliveTime >= _lifetime) Stop();
         }
 
-        private bool TryHit(Vector3 from, float distance, out Vector3 point, out Vector3 normal)
+        private void Impact(Vector3 point, Vector3 normal)
         {
-            point = default; normal = default;
+            transform.position = point;
+            VFXManager.PlayProjectileHit(point, Quaternion.LookRotation(normal));
+            ScreenShake.Shake(0.8f); // feedback de impacto del caster, instantáneo (local)
+            Stop();
+        }
+
+        private bool TryRaycast(Vector3 from, float distance, out Vector3 point, out Vector3 normal, out float hitDistance)
+        {
+            point = default; normal = default; hitDistance = 0f;
             int count = Physics.RaycastNonAlloc(from, _direction, _hits, distance, _hitMask, QueryTriggerInteraction.Ignore);
             float best = float.MaxValue; bool found = false;
             for (int i = 0; i < count; i++)
             {
                 RaycastHit h = _hits[i];
                 if (_ignoreRoot != null && h.collider.transform.IsChildOf(_ignoreRoot)) continue; // ignorar al propio caster
-                if (h.distance < best) { best = h.distance; point = h.point; normal = h.normal; found = true; }
+                if (h.distance < best) { best = h.distance; point = h.point; normal = h.normal; hitDistance = h.distance; found = true; }
             }
             return found;
         }
