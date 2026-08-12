@@ -18,5 +18,13 @@ namespace Game.Core.Abilities.Abilities
         {
             executor.StartDash(context.CasterNetworkId, context.AimDirection.normalized, _dashSpeed, _dashDuration);
         }
+
+        public override bool TryGetOwnerDash(Vector3 aimDirection, out Vector3 direction, out float speed, out float duration)
+        {
+            direction = aimDirection.normalized;
+            speed = _dashSpeed;
+            duration = _dashDuration;
+            return true;
+        }
     }
 }

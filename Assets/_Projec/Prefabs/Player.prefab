@@ -29,6 +29,7 @@ GameObject:
   - component: {fileID: 4993243696847190182}
   - component: {fileID: 1777269769133244397}
   - component: {fileID: 3572806112232256929}
+  - component: {fileID: 6256248262321206928}
   m_Layer: 8
   m_Name: Player
   m_TagString: Untagged
@@ -144,6 +145,8 @@ MonoBehaviour:
   - {fileID: 2259917246576972072}
   - {fileID: 5108485273257738210}
   - {fileID: 4993243696847190182}
+  - {fileID: 3572806112232256929}
+  - {fileID: 6256248262321206928}
   InitializedParentNetworkBehaviour: {fileID: 0}
   InitializedNestedNetworkObjects: []
   RuntimeParentNetworkBehaviour: {fileID: 0}
@@ -154,7 +157,7 @@ MonoBehaviour:
   _initializeOrder: 0
   _preventDespawnOnDisconnect: 0
   _defaultDespawnType: 0
-  _initializedTimestamp: -8584151169676541707
+  _initializedTimestamp: -8584150357708500102
 --- !u!114 &303123316450518896
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -535,14 +538,30 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 01a271dd97d875347b0cea860df29a9d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: FishNet.Runtime::FishNet.Component.ColliderRollback.ColliderRollback
-  _componentIndexCache: 255
+  _componentIndexCache: 15
   _addedNetworkObject: {fileID: 4708353133064893462}
-  _networkObjectCache: {fileID: 0}
+  _networkObjectCache: {fileID: 4708353133064893462}
   _boundingBox: 0
   _physicsType: 1
   _boundingBoxSize: {x: 3, y: 3, z: 3}
   _colliderParents:
   - {fileID: 4935003049946431591}
+--- !u!114 &6256248262321206928
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 708038747777476914}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3b9dcb65dfe1ac942847f0201520a18a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Presentation.Combat.FallDeath
+  _componentIndexCache: 16
+  _addedNetworkObject: {fileID: 4708353133064893462}
+  _networkObjectCache: {fileID: 4708353133064893462}
+  _killFloorY: -50
 --- !u!1 &3919668258133352585
 GameObject:
   m_ObjectHideFlags: 0

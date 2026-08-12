@@ -57,6 +57,16 @@ namespace Game.Core.Abilities
             return false;
         }
 
+        /// <summary>
+        /// Datos de dash para que el OWNER lo prediga localmente al castear (Prediction v2:
+        /// cliente predice, server aplica autoritativo, reconcile alinea). Por defecto no es dash.
+        /// </summary>
+        public virtual bool TryGetOwnerDash(Vector3 aimDirection, out Vector3 direction, out float speed, out float duration)
+        {
+            direction = default; speed = 0f; duration = 0f;
+            return false;
+        }
+
         public abstract void Execute(AbilityExecutor executor, in AbilityCastContext context);
     }
 }

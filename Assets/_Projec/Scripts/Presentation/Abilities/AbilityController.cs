@@ -6,6 +6,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using VContainer;
 using FishNet.Managing.Timing;
+using Game.Presentation.Player;
 
 namespace Game.Presentation.Abilities
 {
@@ -26,8 +27,10 @@ namespace Game.Presentation.Abilities
         // Cooldowns autoritativos del servidor (Time.time del servidor en que cada slot vuelve a estar listo).
         private readonly float[] _serverCooldownEndTime = new float[4];
         private Mana _mana;
+        private PlayerMovementController _movement;
         [SerializeField] private Game.Presentation.Combat.PlayerStats _stats;
         private AbilityExecutor _executor;
+
         private InputAction[] _castActions;
 
         private bool _inputBlocked;
@@ -70,6 +73,7 @@ namespace Game.Presentation.Abilities
         {
             _castActions = new InputAction[4];
             _mana = GetComponent<Mana>();
+            _movement = GetComponent<PlayerMovementController>();
             _stats = GetComponent<Game.Presentation.Combat.PlayerStats>();
 
             _castActions[0] = new InputAction("CastSlot0", InputActionType.Button, "<Mouse>/leftButton");
@@ -131,6 +135,11 @@ namespace Game.Presentation.Abilities
                     Vector3 dir = toAim.sqrMagnitude > 0.0001f ? toAim.normalized : aimDirection;
                     CosmeticProjectileManager.Spawn(cosmeticPrefab, muzzlePos, dir, cosmeticSpeed, transform);
                 }
+                
+                // Dash owner-predicted: el owner lo encola localmente ya, así lo predice al
+                // instante (movimiento + audio + FOV). El server también lo aplica; reconcile alinea.
+                if (ability.TryGetOwnerDash(aimDirection, out Vector3 dashDir, out float dashSpeed, out float dashDur))
+                    _movement?.StartDash(dashDir, dashSpeed, dashDur);
             }
 
             // Tick de disparo del cliente para lag compensation (el server rebobina a este tick).

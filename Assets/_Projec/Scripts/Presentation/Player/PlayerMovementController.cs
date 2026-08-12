@@ -237,17 +237,17 @@ namespace Game.Presentation.Player
                 _dashDuration = _pendingDashDuration;
                 _dashRequested = false;
 
-                if (base.IsOwner && !state.ContainsReplayed() && _cameraEffects != null)
-                    _cameraEffects.FovKick(6f, 0.08f, 0.3f);
-
-                // Audio del dash: una sola vez, no en replays.
-                if (!state.ContainsReplayed() && _dashAudio != null)
-                    _dashAudio.Play();
-
-                if (base.IsOwner && !state.ContainsReplayed() && _cameraEffects != null)
+                // Feedback del dash: una sola vez, nunca en replays. Ahora corre también en el
+                // owner cliente porque el owner predice el dash (setea _dashRequested localmente).
+                if (!state.ContainsReplayed())
                 {
-                    _cameraEffects.FovKick(6f, 0.08f, 0.3f);
-                    Game.Presentation.Combat.ScreenShake.Shake(0.35f, 0.2f);
+                    if (_dashAudio != null) _dashAudio.Play();
+
+                    if (base.IsOwner && _cameraEffects != null)
+                    {
+                        _cameraEffects.FovKick(6f, 0.08f, 0.3f);
+                        Game.Presentation.Combat.ScreenShake.Shake(0.35f, 0.2f);
+                    }
                 }
             }
 
