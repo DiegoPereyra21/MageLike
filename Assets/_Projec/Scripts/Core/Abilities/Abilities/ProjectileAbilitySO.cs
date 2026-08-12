@@ -15,8 +15,7 @@ namespace Game.Core.Abilities.Abilities
         {
             float finalDamage = _damage * context.DamageMultiplier;
 
-            // Sale del SpellOrigin autoritativo (context.Origin) y converge hacia el punto de mira
-            // (aimPoint), para seguir pegando en el crosshair pese a nacer en una posición offset.
+            // Sale del SpellOrigin autoritativo (context.Origin) y converge hacia el punto de mira.
             Vector3 toAim = context.AimPoint - context.Origin;
             Vector3 direction = toAim.sqrMagnitude > 0.0001f ? toAim.normalized : context.AimDirection;
 
@@ -27,7 +26,8 @@ namespace Game.Core.Abilities.Abilities
                 _speed,
                 finalDamage,
                 _radius,
-                context.CasterNetworkId
+                context.CasterNetworkId,
+                context.Tick        // tick de disparo del cliente (lag comp)
             );
         }
     }

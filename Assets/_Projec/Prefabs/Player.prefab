@@ -28,6 +28,7 @@ GameObject:
   - component: {fileID: 5108485273257738210}
   - component: {fileID: 4993243696847190182}
   - component: {fileID: 1777269769133244397}
+  - component: {fileID: 3572806112232256929}
   m_Layer: 8
   m_Name: Player
   m_TagString: Untagged
@@ -522,6 +523,26 @@ MonoBehaviour:
   _duration: 0.12
   _baseColorProperty: _BaseColor
   _emissionProperty: _EmissionColor
+--- !u!114 &3572806112232256929
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 708038747777476914}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 01a271dd97d875347b0cea860df29a9d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: FishNet.Runtime::FishNet.Component.ColliderRollback.ColliderRollback
+  _componentIndexCache: 255
+  _addedNetworkObject: {fileID: 4708353133064893462}
+  _networkObjectCache: {fileID: 0}
+  _boundingBox: 0
+  _physicsType: 1
+  _boundingBoxSize: {x: 3, y: 3, z: 3}
+  _colliderParents:
+  - {fileID: 4935003049946431591}
 --- !u!1 &3919668258133352585
 GameObject:
   m_ObjectHideFlags: 0

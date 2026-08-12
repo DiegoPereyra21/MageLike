@@ -5,6 +5,7 @@ using Game.Presentation.Combat;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using VContainer;
+using FishNet.Managing.Timing;
 
 namespace Game.Presentation.Abilities
 {
@@ -122,7 +123,9 @@ namespace Game.Presentation.Abilities
                 VFXManager.PlayProjectileMuzzle(muzzlePos, Quaternion.LookRotation(aimDirection));
             }
 
-            CastServerRpc(slot, aimDirection, aimPoint);
+            // Tick de disparo del cliente para lag compensation (el server rebobina a este tick).
+            PreciseTick fireTick = base.TimeManager.GetPreciseTick(TickType.Tick);
+            CastServerRpc(slot, aimDirection, aimPoint, fireTick);
         }
 
         // Cliente. Calcula hacia dónde mira el jugador. La aimDirection (mirada con pitch) la usan
@@ -141,7 +144,7 @@ namespace Game.Presentation.Abilities
         }
 
         [ServerRpc]
-        private void CastServerRpc(int slot, Vector3 aimDirection, Vector3 aimPoint)
+        private void CastServerRpc(int slot, Vector3 aimDirection, Vector3 aimPoint, PreciseTick fireTick)
         {
             if (slot < 0 || slot >= _equippedAbilities.Length) return;
             AbilitySO ability = _equippedAbilities[slot];
@@ -168,8 +171,7 @@ namespace Game.Presentation.Abilities
 
             float dmgMul = _stats != null ? _stats.DamageMultiplier : 1f;
 
-            // Anti-cheat: el origen NO se confía al cliente. Se toma del SpellOrigin autoritativo
-            // del servidor (cuelga del root: posición + yaw autoritativos, no depende del pitch).
+            // Anti-cheat: el origen NO se confía al cliente. Se toma del SpellOrigin autoritativo.
             Vector3 head = _aimOrigin != null ? _aimOrigin.position : transform.position;
             Vector3 origin = _spellOrigin != null ? _spellOrigin.position : head;
 
@@ -183,7 +185,7 @@ namespace Game.Presentation.Abilities
                 origin: origin,
                 aimDirection: aimDirection.normalized,
                 aimPoint: aimPoint,
-                tick: base.TimeManager.LocalTick,
+                tick: fireTick.Tick,           // tick de disparo del cliente (para el catch-up/rewind)
                 damageMultiplier: dmgMul
             );
 

@@ -1,5 +1,7 @@
 using FishNet;
 using FishNet.Object;
+using FishNet.Managing.Timing;
+using FishNet.Component.ColliderRollback;
 using Game.Core.Abilities;
 using Game.Presentation.Combat;
 using UnityEngine;
@@ -14,14 +16,19 @@ namespace Game.Presentation.Abilities
                  "Si queda vacío, se resuelve por nombre en Awake.")]
         [SerializeField] private LayerMask _hitMask;
 
+        [Tooltip("Techo de ticks de catch-up (lag comp). A 60 Hz, 12 ≈ 200 ms de ping. Evita teleports enormes.")]
+        [SerializeField] private int _maxCatchUpTicks = 12;
+
         private Vector3 _direction;
         private float _speed;
         private float _damage;
         private float _radius;
         private int _casterNetworkId;
+        private uint _fireTick;     // tick de disparo del cliente; 0 = server-originado (sin lag comp)
         private float _aliveTime;
 
         private bool _initialized;
+        private bool _caughtUp;
 
         // Buffer compartido para el OverlapSphere sin allocations. Los proyectiles corren
         // en el tick del server (single-thread), así que reutilizarlo secuencialmente es seguro.
@@ -29,8 +36,7 @@ namespace Game.Presentation.Abilities
 
         private void Awake()
         {
-            // Red de seguridad: si el prefab existente todavía no tiene la máscara seteada,
-            // la resolvemos por nombre (independiente del índice de layer) para no castear contra Nothing.
+            // Red de seguridad: si el prefab todavía no tiene la máscara seteada, la resolvemos por nombre.
             if (_hitMask.value == 0)
                 _hitMask = LayerMask.GetMask("Hitbox", "Ground");
         }
@@ -48,70 +54,37 @@ namespace Game.Presentation.Abilities
                 base.TimeManager.OnTick -= OnTick;
         }
 
-        public void Initialize(Vector3 direction, float speed, float damage, float radius, int casterNetworkId)
+        public void Initialize(Vector3 direction, float speed, float damage, float radius, int casterNetworkId, uint fireTick = 0)
         {
             _direction   = direction.normalized;
             _speed       = speed;
             _damage      = damage;
             _radius      = radius;
             _casterNetworkId = casterNetworkId;
+            _fireTick    = fireTick;
             _aliveTime   = 0f;
+            _caughtUp    = false;
             _initialized = true;
         }
 
-        // Simulación a paso fijo (tick de red). Requisito del lag compensation: el hit se
-        // resuelve en un tick concreto, que es al que el servidor puede rebobinar los colliders.
         private void OnTick()
         {
             if (!_initialized) return;
+
+            // Catch-up una sola vez, en el primer tick tras el spawn (objeto ya spawneado → Despawn seguro).
+            if (!_caughtUp)
+            {
+                _caughtUp = true;
+                if (CatchUp()) return; // impactó durante el catch-up
+            }
 
             float delta = (float)base.TimeManager.TickDelta;
             float stepDistance = _speed * delta;
             Vector3 startPos = transform.position;
 
-            // 1) Caso "el enemigo se mete encima del proyectil": SphereCast NO detecta
-            //    colliders que ya solapan la esfera en el origen. Un OverlapSphere previo
-            //    cubre ese hueco (típico con enemigos que corren de frente a alta velocidad).
-            int count = Physics.OverlapSphereNonAlloc(startPos, _radius, _overlapBuffer, _hitMask, QueryTriggerInteraction.Ignore);
-            for (int i = 0; i < count; i++)
-            {
-                Collider col = _overlapBuffer[i];
+            if (TryImpact(startPos, stepDistance)) return;
 
-                // Ignorar el propio collider del proyectil (y cualquier hijo suyo).
-                if (col.transform.IsChildOf(transform)) continue;
-
-                // El collider golpeable es un hijo (capa Hitbox); Health/NetworkObject están en el root.
-                NetworkObject nob = col.GetComponentInParent<NetworkObject>();
-
-                // Ignorar al caster.
-                if (nob != null && nob.ObjectId == _casterNetworkId) continue;
-
-                IDamageable dmg = nob != null ? nob.GetComponent<IDamageable>() : null; // null = geometría (Ground)
-                ResolveImpact(startPos, -_direction, dmg);
-                return;
-            }
-
-            // 2) Sweep normal a lo largo del paso de este tick.
-            if (Physics.SphereCast(startPos, _radius, _direction, out RaycastHit hit, stepDistance, _hitMask, QueryTriggerInteraction.Ignore))
-            {
-                NetworkObject hitNob = hit.collider.GetComponentInParent<NetworkObject>();
-
-                if (hitNob != null && hitNob.ObjectId == _casterNetworkId)
-                {
-                    // Atravesar al caster.
-                    transform.position = startPos + _direction * stepDistance;
-                }
-                else
-                {
-                    IDamageable damageable = hitNob != null ? hitNob.GetComponent<IDamageable>() : null; // null = pared
-                    ResolveImpact(hit.point, hit.normal, damageable);
-                    return;
-                }
-            }
-            else
-            {
-                transform.position = startPos + _direction * stepDistance;
-            }
+            transform.position = startPos + _direction * stepDistance;
 
             _aliveTime += delta;
             if (_aliveTime >= _lifetime)
@@ -119,9 +92,77 @@ namespace Game.Presentation.Abilities
         }
 
         /// <summary>
-        /// Aplica el daño (si golpeó algo con vida), reposiciona en el punto de impacto,
-        /// notifica al caster (screenshake + VFX vía AbilityController persistente, porque
-        /// este NetworkObject se despawnea acá mismo) y despawnea.
+        /// Lag compensation (nivel 2): compensa el retardo input→spawn adelantando el proyectil
+        /// los ticks de latencia, y hace un rewind único al tick de disparo para el overlap inicial
+        /// (objetivo point-blank / cruzando frente al cañón al disparar). Devuelve true si impactó.
+        /// </summary>
+        private bool CatchUp()
+        {
+            // Proyectiles de servidor (enemigos) no llevan fireTick → ya están en presente, sin lag comp.
+            if (_fireTick == 0) return false;
+
+            float tickDelta = (float)base.TimeManager.TickDelta;
+
+            // Rewind único al tick de disparo: overlap en el cañón contra las posiciones históricas.
+            RollbackManager rbm = base.NetworkManager != null ? base.NetworkManager.RollbackManager : null;
+            if (rbm != null)
+            {
+                rbm.Rollback(new PreciseTick(_fireTick), RollbackPhysicsType.Physics, false);
+                bool hit = TryImpact(transform.position, 0f); // solo overlap (sin sweep)
+                rbm.Return();                                  // SIEMPRE restaurar antes de salir
+                if (hit) return true;
+            }
+
+            // Catch-up: adelantar el proyectil los ticks de retardo (en presente), barriendo el tramo.
+            long rawD = (long)base.TimeManager.Tick - _fireTick;
+            int d = (int)Mathf.Clamp(rawD, 0, _maxCatchUpTicks);
+            if (d <= 0) return false;
+
+            float catchDist = _speed * tickDelta * d;
+            if (TryImpact(transform.position, catchDist)) return true;
+
+            transform.position += _direction * catchDist;
+            return false;
+        }
+
+        /// <summary>
+        /// Resuelve colisión desde fromPos: primero OverlapSphere (objetivos que ya solapan el origen),
+        /// luego SphereCast por el tramo. Devuelve true si impactó (ya aplicó daño y despawneó).
+        /// </summary>
+        private bool TryImpact(Vector3 fromPos, float stepDistance)
+        {
+            int count = Physics.OverlapSphereNonAlloc(fromPos, _radius, _overlapBuffer, _hitMask, QueryTriggerInteraction.Ignore);
+            for (int i = 0; i < count; i++)
+            {
+                Collider col = _overlapBuffer[i];
+                if (col.transform.IsChildOf(transform)) continue;               // el propio proyectil
+
+                NetworkObject nob = col.GetComponentInParent<NetworkObject>();   // hittable es hijo; root tiene NObj/Health
+                if (nob != null && nob.ObjectId == _casterNetworkId) continue;   // el caster
+
+                IDamageable dmg = nob != null ? nob.GetComponent<IDamageable>() : null; // null = geometría (Ground)
+                ResolveImpact(fromPos, -_direction, dmg);
+                return true;
+            }
+
+            if (stepDistance > 0f &&
+                Physics.SphereCast(fromPos, _radius, _direction, out RaycastHit hit, stepDistance, _hitMask, QueryTriggerInteraction.Ignore))
+            {
+                NetworkObject hitNob = hit.collider.GetComponentInParent<NetworkObject>();
+                if (hitNob != null && hitNob.ObjectId == _casterNetworkId)
+                    return false; // atravesar al caster; el que llama avanza el tramo
+
+                IDamageable damageable = hitNob != null ? hitNob.GetComponent<IDamageable>() : null; // null = pared
+                ResolveImpact(hit.point, hit.normal, damageable);
+                return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Aplica el daño (si golpeó algo con vida), reposiciona, notifica al caster
+        /// (screenshake + VFX vía AbilityController persistente) y despawnea.
         /// </summary>
         private void ResolveImpact(Vector3 point, Vector3 normal, IDamageable damageable)
         {
