@@ -46,6 +46,17 @@ namespace Game.Core.Abilities
         public float Cooldown => _cooldown;
         public float ResourceCost => _resourceCost;
 
+        /// <summary>
+        /// Datos del proyectil cosmético local (visual-only) que el cliente del tirador spawnea
+        /// para feedback instantáneo. Por defecto ninguna: solo las habilidades de proyectil lo dan.
+        /// </summary>
+        public virtual bool TryGetCosmeticProjectile(out GameObject prefab, out float speed)
+        {
+            prefab = null;
+            speed = 0f;
+            return false;
+        }
+
         public abstract void Execute(AbilityExecutor executor, in AbilityCastContext context);
     }
 }

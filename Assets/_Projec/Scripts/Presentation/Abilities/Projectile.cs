@@ -18,6 +18,8 @@ namespace Game.Presentation.Abilities
 
         [Tooltip("Techo de ticks de catch-up (lag comp). A 60 Hz, 12 ≈ 200 ms de ping. Evita teleports enormes.")]
         [SerializeField] private int _maxCatchUpTicks = 12;
+        [Tooltip("Hijo visual (mesh/trail) que se oculta al tirador (él ve su cosmético local).")]
+        [SerializeField] private GameObject _visual;
 
         private Vector3 _direction;
         private float _speed;
@@ -39,6 +41,15 @@ namespace Game.Presentation.Abilities
             // Red de seguridad: si el prefab todavía no tiene la máscara seteada, la resolvemos por nombre.
             if (_hitMask.value == 0)
                 _hitMask = LayerMask.GetMask("Hitbox", "Ground");
+        }
+
+        public override void OnStartClient()
+        {
+            base.OnStartClient();
+            // El tirador (owner) ve su proyectil cosmético local; el networked se le oculta.
+            // Se setea en cada spawn por el pooling de Fish-Net (no basta con desactivar una vez).
+            if (_visual != null)
+                _visual.SetActive(!base.IsOwner);
         }
 
         public override void OnStartServer()

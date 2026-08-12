@@ -117,10 +117,20 @@ namespace Game.Presentation.Abilities
             ResolveAim(out Vector3 aimDirection, out Vector3 aimPoint);
 
             // Muzzle VFX local en el báculo — solo si la habilidad tiene uno definido.
-            if (base.IsOwner && ability.MuzzlePrefab != null)
+            // Feedback local instantáneo del tirador (owner): muzzle en el báculo + proyectil cosmético.
+            if (base.IsOwner)
             {
                 Vector3 muzzlePos = _spellOrigin != null ? _spellOrigin.position : _aimOrigin.position;
-                VFXManager.PlayProjectileMuzzle(muzzlePos, Quaternion.LookRotation(aimDirection));
+
+                if (ability.MuzzlePrefab != null)
+                    VFXManager.PlayProjectileMuzzle(muzzlePos, Quaternion.LookRotation(aimDirection));
+
+                if (ability.TryGetCosmeticProjectile(out GameObject cosmeticPrefab, out float cosmeticSpeed))
+                {
+                    Vector3 toAim = aimPoint - muzzlePos;
+                    Vector3 dir = toAim.sqrMagnitude > 0.0001f ? toAim.normalized : aimDirection;
+                    CosmeticProjectileManager.Spawn(cosmeticPrefab, muzzlePos, dir, cosmeticSpeed, transform);
+                }
             }
 
             // Tick de disparo del cliente para lag compensation (el server rebobina a este tick).
@@ -190,6 +200,10 @@ namespace Game.Presentation.Abilities
             );
 
             ability.Execute(_executor, in context);
+
+            // Muzzle para los demás (el owner ya lo vio local). Desde el SpellOrigin autoritativo.
+            if (ability.MuzzlePrefab != null)
+                PlayMuzzleObserversRpc(origin, aimDirection);
         }
 
         /// <summary>
@@ -209,17 +223,23 @@ namespace Game.Presentation.Abilities
         }
 
 
-        [Server]
+        // Llamado por el proyectil networked (server) al impactar. El caster ve el impacto por su
+        // cosmético local; a los demás se lo mandamos acá (ExcludeOwner).
         public void NotifyProjectileImpact(Vector3 point, Vector3 normal)
         {
-            NotifyImpactTargetRpc(base.Owner, point, normal);
+            PlayImpactObserversRpc(point, normal);
         }
 
-        [TargetRpc]
-        private void NotifyImpactTargetRpc(FishNet.Connection.NetworkConnection conn, Vector3 point, Vector3 normal)
+        [ObserversRpc(ExcludeOwner = true)]
+        private void PlayImpactObserversRpc(Vector3 point, Vector3 normal)
         {
-            ScreenShake.Shake(0.8f);
             VFXManager.PlayProjectileHit(point, Quaternion.LookRotation(normal));
+        }
+
+        [ObserversRpc(ExcludeOwner = true)]
+        private void PlayMuzzleObserversRpc(Vector3 point, Vector3 direction)
+        {
+            VFXManager.PlayProjectileMuzzle(point, Quaternion.LookRotation(direction));
         }
 
 

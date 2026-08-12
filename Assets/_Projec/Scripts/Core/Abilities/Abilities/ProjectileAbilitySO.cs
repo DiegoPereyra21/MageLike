@@ -10,6 +10,8 @@ namespace Game.Core.Abilities.Abilities
         [SerializeField] private float _speed = 25f;
         [SerializeField] private float _damage = 20f;
         [SerializeField] private float _radius = 0.25f;
+        [Tooltip("Prefab visual-only (sin NetworkObject) que ve el tirador al instante. Ver CosmeticProjectile.")]
+        [SerializeField] private GameObject _cosmeticProjectilePrefab;
 
         public override void Execute(AbilityExecutor executor, in AbilityCastContext context)
         {
@@ -29,6 +31,13 @@ namespace Game.Core.Abilities.Abilities
                 context.CasterNetworkId,
                 context.Tick        // tick de disparo del cliente (lag comp)
             );
+        }
+
+        public override bool TryGetCosmeticProjectile(out GameObject prefab, out float speed)
+        {
+            prefab = _cosmeticProjectilePrefab;
+            speed = _speed;
+            return prefab != null;
         }
     }
 }

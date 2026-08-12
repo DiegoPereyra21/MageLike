@@ -22,3 +22,4 @@ MonoBehaviour:
   _speed: 45
   _damage: 20
   _radius: 0.28
+  _cosmeticProjectilePrefab: {fileID: 9077845970666463845, guid: 831a7a370bd5bf449b772dd337d168be, type: 3}

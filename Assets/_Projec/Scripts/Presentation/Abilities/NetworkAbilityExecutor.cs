@@ -2,6 +2,7 @@ using FishNet;
 using FishNet.Object;
 using Game.Core.Abilities;
 using UnityEngine;
+using FishNet.Connection;
 
 namespace Game.Presentation.Abilities
 {
@@ -18,6 +19,13 @@ namespace Game.Presentation.Abilities
         {
             if (!InstanceFinder.IsServerStarted) return;
 
+            // Owner = conexión del caster. El NT es server-authoritative, así que dar owner NO
+            // cede autoridad: solo sirve para que el cliente del tirador reconozca su proyectil
+            // (base.IsOwner) y lo oculte a favor de su cosmético local.
+            NetworkConnection owner = null;
+            if (InstanceFinder.ServerManager.Objects.Spawned.TryGetValue(casterNetworkId, out NetworkObject casterNob))
+                owner = casterNob.Owner;
+
             GameObject instance = InstanceFinder.NetworkManager.GetPooledInstantiated(
                 projectilePrefab.GetComponent<NetworkObject>(), asServer: true).gameObject;
 
@@ -27,7 +35,7 @@ namespace Game.Presentation.Abilities
             if (instance.TryGetComponent(out Projectile projectile))
                 projectile.Initialize(direction, speed, damage, radius, casterNetworkId, fireTick);
 
-            InstanceFinder.ServerManager.Spawn(instance);
+            InstanceFinder.ServerManager.Spawn(instance, owner);
         }
 
         public void SpawnOrb(GameObject orbPrefab, Vector3 origin, Vector3 direction, int casterNetworkId, float damageMultiplier)
