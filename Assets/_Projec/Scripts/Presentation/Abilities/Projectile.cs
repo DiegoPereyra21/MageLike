@@ -177,14 +177,21 @@ namespace Game.Presentation.Abilities
         /// </summary>
         private void ResolveImpact(Vector3 point, Vector3 normal, IDamageable damageable)
         {
+            bool hitConfirmed = damageable != null; // false = pegó en geometría (Ground)
+            bool isKill = false;
+
             if (damageable != null)
+            {
                 damageable.ApplyDamage(_damage, _casterNetworkId);
+                if (damageable is Health health) // único implementador de IDamageable
+                    isKill = health.IsDead;
+            }
 
             transform.position = point;
 
             if (InstanceFinder.ServerManager.Objects.Spawned.TryGetValue(_casterNetworkId, out NetworkObject casterNob))
                 if (casterNob.TryGetComponent(out AbilityController ac))
-                    ac.NotifyProjectileImpact(point, normal);
+                    ac.NotifyProjectileImpact(point, normal, hitConfirmed, isKill);
 
             base.Despawn();
         }

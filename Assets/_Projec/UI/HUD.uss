@@ -197,3 +197,9 @@
     width: 40px;
     height: 40px;
 }
+
+.hitmarker {
+    position: absolute;
+    width: 40px;
+    height: 40px;
+}

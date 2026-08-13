@@ -49,6 +49,7 @@
         <ui:VisualElement name="crosshair-container" class="crosshair-container">
             <ui:VisualElement name="dash-ring" class="dash-ring" />
             <ui:VisualElement name="crosshair" class="crosshair" />
+            <ui:VisualElement name="hitmarker" class="hitmarker" />
         </ui:VisualElement>
     </ui:VisualElement>
 </ui:UXML>

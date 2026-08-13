@@ -38,6 +38,17 @@ namespace Game.Presentation.UI
         private VisualElement _dashRing;
         private float _dashRingProgress; // 0 = vacío (en cooldown), 1 = lleno (listo)
 
+        [Header("Hitmarker")]
+        [SerializeField] private AudioSource _hitMarkerAudio;
+        [SerializeField] private AudioClip _hitMarkerClip;
+        [SerializeField] private AudioClip _killMarkerClip;
+        [SerializeField] private float _hitMarkerDuration = 0.15f;
+
+        private VisualElement _hitMarker;
+        private float _hitMarkerStartTime = -999f;
+        private bool _hitMarkerIsKill;
+        private bool _hitMarkerActive;
+
 
         private void Awake()
         {
@@ -77,8 +88,22 @@ namespace Game.Presentation.UI
                         if (_dashRing != null)
                             _dashRing.generateVisualContent += DrawDashRing;
 
+            _hitMarker = root.Q<VisualElement>("hitmarker");
+            if (_hitMarker != null)
+                _hitMarker.generateVisualContent += DrawHitMarker;
+
+            if (_abilities != null)
+                _abilities.OnHitConfirmed += PlayHitMarker;
+
             for (int i = 0; i < 4; i++)
                 _cooldownOverlays[i] = root.Q<VisualElement>($"slot-{i}-cd");
+        }
+
+        public override void OnStopClient()
+        {
+            base.OnStopClient();
+            if (_abilities != null)
+                _abilities.OnHitConfirmed -= PlayHitMarker;
         }
 
         private void Update()
@@ -175,6 +200,15 @@ namespace Game.Presentation.UI
                     _dashRing.MarkDirtyRepaint(); // redibujar el aro
                 }
             }
+
+            // Hitmarker: animación por tiempo, se repinta mientras esté activo.
+            if (_hitMarkerActive && _hitMarker != null)
+            {
+                float t = (Time.unscaledTime - _hitMarkerStartTime) / _hitMarkerDuration;
+                if (t >= 1f)
+                    _hitMarkerActive = false;
+                _hitMarker.MarkDirtyRepaint();
+            }
         }
 
         private void DrawDashRing(MeshGenerationContext ctx)
@@ -202,6 +236,56 @@ namespace Game.Presentation.UI
                 painter.lineWidth = 3f;
                 painter.BeginPath();
                 painter.Arc(center, radius, -90f, -90f + 360f * _dashRingProgress);
+                painter.Stroke();
+            }
+        }
+
+        /// <summary>Llamado (owner-only) cuando el servidor confirma que un ataque propio conectó.</summary>
+        private void PlayHitMarker(bool isKill)
+        {
+            _hitMarkerStartTime = Time.unscaledTime;
+            _hitMarkerIsKill = isKill;
+            _hitMarkerActive = true;
+
+            if (_hitMarkerAudio != null)
+            {
+                AudioClip clip = isKill ? _killMarkerClip : _hitMarkerClip;
+                if (clip != null) _hitMarkerAudio.PlayOneShot(clip);
+            }
+        }
+
+        // Cuatro ticks diagonales (estilo shooter competitivo) que hacen pop y se desvanecen.
+        // Kill marker: mismo dibujo, más grueso y en rojo.
+        private void DrawHitMarker(MeshGenerationContext ctx)
+        {
+            if (!_hitMarkerActive) return;
+
+            float t = Mathf.Clamp01((Time.unscaledTime - _hitMarkerStartTime) / _hitMarkerDuration);
+            float alpha = 1f - t;
+            float pop = Mathf.Clamp01(t * 4f); // asienta rápido en el primer cuarto de la duración
+            float scale = Mathf.Lerp(1.3f, 1f, pop);
+
+            float size = _hitMarker.resolvedStyle.width;
+            if (size <= 0f) return;
+            Vector2 center = new Vector2(size / 2f, size / 2f);
+
+            float r1 = 6f * scale;
+            float r2 = 14f * scale;
+
+            var painter = ctx.painter2D;
+            painter.strokeColor = _hitMarkerIsKill
+                ? new Color(1f, 0.2f, 0.15f, alpha)
+                : new Color(1f, 1f, 1f, alpha);
+            painter.lineWidth = _hitMarkerIsKill ? 3.5f : 2.5f;
+
+            float[] angles = { 45f, 135f, 225f, 315f };
+            foreach (float deg in angles)
+            {
+                float rad = deg * Mathf.Deg2Rad;
+                Vector2 dir = new Vector2(Mathf.Cos(rad), Mathf.Sin(rad));
+                painter.BeginPath();
+                painter.MoveTo(center + dir * r1);
+                painter.LineTo(center + dir * r2);
                 painter.Stroke();
             }
         }

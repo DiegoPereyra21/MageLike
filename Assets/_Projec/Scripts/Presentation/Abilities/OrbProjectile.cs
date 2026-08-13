@@ -87,22 +87,30 @@ namespace Game.Presentation.Abilities
 
             // Daño a todos en el radio.
             float finalDamage = _damage * _damageMultiplier;
+            bool hitConfirmed = false;
+            bool isKill = false;
+
             Collider[] hits = Physics.OverlapSphere(point, _explosionRadius);
             foreach (Collider hit in hits)
             {
                 if (hit.TryGetComponent(out NetworkObject nob) && nob.ObjectId == _casterNetworkId)
                     continue; // no dañar al caster
                 if (hit.TryGetComponent(out IDamageable damageable))
+                {
                     damageable.ApplyDamage(finalDamage, _casterNetworkId);
+                    hitConfirmed = true;
+                    if (damageable is Health health && health.IsDead)
+                        isKill = true;
+                }
             }
 
             // VFX en todos los clientes.
             ShowExplosionObserversRpc(point, _explosionRadius);
 
-            // Screen shake al caster.
+            // Screen shake + hitmarker al caster.
             if (InstanceFinder.ServerManager.Objects.Spawned.TryGetValue(_casterNetworkId, out NetworkObject casterNob))
                 if (casterNob.TryGetComponent(out AbilityController ac))
-                    ac.NotifyProjectileImpact(point, Vector3.up);
+                    ac.NotifyProjectileImpact(point, Vector3.up, hitConfirmed, isKill);
 
             base.Despawn();
         }

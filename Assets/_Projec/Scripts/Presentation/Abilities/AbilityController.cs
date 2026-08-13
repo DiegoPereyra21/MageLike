@@ -7,6 +7,7 @@ using UnityEngine.InputSystem;
 using VContainer;
 using FishNet.Managing.Timing;
 using Game.Presentation.Player;
+using System;
 
 namespace Game.Presentation.Abilities
 {
@@ -234,9 +235,26 @@ namespace Game.Presentation.Abilities
 
         // Llamado por el proyectil networked (server) al impactar. El caster ve el impacto por su
         // cosmético local; a los demás se lo mandamos acá (ExcludeOwner).
-        public void NotifyProjectileImpact(Vector3 point, Vector3 normal)
+        // Llamado por el proyectil networked (server) al impactar. El caster ve el impacto por su
+        // cosmético local; a los demás se lo mandamos acá (ExcludeOwner).
+        // Llamado por el proyectil networked (server) al impactar. El caster ve el impacto por su
+        // cosmético local; a los demás se lo mandamos acá (ExcludeOwner). Si el golpe fue confirmado
+        // (pegó en un objetivo con vida, no en geometría), el caster recibe su hitmarker.
+        public void NotifyProjectileImpact(Vector3 point, Vector3 normal, bool hitConfirmed, bool isKill)
         {
             PlayImpactObserversRpc(point, normal);
+
+            if (hitConfirmed)
+                PlayHitMarkerTargetRpc(base.Owner, isKill);
+        }
+
+        /// <summary>Se dispara cuando el servidor confirma que un ataque propio conectó. Solo el caster lo recibe.</summary>
+        public event Action<bool> OnHitConfirmed; // bool = fue kill
+
+        [TargetRpc]
+        private void PlayHitMarkerTargetRpc(FishNet.Connection.NetworkConnection conn, bool isKill)
+        {
+            OnHitConfirmed?.Invoke(isKill);
         }
 
         [ObserversRpc(ExcludeOwner = true)]
