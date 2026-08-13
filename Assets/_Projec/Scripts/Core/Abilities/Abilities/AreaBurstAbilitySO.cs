@@ -10,7 +10,7 @@ namespace Game.Core.Abilities.Abilities
 
         public override void Execute(AbilityExecutor executor, in AbilityCastContext context)
         {
-            executor.SpawnOrb(_orbPrefab, context.Origin, context.AimDirection, context.CasterNetworkId, context.DamageMultiplier);
+            executor.SpawnOrb(_orbPrefab, context.Origin, context.AimDirection, context.CasterNetworkId, context.DamageMultiplier, context.Slot);
         }
     }
 }

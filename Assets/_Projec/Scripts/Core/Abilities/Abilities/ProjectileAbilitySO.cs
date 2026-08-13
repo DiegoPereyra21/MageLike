@@ -29,7 +29,8 @@ namespace Game.Core.Abilities.Abilities
                 finalDamage,
                 _radius,
                 context.CasterNetworkId,
-                context.Tick        // tick de disparo del cliente (lag comp)
+                context.Tick,       // tick de disparo del cliente (lag comp)
+                context.Slot        // para resolver el clip de audio localmente en cada cliente
             );
         }
 

@@ -28,14 +28,16 @@ namespace Game.Presentation.Abilities
         private float _travelledDistance;
         private int _casterNetworkId;
         private float _damageMultiplier = 1f;
+        private int _slot = -1; // slot casteado; para resolver el clip de audio localmente en cada cliente
         private bool _exploded;
 
         [Server]
-        public void Initialize(Vector3 direction, int casterNetworkId, float damageMultiplier)
+        public void Initialize(Vector3 direction, int casterNetworkId, float damageMultiplier, int slot = -1)
         {
             _direction = direction.normalized;
             _casterNetworkId = casterNetworkId;
             _damageMultiplier = damageMultiplier;
+            _slot = slot;
             _travelledDistance = 0f;
             _exploded = false;
         }
@@ -107,10 +109,13 @@ namespace Game.Presentation.Abilities
             // VFX en todos los clientes.
             ShowExplosionObserversRpc(point, _explosionRadius);
 
-            // Screen shake + hitmarker al caster.
-            if (InstanceFinder.ServerManager.Objects.Spawned.TryGetValue(_casterNetworkId, out NetworkObject casterNob))
-                if (casterNob.TryGetComponent(out AbilityController ac))
-                    ac.NotifyProjectileImpact(point, Vector3.up, hitConfirmed, isKill);
+            // Screen shake + hitmarker + audio de impacto al caster.
+            if (InstanceFinder.ServerManager.Objects.Spawned.TryGetValue(_casterNetworkId, out NetworkObject casterNob) &&
+                casterNob.TryGetComponent(out AbilityController ac))
+            {
+                ac.NotifyProjectileImpact(point, Vector3.up, hitConfirmed, isKill);
+                ac.NotifyAbilityImpactSfx(point, _slot); // la explosión suena siempre, haya dañado a alguien o no
+            }
 
             base.Despawn();
         }

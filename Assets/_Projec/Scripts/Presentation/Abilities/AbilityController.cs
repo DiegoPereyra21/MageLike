@@ -1,3 +1,4 @@
+using System;
 using FishNet.Object;
 using Game.Core.Abilities;
 using Game.Presentation.Bootstrap;
@@ -7,7 +8,6 @@ using UnityEngine.InputSystem;
 using VContainer;
 using FishNet.Managing.Timing;
 using Game.Presentation.Player;
-using System;
 
 namespace Game.Presentation.Abilities
 {
@@ -121,14 +121,18 @@ namespace Game.Presentation.Abilities
 
             ResolveAim(out Vector3 aimDirection, out Vector3 aimPoint);
 
-            // Muzzle VFX local en el báculo — solo si la habilidad tiene uno definido.
-            // Feedback local instantáneo del tirador (owner): muzzle en el báculo + proyectil cosmético.
+            // Feedback local instantáneo del tirador (owner): muzzle en el báculo + audio de casteo
+            // + proyectil cosmético + dash predicho.
             if (base.IsOwner)
             {
                 Vector3 muzzlePos = _spellOrigin != null ? _spellOrigin.position : _aimOrigin.position;
 
                 if (ability.MuzzlePrefab != null)
                     VFXManager.PlayProjectileMuzzle(muzzlePos, Quaternion.LookRotation(aimDirection));
+
+                // Sonido de casteo instantáneo, local (los demás lo oyen vía CastServerRpc → observers).
+                if (ability.CastClip != null)
+                    VFXManager.PlaySfx(ability.CastClip, muzzlePos);
 
                 if (ability.TryGetCosmeticProjectile(out GameObject cosmeticPrefab, out float cosmeticSpeed))
                 {
@@ -206,14 +210,17 @@ namespace Game.Presentation.Abilities
                 aimDirection: aimDirection.normalized,
                 aimPoint: aimPoint,
                 tick: fireTick.Tick,           // tick de disparo del cliente (para el catch-up/rewind)
-                damageMultiplier: dmgMul
+                damageMultiplier: dmgMul,
+                slot: slot                     // para resolver el clip de audio localmente en cada cliente
             );
 
             ability.Execute(_executor, in context);
 
-            // Muzzle para los demás (el owner ya lo vio local). Desde el SpellOrigin autoritativo.
+            // Muzzle y sonido de casteo para los demás (el owner ya los vio/oyó local).
             if (ability.MuzzlePrefab != null)
                 PlayMuzzleObserversRpc(origin, aimDirection);
+            if (ability.CastClip != null)
+                PlayCastSfxObserversRpc(origin, slot);
         }
 
         /// <summary>
@@ -233,10 +240,6 @@ namespace Game.Presentation.Abilities
         }
 
 
-        // Llamado por el proyectil networked (server) al impactar. El caster ve el impacto por su
-        // cosmético local; a los demás se lo mandamos acá (ExcludeOwner).
-        // Llamado por el proyectil networked (server) al impactar. El caster ve el impacto por su
-        // cosmético local; a los demás se lo mandamos acá (ExcludeOwner).
         // Llamado por el proyectil networked (server) al impactar. El caster ve el impacto por su
         // cosmético local; a los demás se lo mandamos acá (ExcludeOwner). Si el golpe fue confirmado
         // (pegó en un objetivo con vida, no en geometría), el caster recibe su hitmarker.
@@ -269,7 +272,35 @@ namespace Game.Presentation.Abilities
             VFXManager.PlayProjectileMuzzle(point, Quaternion.LookRotation(direction));
         }
 
+        [ObserversRpc(ExcludeOwner = true)]
+        private void PlayCastSfxObserversRpc(Vector3 point, int slot)
+        {
+            AbilitySO ability = (slot >= 0 && slot < _equippedAbilities.Length) ? _equippedAbilities[slot] : null;
+            if (ability != null && ability.CastClip != null)
+                VFXManager.PlaySfx(ability.CastClip, point);
+        }
 
+        /// <summary>
+        /// Reproduce el sonido de impacto/éxito de la habilidad en `slot`, para todos los clientes
+        /// (incluido el caster: proyectil/orbe/parry no tienen feedback local instantáneo de impacto,
+        /// salvo el cosmético del proyectil básico, que ya tiene su propio VFX/shake local aparte).
+        /// Llamado por Projectile, OrbProjectile (ofensivo) y ParryHandler (bloqueo exitoso).
+        /// </summary>
+        public void NotifyAbilityImpactSfx(Vector3 point, int slot, bool wallHit = false)
+        {
+            PlayImpactSfxObserversRpc(point, slot, wallHit);
+        }
+
+        [ObserversRpc]
+        private void PlayImpactSfxObserversRpc(Vector3 point, int slot, bool wallHit)
+        {
+            AbilitySO ability = (slot >= 0 && slot < _equippedAbilities.Length) ? _equippedAbilities[slot] : null;
+            if (ability == null) return;
+
+            AudioClip clip = wallHit ? ability.SurfaceImpactClip : ability.ImpactClip;
+            if (clip != null)
+                VFXManager.PlaySfx(clip, point);
+        }
 
 
         public void SetInputBlocked(bool blocked) => _inputBlocked = blocked;

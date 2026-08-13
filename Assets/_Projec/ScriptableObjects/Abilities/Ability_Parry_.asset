@@ -18,6 +18,8 @@ MonoBehaviour:
   _cooldown: 1
   _resourceCost: 10
   _muzzlePrefab: {fileID: 0}
+  _castClip: {fileID: 8300000, guid: 9f8e5cb979aa94845a3b31b1ba37b080, type: 3}
+  _impactClip: {fileID: 8300000, guid: fb998930d68c7be4ab1f445b3a0c18a3, type: 3}
   _startupDuration: 0.1
   _activeDuration: 0.2
   _recoveryDuration: 0.15

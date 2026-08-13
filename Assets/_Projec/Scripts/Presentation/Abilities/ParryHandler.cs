@@ -13,22 +13,24 @@ namespace Game.Presentation.Abilities
     public class ParryHandler : NetworkBehaviour
     {
         private Mana _mana;
+        private AbilityController _abilityController;
         private bool _parrying;
 
         private void Awake()
         {
             _mana = GetComponent<Mana>();
+            _abilityController = GetComponent<AbilityController>();
         }
 
         [Server]
-        public void StartParry(ParryAbilitySO data, int casterNetworkId, Vector3 aimDirection)
+        public void StartParry(ParryAbilitySO data, int casterNetworkId, Vector3 aimDirection, int slot = -1)
         {
             if (_parrying) return;
-            StartCoroutine(ParryRoutine(data, aimDirection.normalized));
+            StartCoroutine(ParryRoutine(data, aimDirection.normalized, slot));
         }
 
         [Server]
-        private IEnumerator ParryRoutine(ParryAbilitySO data, Vector3 aimDir)
+        private IEnumerator ParryRoutine(ParryAbilitySO data, Vector3 aimDir, int slot)
         {
             _parrying = true;
 
@@ -44,6 +46,7 @@ namespace Game.Presentation.Abilities
                 {
                     _mana?.Restore(data.ManaRestore);
                     ShowParryVFXObserversRpc(ParryPhase.Success, parryPoint, data.VfxScale);
+                    _abilityController?.NotifyAbilityImpactSfx(parryPoint, slot);
                     break;
                 }
                 elapsed += Time.deltaTime;

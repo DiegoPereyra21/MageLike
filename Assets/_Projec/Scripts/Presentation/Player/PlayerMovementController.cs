@@ -45,7 +45,6 @@ namespace Game.Presentation.Player
         [SerializeField] private GameObject _cameraRoot; // el GameObject "Camera" hijo del Player
         [SerializeField] private CameraEffects _cameraEffects;
         [SerializeField] private TrailRenderer _dashTrail;
-        [SerializeField] private AudioSource _dashAudio;
         //para al abrir el inventario no siga moviendo la vista
         private bool _inputBlocked;
         /// <summary>Bloquea/desbloquea la lectura de input (para cuando se abre UI como el inventario).</summary>
@@ -241,8 +240,6 @@ namespace Game.Presentation.Player
                 // owner cliente porque el owner predice el dash (setea _dashRequested localmente).
                 if (!state.ContainsReplayed())
                 {
-                    if (_dashAudio != null) _dashAudio.Play();
-
                     if (base.IsOwner && _cameraEffects != null)
                     {
                         _cameraEffects.FovKick(6f, 0.08f, 0.3f);

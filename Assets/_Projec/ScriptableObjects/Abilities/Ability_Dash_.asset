@@ -18,5 +18,7 @@ MonoBehaviour:
   _cooldown: 2
   _resourceCost: 20
   _muzzlePrefab: {fileID: 0}
+  _castClip: {fileID: 8300000, guid: 2046e8a365946204fac024f490be946f, type: 3}
+  _impactClip: {fileID: 0}
   _dashSpeed: 40
   _dashDuration: 0.35

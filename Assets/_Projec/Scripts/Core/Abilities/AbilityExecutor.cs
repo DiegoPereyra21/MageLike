@@ -12,8 +12,8 @@ namespace Game.Core.Abilities
     /// </summary>
     public interface AbilityExecutor
     {
-        /// <summary>Spawnea un proyectil de red desde el pool (server-authoritative).</summary>
-        void SpawnProjectile(GameObject projectilePrefab, Vector3 origin, Vector3 direction, float speed, float damage, float radius, int casterNetworkId, uint fireTick);
+        /// <summary>Spawnea un proyectil de red desde el pool (server-authoritative). slot: para resolver audio localmente en cada cliente.</summary>
+        void SpawnProjectile(GameObject projectilePrefab, Vector3 origin, Vector3 direction, float speed, float damage, float radius, int casterNetworkId, uint fireTick, int slot);
         /// <summary>Aplica daño/efecto en área alrededor de un punto (server-authoritative).</summary>
         void ApplyAreaEffect(Vector3 point, float radius, float damage, int casterNetworkId);
 
@@ -29,7 +29,7 @@ namespace Game.Core.Abilities
         /// <summary>Aplica curación/buff directo al caster.</summary>
         void ApplySelfEffect(int casterNetworkId, float healAmount);
 
-        public abstract void SpawnOrb(GameObject orbPrefab, Vector3 origin, Vector3 direction, int casterNetworkId, float damageMultiplier);
+        public abstract void SpawnOrb(GameObject orbPrefab, Vector3 origin, Vector3 direction, int casterNetworkId, float damageMultiplier, int slot);
         void StartParry(Game.Core.Abilities.Abilities.ParryAbilitySO data, in AbilityCastContext context);
         
     }

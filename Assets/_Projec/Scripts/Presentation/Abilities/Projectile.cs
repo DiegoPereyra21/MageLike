@@ -10,7 +10,7 @@ namespace Game.Presentation.Abilities
 {
     public class Projectile : NetworkBehaviour
     {
-        [SerializeField] private float _lifetime = 5f;
+        [SerializeField] private float _lifetime = 4f;
 
         [Tooltip("Contra qué castea el proyectil. Debe incluir Hitbox (objetivos) y Ground (paredes/piso). " +
                  "Si queda vacío, se resuelve por nombre en Awake.")]
@@ -27,6 +27,7 @@ namespace Game.Presentation.Abilities
         private float _radius;
         private int _casterNetworkId;
         private uint _fireTick;     // tick de disparo del cliente; 0 = server-originado (sin lag comp)
+        private int _slot;          // slot casteado; -1 = sin habilidad asociada (enemigos), sin audio
         private float _aliveTime;
 
         private bool _initialized;
@@ -65,7 +66,7 @@ namespace Game.Presentation.Abilities
                 base.TimeManager.OnTick -= OnTick;
         }
 
-        public void Initialize(Vector3 direction, float speed, float damage, float radius, int casterNetworkId, uint fireTick = 0)
+        public void Initialize(Vector3 direction, float speed, float damage, float radius, int casterNetworkId, uint fireTick = 0, int slot = -1)
         {
             _direction   = direction.normalized;
             _speed       = speed;
@@ -73,6 +74,7 @@ namespace Game.Presentation.Abilities
             _radius      = radius;
             _casterNetworkId = casterNetworkId;
             _fireTick    = fireTick;
+            _slot        = slot;
             _aliveTime   = 0f;
             _caughtUp    = false;
             _initialized = true;
@@ -173,7 +175,7 @@ namespace Game.Presentation.Abilities
 
         /// <summary>
         /// Aplica el daño (si golpeó algo con vida), reposiciona, notifica al caster
-        /// (screenshake + VFX vía AbilityController persistente) y despawnea.
+        /// (screenshake + VFX + hitmarker + audio de impacto) y despawnea.
         /// </summary>
         private void ResolveImpact(Vector3 point, Vector3 normal, IDamageable damageable)
         {
@@ -189,9 +191,12 @@ namespace Game.Presentation.Abilities
 
             transform.position = point;
 
-            if (InstanceFinder.ServerManager.Objects.Spawned.TryGetValue(_casterNetworkId, out NetworkObject casterNob))
-                if (casterNob.TryGetComponent(out AbilityController ac))
-                    ac.NotifyProjectileImpact(point, normal, hitConfirmed, isKill);
+            if (InstanceFinder.ServerManager.Objects.Spawned.TryGetValue(_casterNetworkId, out NetworkObject casterNob) &&
+                casterNob.TryGetComponent(out AbilityController ac))
+            {
+                ac.NotifyProjectileImpact(point, normal, hitConfirmed, isKill);
+                ac.NotifyAbilityImpactSfx(point, _slot, wallHit: !hitConfirmed);
+            }
 
             base.Despawn();
         }

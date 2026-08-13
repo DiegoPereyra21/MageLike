@@ -15,7 +15,7 @@ namespace Game.Presentation.Abilities
     /// </summary>
     public class NetworkAbilityExecutor : AbilityExecutor
     {
-        public void SpawnProjectile(GameObject projectilePrefab, Vector3 origin, Vector3 direction, float speed, float damage, float radius, int casterNetworkId, uint fireTick)
+        public void SpawnProjectile(GameObject projectilePrefab, Vector3 origin, Vector3 direction, float speed, float damage, float radius, int casterNetworkId, uint fireTick, int slot)
         {
             if (!InstanceFinder.IsServerStarted) return;
 
@@ -33,12 +33,12 @@ namespace Game.Presentation.Abilities
             instance.transform.SetPositionAndRotation(spawnPos, Quaternion.LookRotation(direction));
 
             if (instance.TryGetComponent(out Projectile projectile))
-                projectile.Initialize(direction, speed, damage, radius, casterNetworkId, fireTick);
+                projectile.Initialize(direction, speed, damage, radius, casterNetworkId, fireTick, slot);
 
             InstanceFinder.ServerManager.Spawn(instance, owner);
         }
 
-        public void SpawnOrb(GameObject orbPrefab, Vector3 origin, Vector3 direction, int casterNetworkId, float damageMultiplier)
+        public void SpawnOrb(GameObject orbPrefab, Vector3 origin, Vector3 direction, int casterNetworkId, float damageMultiplier, int slot)
         {
             if (!InstanceFinder.IsServerStarted) return;
             if (orbPrefab == null) return;
@@ -47,7 +47,7 @@ namespace Game.Presentation.Abilities
             if (instance.TryGetComponent(out OrbProjectile orb))
             {
                 InstanceFinder.ServerManager.Spawn(instance);
-                orb.Initialize(direction, casterNetworkId, damageMultiplier);
+                orb.Initialize(direction, casterNetworkId, damageMultiplier, slot);
             }
         }
 
@@ -92,7 +92,7 @@ namespace Game.Presentation.Abilities
             }
 
             if (casterNob.TryGetComponent(out ParryHandler handler))
-                handler.StartParry(data, context.CasterNetworkId, context.AimDirection);
+                handler.StartParry(data, context.CasterNetworkId, context.AimDirection, context.Slot);
         }
     }
 }

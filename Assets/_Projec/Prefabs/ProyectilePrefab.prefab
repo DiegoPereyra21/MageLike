@@ -29390,7 +29390,7 @@ MonoBehaviour:
   _componentIndexCache: 0
   _addedNetworkObject: {fileID: 6708061512554698612}
   _networkObjectCache: {fileID: 6708061512554698612}
-  _lifetime: 0.9
+  _lifetime: 4
   _hitMask:
     serializedVersion: 2
     m_Bits: 576

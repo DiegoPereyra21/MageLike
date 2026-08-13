@@ -39,6 +39,17 @@ namespace Game.Core.Abilities
         [Header("VFX")]
         [SerializeField] private GameObject _muzzlePrefab;
         public GameObject MuzzlePrefab => _muzzlePrefab;
+
+        [Header("Audio")]
+        [Tooltip("Sonido al castear. Audible para todos los jugadores cercanos (3D).")]
+        [SerializeField] private AudioClip _castClip;
+        [Tooltip("Sonido al impactar/tener éxito: proyectil = impacto, orbe = explosión, parry = bloqueo exitoso.")]
+        [SerializeField] private AudioClip _impactClip;
+        [Tooltip("Solo proyectil: sonido al pegar en geometría (pared/piso) en vez de un objetivo. Opcional.")]
+        [SerializeField] private AudioClip _surfaceImpactClip;
+        public AudioClip CastClip => _castClip;
+        public AudioClip ImpactClip => _impactClip;
+        public AudioClip SurfaceImpactClip => _surfaceImpactClip;
         
         public string AbilityId => _abilityId;
         public string DisplayName => _displayName;

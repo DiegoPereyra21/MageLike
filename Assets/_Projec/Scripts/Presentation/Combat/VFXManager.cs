@@ -25,11 +25,17 @@ namespace Game.Presentation.Combat
         [SerializeField] private ParticleSystem _parrySuccessPrefab;
         [SerializeField] private int _parrySuccessPoolSize = 4;
 
+        [Header("Audio (SFX 3D genérico, pooleado)")]
+        [Tooltip("Prefab con un AudioSource preconfigurado: Spatial Blend = 1 (3D), Play On Awake = false, Loop = false.")]
+        [SerializeField] private AudioSource _sfxPrefab;
+        [SerializeField] private int _sfxPoolSize = 12;
+
         private ObjectPool<ParticleSystem> _projectileHitPool;
         private ObjectPool<ParticleSystem> _orbExplosionPool;
         private ObjectPool<ParticleSystem> _projectileMuzzlePool;
         private ObjectPool<ParticleSystem> _parryActivePool;
         private ObjectPool<ParticleSystem> _parrySuccessPool;
+        private ObjectPool<AudioSource> _sfxPool;
 
         private void Awake()
         {
@@ -47,6 +53,8 @@ namespace Game.Presentation.Combat
                 _parryActivePool = new ObjectPool<ParticleSystem>(_parryActivePrefab, _parryActivePoolSize, transform);
             if (_parrySuccessPrefab != null)
                 _parrySuccessPool = new ObjectPool<ParticleSystem>(_parrySuccessPrefab, _parrySuccessPoolSize, transform);
+            if (_sfxPrefab != null)
+                _sfxPool = new ObjectPool<AudioSource>(_sfxPrefab, _sfxPoolSize, transform);
         }
 
         public static void PlayProjectileHit(Vector3 point, Quaternion rotation)
@@ -63,6 +71,27 @@ namespace Game.Presentation.Combat
 
         public static void PlayParrySuccess(Vector3 point, float scale = 1f)
             => _instance?.PlayVFXScaled(_instance._parrySuccessPool, point, Quaternion.identity, scale);
+
+        /// <summary>Reproduce un clip 3D pooleado en un punto del mundo. clip null = no-op (habilidad sin audio configurado).</summary>
+        public static void PlaySfx(AudioClip clip, Vector3 point, float volume = 1f)
+            => _instance?.PlaySfxInternal(clip, point, volume);
+
+        private void PlaySfxInternal(AudioClip clip, Vector3 point, float volume)
+        {
+            if (clip == null || _sfxPool == null) return;
+            AudioSource src = _sfxPool.Get(point, Quaternion.identity);
+            src.clip = clip;
+            src.volume = volume;
+            src.Play();
+            StartCoroutine(ReleaseAudioWhenDone(src));
+        }
+
+        private System.Collections.IEnumerator ReleaseAudioWhenDone(AudioSource src)
+        {
+            yield return new WaitWhile(() => src.isPlaying);
+            src.clip = null; // liberar la referencia para el próximo uso del pool
+            _sfxPool.Release(src);
+        }
 
         private void PlayVFXScaled(ObjectPool<ParticleSystem> pool, Vector3 point, Quaternion rotation, float scale)
         {
