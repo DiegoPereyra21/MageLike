@@ -25,7 +25,9 @@ namespace Game.Presentation.Combat
                 if (!s.IsEmpty) _contents.Add(s);
         }
 
-        /// <summary>Server-only. Saca un item por índice (para el saqueo futuro). Devuelve el stack sacado.</summary>
+        /// <summary>Server-only. Saca un item por índice (para el saqueo futuro). Devuelve el stack sacado.
+        /// NO despawnea acá — quien llama debe llamar ServerDespawnIfEmpty() cuando termine toda la
+        /// operación (por si necesita devolver algo al contenedor antes).</summary>
         [Server]
         public bool ServerTryTake(int index, out ItemStack taken)
         {
@@ -34,11 +36,6 @@ namespace Game.Presentation.Combat
 
             taken = _contents[index];
             _contents.RemoveAt(index);
-
-            // Si queda vacío, despawnear el contenedor.
-            if (_contents.Count == 0)
-                Despawn();
-
             return true;
         }
 
@@ -63,20 +60,26 @@ namespace Game.Presentation.Combat
         }
 
 
-        /// <summary>Server-only. Reemplaza o elimina un item por índice (para swap con el inventario).</summary>
+        /// <summary>Server-only. Reemplaza o elimina un item por índice (para swap con el inventario).
+        /// NO despawnea acá — mismo motivo que ServerTryTake.</summary>
         [Server]
         public void ServerUpdateAt(int index, ItemStack stack)
         {
             if (index < 0 || index >= _contents.Count) return;
             if (stack.IsEmpty)
-            {
                 _contents.RemoveAt(index);
-                if (_contents.Count == 0) Despawn();
-            }
             else
-            {
                 _contents[index] = stack;
-            }
+        }
+
+        /// <summary>Server-only. Despawnea el contenedor si quedó vacío. Llamar al FINAL de una
+        /// operación completa (después de cualquier depósito de vuelta), nunca en medio de una
+        /// secuencia de mutaciones — si no, se pierde lo que faltaba depositar.</summary>
+        [Server]
+        public void ServerDespawnIfEmpty()
+        {
+            if (_contents.Count == 0)
+                Despawn();
         }
 
 

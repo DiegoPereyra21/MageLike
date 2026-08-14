@@ -517,6 +517,8 @@ namespace Game.Presentation.UI
             int notAdded = _inventory.TryAddStack(taken);
             if (notAdded > 0)
                 container.ServerFill(new[] { new ItemStack(taken.ItemId, notAdded, taken.Durability) });
+
+            container.ServerDespawnIfEmpty(); // recién acá, ya no hace falta escribirle nada más
         }
 
         [ServerRpc]

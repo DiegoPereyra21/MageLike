@@ -455,15 +455,18 @@ namespace Game.Presentation.Combat
                         container.ServerUpdateAt(fromIndex, remaining > 0
                             ? new ItemStack(dragged.ItemId, remaining, dragged.Durability)
                             : ItemStack.Empty);
+                        container.ServerDespawnIfEmpty();
                         return true;
                     }
                 }
 
+                // Swap: sacar del contenedor, poner en slot, depositar lo que había
                 container.ServerUpdateAt(fromIndex, ItemStack.Empty);
                 SetSlot(toZone, toIndex, dragged);
                 if (!existing.IsEmpty)
-                    container.ServerDeposit(existing);
+                    container.ServerDeposit(existing); // si el contenedor se hubiera despawneado antes, esto se perdía
 
+                container.ServerDespawnIfEmpty(); // recién ahora, después del posible depósito de vuelta
                 if (toZone == 0) RebuildAllPocketCapacities();
                 return true;
             }
