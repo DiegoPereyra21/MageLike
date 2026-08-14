@@ -103,7 +103,7 @@
 }
 
 .backpack-grid {
-    width: 402px;
+    width: 450px;
 }
 
 .stash-grid-big {
