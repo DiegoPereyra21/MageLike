@@ -133,6 +133,12 @@
     overflow: hidden;
 }
 
+.item-slot.locked {
+    background-color: rgba(6, 6, 10, 0.7);
+    border-color: rgba(30, 31, 40, 0.3);
+    opacity: 0.3;
+}
+
 .item-slot:hover {
     border-color: rgba(237, 238, 245, 0.5);
 }

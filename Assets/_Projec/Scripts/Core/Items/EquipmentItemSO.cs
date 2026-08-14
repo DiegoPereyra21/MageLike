@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace Game.Core.Items
 {
@@ -15,6 +16,7 @@ namespace Game.Core.Items
 
         [Header("Pocket (solo si el slot es PocketL o PocketR)")]
         [Tooltip("Cuántos slots aporta este pocket. Ambos lados (L/R) aceptan el mismo tipo de ítem.")]
+        [FormerlySerializedAs("_backpackSlots")]
         [SerializeField, Min(0)] private int _pocketSlots = 0;
 
         public EquipmentSlot Slot => _slot;

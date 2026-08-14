@@ -139,11 +139,10 @@
 
 /* Slot bloqueado: capacidad actual del pocket no lo alcanza todavía. Sin interacción. */
 .item-slot.locked {
-    background-color: rgba(15, 15, 22, 0.6);
-    border-color: rgba(40, 41, 54, 0.3);
-    opacity: 0.5;
+    background-color: rgba(6, 6, 10, 0.7);
+    border-color: rgba(30, 31, 40, 0.3);
+    opacity: 0.3;
 }
-
 .item-name {
     color: rgb(227, 228, 235);
     font-size: 13px;
