@@ -178,13 +178,13 @@ namespace Game.Presentation.UI
                 {
                     _extractionContainer.style.display = DisplayStyle.Flex;
                     _extractionFill.style.width = Length.Percent(100f);
-                    _extractionLabel.text = "Extraído";
+                    _extractionLabel.text = "Extracted";
                 }
                 else if (channeling)
                 {
                     _extractionContainer.style.display = DisplayStyle.Flex;
                     _extractionFill.style.width = Length.Percent(progress * 100f);
-                    _extractionLabel.text = "Extrayendo...";
+                    _extractionLabel.text = "Extracting...";
                 }
                 else
                 {
@@ -209,7 +209,7 @@ namespace Game.Presentation.UI
                     else _dangerFrame.RemoveFromClassList("active");
                 }
 
-                _runCounter.text = $"Vivos: {run.AliveCount}  ·  Extraídos: {run.ExtractedCount}  ·  Muertos: {run.DeadCount}";
+                _runCounter.text = $"Alive {run.AliveCount}  ·  Extracted {run.ExtractedCount}  ·  Dead {run.DeadCount}";
             }
 
             //interact prompt

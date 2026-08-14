@@ -19,6 +19,7 @@ namespace Game.Presentation.Combat
         [SerializeField] private Game.Presentation.UI.InventoryUIController _inventoryUI;
         private LootContainer _currentContainer;
         private InputAction _interactAction;
+        private PlayerControls _controls;
         private WorldItem _current;   // a qué estamos apuntando ahora
 
         /// <summary>El HUD lee esto para el prompt. Null = no apuntando a nada recogible.</summary>
@@ -29,7 +30,13 @@ namespace Game.Presentation.Combat
 
         private void Awake()
         {
-            _interactAction = new InputAction("Interact", InputActionType.Button, "<Keyboard>/e");
+            _controls = new PlayerControls();
+            _interactAction = _controls.Player.Interact;
+        }
+
+        private void OnDestroy()
+        {
+            _controls?.Dispose();
         }
 
         private void OnEnable() => _interactAction.Enable();
@@ -66,7 +73,7 @@ namespace Game.Presentation.Combat
                 if (item != null)
                 {
                     _current = item;
-                    CurrentPrompt = $"E  Recoger {item.GetDisplayName(_database)} x{item.Quantity}";
+                    CurrentPrompt = $"E  Pick up {item.GetDisplayName(_database)} x{item.Quantity}";
                     return;
                 }
 
@@ -75,7 +82,7 @@ namespace Game.Presentation.Combat
                 if (container != null && !container.IsEmpty)
                 {
                     _currentContainer = container;
-                    CurrentPrompt = "E  Saquear";
+                    CurrentPrompt = "E  Loot";
                     return;
                 }
             }

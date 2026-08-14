@@ -42,15 +42,15 @@ namespace Game.Presentation.UI
 
             if (extracted)
             {
-                _title.text = "EXTRAÍDO";
+                _title.text = "EXTRACTED";
                 _title.AddToClassList("extracted");
-                _subtitle.text = "Sobreviviste. Tu botín está a salvo.";
+                _subtitle.text = "You survived. Your loot is safe.";
             }
             else
             {
-                _title.text = "ELIMINADO";
+                _title.text = "ELIMINATED";
                 _title.AddToClassList("died");
-                _subtitle.text = "Caíste en la run. Perdiste lo que llevabas.";
+                _subtitle.text = "You fell in the run. You lost what you carried.";
             }
 
             UnityEngine.Cursor.lockState = CursorLockMode.None;

@@ -26,7 +26,7 @@ namespace Game.Presentation.Player
         private InputAction _jumpAction;
         private InputAction _sprintAction;
         private InputAction _lookAction;
-
+        private PlayerControls _controls;
         private Vector3 _verticalVelocity;
         private Vector3 _dashVelocity;
         private float _dashTimeRemaining;
@@ -98,19 +98,16 @@ namespace Game.Presentation.Player
         {
             _controller = GetComponent<CharacterController>();
 
-            // Input System por código: evita depender de un asset .inputactions
-            // para este prototipo. Migrar a un InputActionAsset compartido cuando
-            // se defina el mapeo completo de acciones del juego.
-            _moveAction = new InputAction("Move", InputActionType.Value, expectedControlType: "Vector2");
-            _moveAction.AddCompositeBinding("2DVector")
-                .With("Up", "<Keyboard>/w")
-                .With("Down", "<Keyboard>/s")
-                .With("Left", "<Keyboard>/a")
-                .With("Right", "<Keyboard>/d");
+            _controls = new PlayerControls();
+            _moveAction = _controls.Player.Move;
+            _jumpAction = _controls.Player.Jump;
+            _sprintAction = _controls.Player.Sprint;
+            _lookAction = _controls.Player.Look;
+        }
 
-            _jumpAction = new InputAction("Jump", InputActionType.Button, "<Keyboard>/space");
-            _sprintAction = new InputAction("Sprint", InputActionType.Button, "<Keyboard>/leftShift");
-            _lookAction = new InputAction("Look", InputActionType.Value, "<Mouse>/delta");
+        private void OnDestroy()
+        {
+            _controls?.Dispose();
         }
 
         private void OnEnable()

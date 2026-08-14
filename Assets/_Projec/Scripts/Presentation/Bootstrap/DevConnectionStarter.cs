@@ -17,7 +17,7 @@ namespace Game.Presentation.Bootstrap
 
         private void OnGUI()
         {
-            GUI.Label(new Rect(10, 10, 300, 20), "Presioná H para iniciar Host (server+client)");
+            GUI.Label(new Rect(10, 10, 300, 20), "Press H to start Host (server+client)");
         }
     }
 }

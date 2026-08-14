@@ -40,6 +40,7 @@ namespace Game.Presentation.UI
         private VisualElement _tooltipStats;
         private float _pendingTooltipAnchorBottom;
         private InputAction _toggleAction;
+        private PlayerControls _controls;
         private bool _isOpen;
 
         private LootContainer _openContainer;
@@ -58,7 +59,13 @@ namespace Game.Presentation.UI
 
         private void Awake()
         {
-            _toggleAction = new InputAction("ToggleInventory", InputActionType.Button, "<Keyboard>/tab");
+            _controls = new PlayerControls();
+            _toggleAction = _controls.Player.ToggleInventory;
+        }
+
+        private void OnDestroy()
+        {
+            _controls?.Dispose();
         }
 
         public override void OnStartClient()

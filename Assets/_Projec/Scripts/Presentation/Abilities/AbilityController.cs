@@ -48,6 +48,7 @@ namespace Game.Presentation.Abilities
         private AbilityExecutor _executor;
 
         private InputAction[] _castActions;
+        private PlayerControls _controls;
 
         private bool _inputBlocked;
 
@@ -87,16 +88,24 @@ namespace Game.Presentation.Abilities
 
         private void Awake()
         {
-            _castActions = new InputAction[5];
             _mana = GetComponent<Mana>();
             _movement = GetComponent<PlayerMovementController>();
             _stats = GetComponent<Game.Presentation.Combat.PlayerStats>();
 
-            _castActions[0] = new InputAction("CastSlot0", InputActionType.Button, "<Mouse>/leftButton");
-            _castActions[1] = new InputAction("CastSlot1", InputActionType.Button, "<Keyboard>/leftShift");
-            _castActions[2] = new InputAction("CastSlot2", InputActionType.Button, "<Mouse>/rightButton");
-            _castActions[3] = new InputAction("CastSlot3", InputActionType.Button, "<Keyboard>/q");
-            _castActions[4] = new InputAction("CastSlot4", InputActionType.Button, "<Keyboard>/f");
+            _controls = new PlayerControls();
+            _castActions = new InputAction[5]
+            {
+                _controls.Player.CastSlot0,
+                _controls.Player.CastSlot1,
+                _controls.Player.CastSlot2,
+                _controls.Player.CastSlot3,
+                _controls.Player.CastSlot4,
+            };
+        }
+
+        private void OnDestroy()
+        {
+            _controls?.Dispose();
         }
 
         private void OnEnable()
