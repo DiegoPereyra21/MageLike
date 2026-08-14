@@ -298,7 +298,7 @@ namespace Game.Presentation.UI
 
                 var name = new Label(def != null ? def.DisplayName : stack.ItemId);
                 name.AddToClassList("item-name");
-                name.AddToClassList(ItemTooltipFormatter.RarityClass(def));
+                slot.AddToClassList(ItemTooltipFormatter.RarityClass(def));
                 slot.Add(name);
 
                 if (stack.Quantity > 1)

@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: LootTable_Dummy
   m_EditorClassIdentifier: Assembly-CSharp::Game.Core.Items.LootTableSO
   _entries:
-  - Item: {fileID: 11400000, guid: c4ea9ce28285afc4cb3dbe9e8b0de257, type: 2}
+  - Item: {fileID: 11400000, guid: 5f931db816594734aa8f131c2885c692, type: 2}
     Chance: 0.175
     MinQuantity: 1
     MaxQuantity: 1
@@ -22,10 +22,10 @@ MonoBehaviour:
     MinQuantity: 1
     MaxQuantity: 1
   - Item: {fileID: 11400000, guid: 03115d7b9c95871469b14e671519d10f, type: 2}
-    Chance: 0.213
+    Chance: 0.434
     MinQuantity: 1
     MaxQuantity: 1
   - Item: {fileID: 11400000, guid: e9c62420b06a06a4881ad36f6d4474ce, type: 2}
-    Chance: 0.231
+    Chance: 0.476
     MinQuantity: 1
     MaxQuantity: 1

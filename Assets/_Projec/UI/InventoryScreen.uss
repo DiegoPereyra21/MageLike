@@ -144,12 +144,14 @@
 }
 
 .item-name {
-    color: rgb(227, 228, 235);
-    font-size: 15px;
+    -unity-font-definition: url("/Assets/_Projec/Fonts/Manrope-Bold.ttf");
+    color: rgb(237, 238, 245);
+    font-size: 14px;
     -unity-text-align: middle-center;
     white-space: normal;
     width: 100%;
     padding: 2px;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95);
 }
 
 .item-qty {
@@ -196,12 +198,12 @@
 .accent-dot.accent-amber   { background-color: rgb(237, 131, 94); }
 .accent-dot.accent-loot    { background-color: rgb(226, 73, 71); }
 
-.item-slot.accent-green  { background-color: rgba(103, 210, 131, 0.18); border-color: rgba(103, 210, 131, 0.55); }
-.item-slot.accent-cyan   { background-color: rgba(62, 204, 226, 0.18); border-color: rgba(62, 204, 226, 0.55); }
-.item-slot.accent-violet { background-color: rgba(181, 139, 249, 0.18); border-color: rgba(181, 139, 249, 0.55); }
-.item-slot.accent-gold   { background-color: rgba(228, 183, 80, 0.18); border-color: rgba(228, 183, 80, 0.55); }
-.item-slot.accent-amber  { background-color: rgba(237, 131, 94, 0.18); border-color: rgba(237, 131, 94, 0.55); }
-.item-slot.accent-loot   { background-color: rgba(226, 73, 71, 0.18); border-color: rgba(226, 73, 71, 0.6); }
+.item-slot.accent-green  { background-color: rgba(103, 210, 131, 0.14); }
+.item-slot.accent-cyan   { background-color: rgba(62, 204, 226, 0.14); }
+.item-slot.accent-violet { background-color: rgba(181, 139, 249, 0.14); }
+.item-slot.accent-gold   { background-color: rgba(228, 183, 80, 0.14); }
+.item-slot.accent-amber  { background-color: rgba(237, 131, 94, 0.14); }
+.item-slot.accent-loot   { background-color: rgba(226, 73, 71, 0.14); }
 
 /* ---------- Nombre de item dentro de una fila de equipo ---------- */
 
@@ -282,6 +284,17 @@
 .tooltip-stat-positive { color: rgb(80, 210, 100); }
 .tooltip-stat-negative { color: rgb(240, 90, 88); }
 .tooltip-stat-neutral  { color: rgb(210, 211, 219); }
-.rarity-common { color: rgb(227, 228, 235); }
-.rarity-rare   { color: rgb(70, 165, 235); }
-.rarity-epic   { color: rgb(197, 96, 232); }
+/* Rareza en TEXTO — solo donde no hay fondo tenue compitiendo (filas de Loadout, tooltip) */
+.rarity-common { color: rgb(237, 238, 245); }
+.rarity-rare   { color: rgb(90, 180, 255); }
+.rarity-epic   { color: rgb(210, 110, 245); }
+
+/* Rareza en BORDE — celdas de grilla, donde el texto de color no se leería bien */
+.item-slot.rarity-rare {
+    border-color: rgb(90, 180, 255);
+    border-width: 2px;
+}
+.item-slot.rarity-epic {
+    border-color: rgb(210, 110, 245);
+    border-width: 2px;
+}
