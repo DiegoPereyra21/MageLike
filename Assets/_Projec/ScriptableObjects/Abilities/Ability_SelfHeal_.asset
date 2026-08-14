@@ -17,7 +17,9 @@ MonoBehaviour:
   _icon: {fileID: 0}
   _cooldown: 1
   _resourceCost: 25
+  _windupDuration: 0.5
   _muzzlePrefab: {fileID: 0}
   _castClip: {fileID: 8300000, guid: ce673bb427b80e544b4a8cdad8498f9d, type: 3}
   _impactClip: {fileID: 0}
+  _surfaceImpactClip: {fileID: 0}
   _healAmount: 30

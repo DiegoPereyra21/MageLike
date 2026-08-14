@@ -18,15 +18,30 @@ namespace Game.Presentation.Abilities
     /// </summary>
     public class AbilityController : NetworkBehaviour
     {
-        [SerializeField] private AbilitySO[] _equippedAbilities = new AbilitySO[4];
+        [SerializeField] private AbilitySO[] _equippedAbilities = new AbilitySO[5];
         [SerializeField] private Transform _aimOrigin;
         [SerializeField] private Transform _spellOrigin; // punto de salida del hechizo (báculo, mano, etc.)
         [SerializeField] private LayerMask _aimMask;
         [SerializeField] private float _maxAimDistance = 50f;
+        [SerializeField] private TrajectoryPreviewController _trajectoryPreview;
+        [SerializeField] private ChargeVFXController _chargeVfx;
 
-        private readonly float[] _localCooldownEndTime = new float[4];
+        private readonly float[] _localCooldownEndTime = new float[5];
         // Cooldowns autoritativos del servidor (Time.time del servidor en que cada slot vuelve a estar listo).
-        private readonly float[] _serverCooldownEndTime = new float[4];
+        private readonly float[] _serverCooldownEndTime = new float[5];
+        // Aim más reciente recibido durante un windup en curso (re-apuntado en tiempo real).
+        private readonly Vector3[] _pendingAimDirection = new Vector3[5];
+        private readonly Vector3[] _pendingAimPoint = new Vector3[5];
+        private readonly bool[] _hasPendingAim = new bool[5];
+
+        // Carga sostenida (habilidades chargeable). El tiempo real lo mide el SERVIDOR:
+        // el cliente solo avisa "empecé" y "solté"; nunca manda cuánto cargó.
+        private readonly float[] _serverChargeStartTime = new float[5];
+        private readonly bool[] _serverCharging = new bool[5];
+        private readonly bool[] _localCharging = new bool[5];
+        // Reloj LOCAL, solo para el preview de trayectoria (aproximado, no autoritativo).
+        private readonly float[] _localChargeStartTime = new float[5];
+
         private Mana _mana;
         private PlayerMovementController _movement;
         [SerializeField] private Game.Presentation.Combat.PlayerStats _stats;
@@ -72,7 +87,7 @@ namespace Game.Presentation.Abilities
 
         private void Awake()
         {
-            _castActions = new InputAction[4];
+            _castActions = new InputAction[5];
             _mana = GetComponent<Mana>();
             _movement = GetComponent<PlayerMovementController>();
             _stats = GetComponent<Game.Presentation.Combat.PlayerStats>();
@@ -81,6 +96,7 @@ namespace Game.Presentation.Abilities
             _castActions[1] = new InputAction("CastSlot1", InputActionType.Button, "<Keyboard>/leftShift");
             _castActions[2] = new InputAction("CastSlot2", InputActionType.Button, "<Mouse>/rightButton");
             _castActions[3] = new InputAction("CastSlot3", InputActionType.Button, "<Keyboard>/q");
+            _castActions[4] = new InputAction("CastSlot4", InputActionType.Button, "<Keyboard>/f");
         }
 
         private void OnEnable()
@@ -96,14 +112,46 @@ namespace Game.Presentation.Abilities
         private void Update()
         {
             if (!base.IsOwner) return;
-            if (_inputBlocked) return;   // ← nuevo: sin castear con el inventario abierto
+
+            // Con el input bloqueado (inventario abierto), soltar cualquier carga en curso
+            // para no dejar al servidor cargando indefinidamente.
+            if (_inputBlocked)
+            {
+                for (int i = 0; i < _castActions.Length; i++)
+                    if (_localCharging[i]) ReleaseCharge(i);
+                return;
+            }
 
             for (int i = 0; i < _castActions.Length; i++)
             {
-                if (_castActions[i].WasPressedThisFrame())
+                AbilitySO ability = _equippedAbilities[i];
+                if (ability == null) continue;
+
+                if (ability.IsChargeable)
+                {
+                    if (_castActions[i].WasPressedThisFrame()) BeginCharge(i);
+                    else if (_castActions[i].WasReleasedThisFrame() && _localCharging[i]) ReleaseCharge(i);
+
+                    // Preview de trayectoria: se actualiza cada frame mientras se sostiene.
+                    if (_localCharging[i] && ability.ShowTrajectoryPreview && _trajectoryPreview != null)
+                    {
+                        float t = ability.MaxChargeDuration > 0f
+                            ? Mathf.Clamp01((Time.time - _localChargeStartTime[i]) / ability.MaxChargeDuration)
+                            : 1f;
+                        ability.GetLaunchForCharge(t, out float launchSpeed, out float gravity);
+                        ResolveAim(out _, out Vector3 aimPoint);
+                        Vector3 origin = _spellOrigin != null ? _spellOrigin.position : _aimOrigin.position;
+                        _trajectoryPreview.Show(origin, aimPoint, launchSpeed, gravity);
+                    }
+                }
+                else if (_castActions[i].WasPressedThisFrame())
+                {
                     TryCast(i);
+                }
             }
         }
+
+        // ---------- Casteo instantáneo / con windup ----------
 
         private void TryCast(int slot)
         {
@@ -115,46 +163,185 @@ namespace Game.Presentation.Abilities
             if (_mana != null && _mana.Current < ability.ResourceCost) return;
 
             // Predicción local de cooldown solamente. El maná lo descuenta y sincroniza el servidor.
-            float castSpeed = _stats != null ? _stats.CastSpeedMultiplier : 1f;
-            float effectiveCooldown = ability.Cooldown / Mathf.Max(0.1f, castSpeed);
-            _localCooldownEndTime[slot] = Time.time + effectiveCooldown;
+            PredictCooldownLocally(slot, ability);
 
             ResolveAim(out Vector3 aimDirection, out Vector3 aimPoint);
-
-            // Feedback local instantáneo del tirador (owner): muzzle en el báculo + audio de casteo
-            // + proyectil cosmético + dash predicho.
-            if (base.IsOwner)
-            {
-                Vector3 muzzlePos = _spellOrigin != null ? _spellOrigin.position : _aimOrigin.position;
-
-                if (ability.MuzzlePrefab != null)
-                    VFXManager.PlayProjectileMuzzle(muzzlePos, Quaternion.LookRotation(aimDirection));
-
-                // Sonido de casteo instantáneo, local (los demás lo oyen vía CastServerRpc → observers).
-                if (ability.CastClip != null)
-                    VFXManager.PlaySfx(ability.CastClip, muzzlePos);
-
-                if (ability.TryGetCosmeticProjectile(out GameObject cosmeticPrefab, out float cosmeticSpeed))
-                {
-                    Vector3 toAim = aimPoint - muzzlePos;
-                    Vector3 dir = toAim.sqrMagnitude > 0.0001f ? toAim.normalized : aimDirection;
-                    CosmeticProjectileManager.Spawn(cosmeticPrefab, muzzlePos, dir, cosmeticSpeed, transform);
-                }
-                
-                // Dash owner-predicted: el owner lo encola localmente ya, así lo predice al
-                // instante (movimiento + audio + FOV). El server también lo aplica; reconcile alinea.
-                if (ability.TryGetOwnerDash(aimDirection, out Vector3 dashDir, out float dashSpeed, out float dashDur))
-                    _movement?.StartDash(dashDir, dashSpeed, dashDur);
-            }
 
             // Tick de disparo del cliente para lag compensation (el server rebobina a este tick).
             PreciseTick fireTick = base.TimeManager.GetPreciseTick(TickType.Tick);
             CastServerRpc(slot, aimDirection, aimPoint, fireTick);
+
+            if (base.IsOwner)
+            {
+                if (ability.WindupDuration > 0f)
+                {
+                    _chargeVfx?.BeginCharge(ability.WindupDuration); // telegrafía local instantánea
+                    StartCoroutine(PlayLocalFireFeedbackDelayed(ability, ability.WindupDuration));
+                    StartCoroutine(SendAimUpdatesDuringWindup(slot, ability.WindupDuration));
+                }
+                else
+                {
+                    PlayLocalFireFeedback(ability, aimDirection, aimPoint);
+                }
+            }
         }
 
-        // Cliente. Calcula hacia dónde mira el jugador. La aimDirection (mirada con pitch) la usan
-        // dash/parry; el aimPoint (objetivo del crosshair) lo usa el proyectil para converger.
-        // El origen del disparo NO se calcula acá: el servidor lo pone desde su SpellOrigin autoritativo.
+        // ---------- Carga sostenida (mantener presionado) ----------
+
+        private void BeginCharge(int slot)
+        {
+            AbilitySO ability = _equippedAbilities[slot];
+            if (ability == null) return;
+
+            // Chequeos locales (feedback inmediato, no autoritativos). El cooldown de esta
+            // habilidad recién se predice al SOLTAR (arranca cuando se dispara, no al cargar).
+            if (Time.time < _localCooldownEndTime[slot]) return;
+            if (_mana != null && _mana.Current < ability.ResourceCost) return;
+
+            _localCharging[slot] = true;
+            _localChargeStartTime[slot] = Time.time;
+            _chargeVfx?.BeginCharge(ability.MaxChargeDuration); // telegrafía local instantánea
+            BeginChargeServerRpc(slot);
+        }
+
+        private void ReleaseCharge(int slot)
+        {
+            if (!_localCharging[slot]) return;
+            _localCharging[slot] = false;
+            _trajectoryPreview?.Hide();
+            _chargeVfx?.EndCharge();
+
+            AbilitySO ability = _equippedAbilities[slot];
+            if (ability == null) return;
+
+            // Recién ahora arranca el cooldown local predicho (coincide con el servidor, que
+            // también lo arranca al soltar).
+            PredictCooldownLocally(slot, ability);
+
+            ResolveAim(out Vector3 aimDirection, out Vector3 aimPoint);
+            PreciseTick fireTick = base.TimeManager.GetPreciseTick(TickType.Tick);
+            ReleaseChargeServerRpc(slot, aimDirection, aimPoint, fireTick);
+
+            if (base.IsOwner)
+                PlayLocalFireFeedback(ability, aimDirection, aimPoint);
+        }
+
+        [ServerRpc]
+        private void BeginChargeServerRpc(int slot)
+        {
+            if (slot < 0 || slot >= _equippedAbilities.Length) return;
+            AbilitySO ability = _equippedAbilities[slot];
+            if (ability == null || !ability.IsChargeable) return;
+            if (_serverCharging[slot]) return; // ya estaba cargando
+
+            // Validar cooldown autoritativo (de un cast anterior).
+            if (Time.time < _serverCooldownEndTime[slot])
+            {
+                RejectCastTargetRpc(base.Owner, slot, _serverCooldownEndTime[slot]);
+                return;
+            }
+
+            // Validar y descontar maná autoritativo (se cobra al EMPEZAR a cargar).
+            if (_mana != null && !_mana.TrySpend(ability.ResourceCost))
+            {
+                RejectCastTargetRpc(base.Owner, slot, _serverCooldownEndTime[slot]);
+                return;
+            }
+
+            // El cooldown NO arranca acá: arranca al soltar (ver ReleaseChargeServerRpc),
+            // para que cargar más tiempo no "regale" cooldown gratis.
+            _serverCharging[slot] = true;
+            _serverChargeStartTime[slot] = Time.time; // reloj del SERVIDOR: el cliente no decide la carga
+
+            PlayChargeVfxObserversRpc(ability.MaxChargeDuration); // telegrafía para los demás
+        }
+
+        [ServerRpc]
+        private void ReleaseChargeServerRpc(int slot, Vector3 aimDirection, Vector3 aimPoint, PreciseTick fireTick)
+        {
+            if (slot < 0 || slot >= _equippedAbilities.Length) return;
+            if (!_serverCharging[slot]) return; // soltó sin haber empezado (o el begin fue rechazado)
+
+            AbilitySO ability = _equippedAbilities[slot];
+            _serverCharging[slot] = false;
+            StopChargeVfxObserversRpc(); // cortar la telegrafía para los demás, coincidiendo con el disparo
+            if (ability == null) return;
+
+            // Cooldown arranca AHORA (al disparar), no cuando empezó a cargar.
+            float castSpeed = _stats != null ? _stats.CastSpeedMultiplier : 1f;
+            _serverCooldownEndTime[slot] = Time.time + ability.Cooldown / Mathf.Max(0.1f, castSpeed);
+
+            // Carga medida contra el reloj del servidor y acotada a [0..1].
+            float held = Time.time - _serverChargeStartTime[slot];
+            float maxCharge = Mathf.Max(0.01f, ability.MaxChargeDuration);
+            float charge = Mathf.Clamp01(held / maxCharge);
+
+            ExecuteCast(ability, slot, aimDirection, aimPoint, fireTick, charge);
+        }
+
+        // ---------- Helpers de cliente ----------
+
+        private void PredictCooldownLocally(int slot, AbilitySO ability)
+        {
+            float castSpeed = _stats != null ? _stats.CastSpeedMultiplier : 1f;
+            _localCooldownEndTime[slot] = Time.time + ability.Cooldown / Mathf.Max(0.1f, castSpeed);
+        }
+
+        private System.Collections.IEnumerator PlayLocalFireFeedbackDelayed(AbilitySO ability, float delay)
+        {
+            yield return new WaitForSeconds(delay);
+            _chargeVfx?.EndCharge();
+            ResolveAim(out Vector3 aimDirection, out Vector3 aimPoint); // apunta al instante real de disparar
+            PlayLocalFireFeedback(ability, aimDirection, aimPoint);
+        }
+
+        /// <summary>
+        /// Mientras dura el windup, el cliente le manda al servidor su aim actualizado cada frame
+        /// (no valida nada, solo datos de puntería — el servidor sigue siendo quien decide CUÁNDO
+        /// se ejecuta, esto solo define HACIA DÓNDE).
+        /// </summary>
+        private System.Collections.IEnumerator SendAimUpdatesDuringWindup(int slot, float duration)
+        {
+            float elapsed = 0f;
+            while (elapsed < duration)
+            {
+                ResolveAim(out Vector3 aimDirection, out Vector3 aimPoint);
+                UpdateAimServerRpc(slot, aimDirection, aimPoint);
+                yield return null;
+                elapsed += Time.deltaTime;
+            }
+        }
+
+        [ServerRpc]
+        private void UpdateAimServerRpc(int slot, Vector3 aimDirection, Vector3 aimPoint)
+        {
+            if (slot < 0 || slot >= _pendingAimDirection.Length) return;
+            _pendingAimDirection[slot] = aimDirection;
+            _pendingAimPoint[slot] = aimPoint;
+            _hasPendingAim[slot] = true;
+        }
+
+        private void PlayLocalFireFeedback(AbilitySO ability, Vector3 aimDirection, Vector3 aimPoint)
+        {
+            Vector3 muzzlePos = _spellOrigin != null ? _spellOrigin.position : _aimOrigin.position;
+
+            if (ability.MuzzlePrefab != null)
+                VFXManager.PlayProjectileMuzzle(muzzlePos, Quaternion.LookRotation(aimDirection));
+
+            if (ability.CastClip != null)
+                VFXManager.PlaySfx(ability.CastClip, muzzlePos);
+
+            if (ability.TryGetCosmeticProjectile(out GameObject cosmeticPrefab, out float cosmeticSpeed))
+            {
+                Vector3 toAim = aimPoint - muzzlePos;
+                Vector3 dir = toAim.sqrMagnitude > 0.0001f ? toAim.normalized : aimDirection;
+                CosmeticProjectileManager.Spawn(cosmeticPrefab, muzzlePos, dir, cosmeticSpeed, transform);
+            }
+
+            if (ability.TryGetOwnerDash(aimDirection, out Vector3 dashDir, out float dashSpeed, out float dashDur))
+                _movement?.StartDash(dashDir, dashSpeed, dashDur);
+        }
+
         private void ResolveAim(out Vector3 aimDirection, out Vector3 aimPoint)
         {
             Vector3 cameraOrigin = _aimOrigin.position;
@@ -174,75 +361,97 @@ namespace Game.Presentation.Abilities
             AbilitySO ability = _equippedAbilities[slot];
             if (ability == null) return;
 
-            // 1. Validar cooldown autoritativo.
             if (Time.time < _serverCooldownEndTime[slot])
             {
                 RejectCastTargetRpc(base.Owner, slot, _serverCooldownEndTime[slot]);
                 return;
             }
 
-            // 2. Validar y descontar maná autoritativo.
             if (_mana != null && !_mana.TrySpend(ability.ResourceCost))
             {
                 RejectCastTargetRpc(base.Owner, slot, _serverCooldownEndTime[slot]);
                 return;
             }
 
-            // 3. Cast válido: registrar cooldown (reducido por velocidad de casteo) y ejecutar.
             float castSpeed = _stats != null ? _stats.CastSpeedMultiplier : 1f;
-            float effectiveCooldown = ability.Cooldown / Mathf.Max(0.1f, castSpeed);
-            _serverCooldownEndTime[slot] = Time.time + effectiveCooldown;
+            _serverCooldownEndTime[slot] = Time.time + ability.Cooldown / Mathf.Max(0.1f, castSpeed);
 
+            if (ability.WindupDuration > 0f)
+            {
+                PlayChargeVfxObserversRpc(ability.WindupDuration); // telegrafía para los demás
+                StartCoroutine(ExecuteAfterWindup(ability, slot, aimDirection, aimPoint, fireTick, ability.WindupDuration));
+            }
+            else
+            {
+                ExecuteCast(ability, slot, aimDirection, aimPoint, fireTick);
+            }
+        }
+
+        [Server]
+        private System.Collections.IEnumerator ExecuteAfterWindup(AbilitySO ability, int slot, Vector3 aimDirection, Vector3 aimPoint, PreciseTick fireTick, float delay)
+        {
+            _hasPendingAim[slot] = false;
+            yield return new WaitForSeconds(delay);
+
+            if (_hasPendingAim[slot])
+            {
+                aimDirection = _pendingAimDirection[slot];
+                aimPoint = _pendingAimPoint[slot];
+            }
+
+            ExecuteCast(ability, slot, aimDirection, aimPoint, fireTick);
+            StopChargeVfxObserversRpc(); // cortar la telegrafía para los demás, coincidiendo con el disparo
+        }
+
+        [Server]
+        private void ExecuteCast(AbilitySO ability, int slot, Vector3 aimDirection, Vector3 aimPoint, PreciseTick fireTick, float charge = 0f)
+        {
             float dmgMul = _stats != null ? _stats.DamageMultiplier : 1f;
 
-            // Anti-cheat: el origen NO se confía al cliente. Se toma del SpellOrigin autoritativo.
             Vector3 head = _aimOrigin != null ? _aimOrigin.position : transform.position;
             Vector3 origin = _spellOrigin != null ? _spellOrigin.position : head;
 
-            // Sanidad del aimPoint: acotar su distancia a la cabeza para descartar valores absurdos.
             Vector3 toAim = aimPoint - head;
             if (toAim.magnitude > _maxAimDistance)
                 aimPoint = head + toAim.normalized * _maxAimDistance;
+
+            double tickDelta = base.TimeManager.TickDelta;
+            uint windupTicks = tickDelta > 0 ? (uint)Mathf.RoundToInt(ability.WindupDuration / (float)tickDelta) : 0;
+            uint adjustedFireTick = fireTick.Tick + windupTicks;
 
             var context = new AbilityCastContext(
                 casterNetworkId: base.ObjectId,
                 origin: origin,
                 aimDirection: aimDirection.normalized,
                 aimPoint: aimPoint,
-                tick: fireTick.Tick,           // tick de disparo del cliente (para el catch-up/rewind)
+                tick: adjustedFireTick,
                 damageMultiplier: dmgMul,
-                slot: slot                     // para resolver el clip de audio localmente en cada cliente
+                slot: slot,
+                chargeNormalized: charge
             );
 
             ability.Execute(_executor, in context);
 
-            // Muzzle y sonido de casteo para los demás (el owner ya los vio/oyó local).
             if (ability.MuzzlePrefab != null)
                 PlayMuzzleObserversRpc(origin, aimDirection);
             if (ability.CastClip != null)
                 PlayCastSfxObserversRpc(origin, slot);
         }
 
-        /// <summary>
-        /// Solo al cliente dueño: el servidor rechazó el cast. Corrige la predicción local
-        /// (restaura cooldown real y deja que el SyncVar de maná se reconcilie solo).
-        /// </summary>
         [TargetRpc]
         private void RejectCastTargetRpc(FishNet.Connection.NetworkConnection conn, int slot, float serverCooldownEnd)
         {
-            // El cast fue rechazado: revertir la predicción de cooldown local.
-            // Restauramos al cooldown REAL del servidor (si el rechazo fue por maná,
-            // serverCooldownEnd refleja el estado real, que puede ser "ya listo").
             float remaining = serverCooldownEnd - Time.time;
             _localCooldownEndTime[slot] = remaining > 0f ? serverCooldownEnd : 0f;
-
-            // El maná se corrige solo vía SyncVar en el próximo sync.
+            if (_localCharging[slot])
+            {
+                _localCharging[slot] = false;
+                _trajectoryPreview?.Hide();
+                _chargeVfx?.EndCharge();
+            }
         }
 
 
-        // Llamado por el proyectil networked (server) al impactar. El caster ve el impacto por su
-        // cosmético local; a los demás se lo mandamos acá (ExcludeOwner). Si el golpe fue confirmado
-        // (pegó en un objetivo con vida, no en geometría), el caster recibe su hitmarker.
         public void NotifyProjectileImpact(Vector3 point, Vector3 normal, bool hitConfirmed, bool isKill)
         {
             PlayImpactObserversRpc(point, normal);
@@ -251,8 +460,7 @@ namespace Game.Presentation.Abilities
                 PlayHitMarkerTargetRpc(base.Owner, isKill);
         }
 
-        /// <summary>Se dispara cuando el servidor confirma que un ataque propio conectó. Solo el caster lo recibe.</summary>
-        public event Action<bool> OnHitConfirmed; // bool = fue kill
+        public event Action<bool> OnHitConfirmed;
 
         [TargetRpc]
         private void PlayHitMarkerTargetRpc(FishNet.Connection.NetworkConnection conn, bool isKill)
@@ -280,12 +488,18 @@ namespace Game.Presentation.Abilities
                 VFXManager.PlaySfx(ability.CastClip, point);
         }
 
-        /// <summary>
-        /// Reproduce el sonido de impacto/éxito de la habilidad en `slot`, para todos los clientes
-        /// (incluido el caster: proyectil/orbe/parry no tienen feedback local instantáneo de impacto,
-        /// salvo el cosmético del proyectil básico, que ya tiene su propio VFX/shake local aparte).
-        /// Llamado por Projectile, OrbProjectile (ofensivo) y ParryHandler (bloqueo exitoso).
-        /// </summary>
+        [ObserversRpc(ExcludeOwner = true)]
+        private void PlayChargeVfxObserversRpc(float maxDuration)
+        {
+            _chargeVfx?.BeginCharge(maxDuration);
+        }
+
+        [ObserversRpc(ExcludeOwner = true)]
+        private void StopChargeVfxObserversRpc()
+        {
+            _chargeVfx?.EndCharge();
+        }
+
         public void NotifyAbilityImpactSfx(Vector3 point, int slot, bool wallHit = false)
         {
             PlayImpactSfxObserversRpc(point, slot, wallHit);
@@ -313,10 +527,6 @@ namespace Game.Presentation.Abilities
             return _equippedAbilities[slot];
         }
 
-        /// <summary>
-        /// Fracción de cooldown restante (0 = listo, 1 = recién casteado). Cálculo local
-        /// para feedback de UI; el cooldown autoritativo se valida en servidor aparte.
-        /// </summary>
         public float GetCooldownNormalized(int slot)
         {
             if (slot < 0 || slot >= _equippedAbilities.Length) return 0f;

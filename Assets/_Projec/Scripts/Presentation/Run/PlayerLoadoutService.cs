@@ -4,7 +4,7 @@ namespace Game.Presentation.Run
 {
     /// <summary>
     /// Persiste el inventario propio del jugador (snapshot) entre runs, en memoria por ahora
-    /// (se pierde al cerrar; listo para UGS Cloud Save después). Provee el kit inicial la
+    /// (se pierde al cerrar; listo para persistencia real después). Provee el kit inicial la
     /// primera vez.
     /// </summary>
     public static class PlayerLoadoutService
@@ -24,10 +24,10 @@ namespace Game.Presentation.Run
             _initialized = true;
         }
 
-        /// <summary>Vacía el inventario propio (al morir: volvés desnudo).</summary>
+        /// <summary>Vacía el inventario propio (al morir: volvés desnudo, pero con los slots de equipo visibles).</summary>
         public static void Clear()
         {
-            _snapshot = new InventorySnapshot();
+            _snapshot = BuildEmptySnapshot();
             _initialized = true;
         }
 
@@ -36,12 +36,7 @@ namespace Game.Presentation.Run
         {
             if (_initialized) return;
 
-            var snap = new InventorySnapshot();
-
-            // Inicializar el equipamiento con un slot vacío por cada EquipmentSlot, en orden.
-            int slotCount = System.Enum.GetValues(typeof(EquipmentSlot)).Length;
-            for (int i = 0; i < slotCount; i++)
-                snap.Equipment.Add(ItemStack.Empty);
+            var snap = BuildEmptySnapshot();
 
             if (kit != null)
             {
@@ -61,6 +56,16 @@ namespace Game.Presentation.Run
 
             _snapshot = snap;
             _initialized = true;
+        }
+
+        /// <summary>Snapshot con un slot vacío por cada EquipmentSlot (sin items). Base común de Clear/EnsureInitialized.</summary>
+        private static InventorySnapshot BuildEmptySnapshot()
+        {
+            var snap = new InventorySnapshot();
+            int slotCount = System.Enum.GetValues(typeof(EquipmentSlot)).Length;
+            for (int i = 0; i < slotCount; i++)
+                snap.Equipment.Add(ItemStack.Empty);
+            return snap;
         }
     }
 }

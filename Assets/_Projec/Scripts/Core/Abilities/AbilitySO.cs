@@ -35,6 +35,10 @@ namespace Game.Core.Abilities
         [Header("Costos")]
         [SerializeField] private float _cooldown = 1f;
         [SerializeField] private float _resourceCost = 10f;
+        [Tooltip("Segundos de carga antes de que el efecto ejecute de verdad. 0 = instantáneo (sin cambios). " +
+                 "Server-authoritative: el cooldown y el maná se cobran al empezar la carga, no al terminar.")]
+        [SerializeField] private float _windupDuration = 0f;
+        public float WindupDuration => _windupDuration;
 
         [Header("VFX")]
         [SerializeField] private GameObject _muzzlePrefab;
@@ -76,6 +80,29 @@ namespace Game.Core.Abilities
         {
             direction = default; speed = 0f; duration = 0f;
             return false;
+        }
+        /// <summary>
+        /// True si la habilidad se castea manteniendo el botón y se dispara al soltar.
+        /// El tiempo cargado lo mide el servidor, nunca el cliente.
+        /// </summary>
+        public virtual bool IsChargeable => false;
+
+        /// <summary>Segundos hasta carga máxima (solo si IsChargeable).</summary>
+        public virtual float MaxChargeDuration => 0f;
+
+        /// <summary>True si esta habilidad quiere mostrar una previsualización de trayectoria mientras se carga.</summary>
+        public virtual bool ShowTrajectoryPreview => false;
+
+        /// <summary>
+        /// Velocidad de lanzamiento y gravedad para una fracción de carga dada. El tiempo de
+        /// vuelo se deriva de la distancia real (velocidad/distancia), no es un valor fijo —
+        /// así un tiro lejano y uno cerca se sienten con la misma "fuerza de tiro".
+        /// Solo si ShowTrajectoryPreview.
+        /// </summary>
+        public virtual void GetLaunchForCharge(float chargeNormalized, out float launchSpeed, out float gravity)
+        {
+            launchSpeed = 0f;
+            gravity = 0f;
         }
 
         public abstract void Execute(AbilityExecutor executor, in AbilityCastContext context);

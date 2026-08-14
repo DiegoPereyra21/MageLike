@@ -51,6 +51,21 @@ namespace Game.Presentation.Abilities
             }
         }
 
+        public void SpawnChargedOrb(GameObject orbPrefab, Vector3 origin, Vector3 aimPoint, float damage, float explosionRadius, float visualScale, float launchSpeed, float gravity, int casterNetworkId, int slot)
+        {
+            if (!InstanceFinder.IsServerStarted) return;
+            if (orbPrefab == null) return;
+
+            Vector3 toAim = aimPoint - origin;
+            Vector3 dir = toAim.sqrMagnitude > 0.0001f ? toAim.normalized : Vector3.forward;
+
+            GameObject instance = UnityEngine.Object.Instantiate(orbPrefab, origin + dir * 0.5f, Quaternion.LookRotation(dir));
+            if (instance.TryGetComponent(out ChargedOrbProjectile orb))
+            {
+                InstanceFinder.ServerManager.Spawn(instance);
+                orb.Initialize(aimPoint, damage, explosionRadius, visualScale, launchSpeed, gravity, casterNetworkId, slot);
+            }
+        }
 
         public void ApplyAreaEffect(Vector3 point, float radius, float damage, int casterNetworkId)
         {
