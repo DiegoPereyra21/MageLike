@@ -19,7 +19,8 @@ namespace Game.Presentation.UI
         private Mana _mana;
         private PlayerExtractionState _extraction;
         private AbilityController _abilities;
-
+        private PlayerStats _stats;
+        private VisualElement _statModifiers;
         private VisualElement _healthFill;
         private VisualElement _manaFill;
         private Label _manaText;
@@ -33,7 +34,7 @@ namespace Game.Presentation.UI
         private Label _runCounter;
         private PlayerInteraction _interaction;
         private Label _interactPrompt;
-        private readonly VisualElement[] _cooldownOverlays = new VisualElement[4];
+        private readonly VisualElement[] _cooldownOverlays = new VisualElement[5];
 
         private VisualElement _dashRing;
         private float _dashRingProgress; // 0 = vacío (en cooldown), 1 = lleno (listo)
@@ -58,6 +59,7 @@ namespace Game.Presentation.UI
             _extraction = GetComponent<PlayerExtractionState>();
             _abilities = GetComponent<AbilityController>();
             _interaction = GetComponent<PlayerInteraction>();
+            _stats = GetComponent<PlayerStats>();
         }
 
         public override void OnStartClient()
@@ -89,13 +91,18 @@ namespace Game.Presentation.UI
                             _dashRing.generateVisualContent += DrawDashRing;
 
             _hitMarker = root.Q<VisualElement>("hitmarker");
+            _statModifiers = root.Q<VisualElement>("stat-modifiers");
+            if (_stats != null) _stats.OnStatsChanged += RefreshStatModifiers;
+            RefreshStatModifiers();
+
+
             if (_hitMarker != null)
                 _hitMarker.generateVisualContent += DrawHitMarker;
 
             if (_abilities != null)
                 _abilities.OnHitConfirmed += PlayHitMarker;
 
-            for (int i = 0; i < 4; i++)
+            for (int i = 0; i < _cooldownOverlays.Length; i++)
                 _cooldownOverlays[i] = root.Q<VisualElement>($"slot-{i}-cd");
         }
 
@@ -104,6 +111,9 @@ namespace Game.Presentation.UI
             base.OnStopClient();
             if (_abilities != null)
                 _abilities.OnHitConfirmed -= PlayHitMarker;
+
+            if (_stats != null)
+                _stats.OnStatsChanged -= RefreshStatModifiers;
         }
 
         private void Update()
@@ -251,6 +261,21 @@ namespace Game.Presentation.UI
             {
                 AudioClip clip = isKill ? _killMarkerClip : _hitMarkerClip;
                 if (clip != null) _hitMarkerAudio.PlayOneShot(clip);
+            }
+        }
+
+        /// <summary>Redibuja la lista de bonus/penalizaciones activas del equipo. Solo corre cuando cambian (evento), no por frame.</summary>
+        private void RefreshStatModifiers()
+        {
+            if (_statModifiers == null || _stats == null) return;
+
+            _statModifiers.Clear();
+            foreach (var (label, isPositive) in _stats.GetActiveModifierSummaries())
+            {
+                var entry = new Label(label);
+                entry.AddToClassList("stat-modifier-entry");
+                entry.AddToClassList(isPositive ? "stat-modifier-positive" : "stat-modifier-negative");
+                _statModifiers.Add(entry);
             }
         }
 

@@ -60,6 +60,7 @@
     border-radius: 6px;
     justify-content: center;
     align-items: center;
+    overflow: hidden;
 }
 
 .item-slot:hover {
@@ -68,8 +69,8 @@
 
 .equip-slot {
     flex-direction: row;
-    width: 190px;
-    height: 44px;
+    width: 247px;
+    height: 46px;
     margin: 3px;
     background-color: rgba(12, 12, 20, 0.9);
     border-width: 2px;
@@ -77,8 +78,8 @@
     border-radius: 6px;
     align-items: center;
     padding-left: 8px;
+    overflow: hidden;
 }
-
 .equip-slot-label {
     color: rgba(255, 255, 255, 0.5);
     font-size: 11px;
@@ -88,8 +89,12 @@
 .item-name {
     color: white;
     font-size: 11px;
+    -unity-font-style: bold;
     -unity-text-align: middle-center;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
+    white-space: normal;
+    width: 100%;
+    padding: 2px 3px;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95);
 }
 
 .item-qty {
@@ -112,6 +117,14 @@
     border-radius: 6px;
     justify-content: center;
     align-items: center;
+}
+
+.equip-slot > .item-name {
+    width: auto;
+    flex-grow: 1;
+    flex-shrink: 1;
+    -unity-text-align: middle-left;
+    padding: 2px 4px;
 }
 
 /* Colores por categoría (borde izquierdo) */
