@@ -29,7 +29,6 @@ namespace Game.Core.Abilities
         /// <summary>Aplica curación/buff directo al caster.</summary>
         void ApplySelfEffect(int casterNetworkId, float healAmount);
 
-        public abstract void SpawnOrb(GameObject orbPrefab, Vector3 origin, Vector3 direction, int casterNetworkId, float damageMultiplier, int slot);
 
         /// <summary>Spawnea un orbe cargado con trayectoria balística hacia el punto de mira.</summary>
 void SpawnChargedOrb(GameObject orbPrefab, Vector3 origin, Vector3 aimPoint, float damage, float explosionRadius, float visualScale, float launchSpeed, float gravity, int casterNetworkId, int slot);        void StartParry(Game.Core.Abilities.Abilities.ParryAbilitySO data, in AbilityCastContext context);

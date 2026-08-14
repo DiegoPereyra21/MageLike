@@ -38,18 +38,6 @@ namespace Game.Presentation.Abilities
             InstanceFinder.ServerManager.Spawn(instance, owner);
         }
 
-        public void SpawnOrb(GameObject orbPrefab, Vector3 origin, Vector3 direction, int casterNetworkId, float damageMultiplier, int slot)
-        {
-            if (!InstanceFinder.IsServerStarted) return;
-            if (orbPrefab == null) return;
-
-            GameObject instance = UnityEngine.Object.Instantiate(orbPrefab, origin + direction.normalized * 0.5f, Quaternion.LookRotation(direction));
-            if (instance.TryGetComponent(out OrbProjectile orb))
-            {
-                InstanceFinder.ServerManager.Spawn(instance);
-                orb.Initialize(direction, casterNetworkId, damageMultiplier, slot);
-            }
-        }
 
         public void SpawnChargedOrb(GameObject orbPrefab, Vector3 origin, Vector3 aimPoint, float damage, float explosionRadius, float visualScale, float launchSpeed, float gravity, int casterNetworkId, int slot)
         {
