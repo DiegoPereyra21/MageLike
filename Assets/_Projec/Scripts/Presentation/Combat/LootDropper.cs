@@ -41,8 +41,10 @@ namespace Game.Presentation.Combat
 
             Vector3 pos = transform.position;
 
-            // Raycast al piso ignorando triggers y capas de personajes (solo geometría del suelo).
-            if (Physics.Raycast(transform.position + Vector3.up * 0.5f, Vector3.down, out RaycastHit groundHit, 6f, ~0, QueryTriggerInteraction.Ignore))
+            // Raycast al piso, bien largo (200) para que encuentre el suelo aunque el enemigo
+            // muera muy alto — sin esto, un raycast corto se quedaba sin tocar nada y el
+            // contenedor quedaba flotando en la altura de la muerte.
+            if (Physics.Raycast(transform.position + Vector3.up * 0.5f, Vector3.down, out RaycastHit groundHit, 200f, ~0, QueryTriggerInteraction.Ignore))
                 pos = groundHit.point + Vector3.up * 0.1f;
 
             // Pequeño desplazamiento aleatorio para que contenedores simultáneos no queden exactamente encima.

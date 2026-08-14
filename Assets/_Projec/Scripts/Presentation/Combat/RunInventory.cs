@@ -522,7 +522,7 @@ namespace Game.Presentation.Combat
             if (loot.Count > 0 && _lootContainerPrefab != null)
             {
                 Vector3 pos = transform.position;
-                if (Physics.Raycast(transform.position, Vector3.down, out RaycastHit groundHit, 5f))
+                if (Physics.Raycast(transform.position, Vector3.down, out RaycastHit groundHit, 200f))
                     pos = groundHit.point + Vector3.up * 0.1f;
 
                 GameObject obj = Instantiate(_lootContainerPrefab, pos, Quaternion.identity);
