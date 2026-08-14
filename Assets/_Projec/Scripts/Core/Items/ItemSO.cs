@@ -14,6 +14,7 @@ namespace Game.Core.Items
         [SerializeField] private string _itemId;
         [SerializeField] private string _displayName;
         [SerializeField] private ItemCategory _category = ItemCategory.Misc;
+        [SerializeField] private Rarity _rarity = Rarity.Common;
         [SerializeField] private Sprite _icon;
         [SerializeField, TextArea] private string _description;
 
@@ -32,6 +33,7 @@ namespace Game.Core.Items
         public bool IsStackable => _isStackable;
         public int MaxStack => _isStackable ? Mathf.Max(1, _maxStack) : 1;
         public ItemCategory Category => _category;
+        public Rarity Rarity => _rarity;
         /// <summary>True si este item se puede equipar (los EquipmentItemSO lo sobrescriben).</summary>
         public virtual bool IsEquipment => false;
     }

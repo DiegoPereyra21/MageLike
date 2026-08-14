@@ -15,6 +15,7 @@ MonoBehaviour:
   _itemId: staff
   _displayName: Staff
   _category: 3
+  _rarity: 2
   _icon: {fileID: 0}
   _description: 
   _isStackable: 0

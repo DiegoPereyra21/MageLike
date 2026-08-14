@@ -15,7 +15,9 @@ MonoBehaviour:
   _itemId: red_crystal
   _displayName: Red Crystal
   _category: 1
+  _rarity: 1
   _icon: {fileID: 0}
   _description: 
   _isStackable: 0
   _maxStack: 1
+  WorldPrefab: {fileID: 0}

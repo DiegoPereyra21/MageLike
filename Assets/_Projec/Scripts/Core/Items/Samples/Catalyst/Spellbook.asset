@@ -15,6 +15,7 @@ MonoBehaviour:
   _itemId: spellbook
   _displayName: Spellbook
   _category: 3
+  _rarity: 0
   _icon: {fileID: 0}
   _description: 
   _isStackable: 0

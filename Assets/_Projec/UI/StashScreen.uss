@@ -256,3 +256,6 @@
 .tooltip-stat-positive { color: rgb(80, 210, 100); }
 .tooltip-stat-negative { color: rgb(240, 90, 88); }
 .tooltip-stat-neutral  { color: rgb(210, 211, 219); }
+.rarity-common { color: rgb(227, 228, 235); }
+.rarity-rare   { color: rgb(70, 165, 235); }
+.rarity-epic   { color: rgb(197, 96, 232); }

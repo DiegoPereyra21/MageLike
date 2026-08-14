@@ -198,6 +198,7 @@ namespace Game.Presentation.UI
 
                     var name = new Label(def != null ? def.DisplayName : stack.ItemId);
                     name.AddToClassList("equip-item-name");
+                    name.AddToClassList(ItemTooltipFormatter.RarityClass(def));
                     itemWrap.Add(name);
 
                     slot.Add(itemWrap);
@@ -304,6 +305,7 @@ namespace Game.Presentation.UI
 
                 var name = new Label(def != null ? def.DisplayName : stack.ItemId);
                 name.AddToClassList("item-name");
+                name.AddToClassList(ItemTooltipFormatter.RarityClass(def));
                 slot.Add(name);
 
                 if (stack.Quantity > 1)
@@ -376,6 +378,12 @@ namespace Game.Presentation.UI
         private void ShowTooltip(VisualElement anchor, ItemSO def)
         {
             if (_tooltip == null || def == null || _isDragging) return;
+
+
+            _tooltipTitle.RemoveFromClassList("rarity-common");
+            _tooltipTitle.RemoveFromClassList("rarity-rare");
+            _tooltipTitle.RemoveFromClassList("rarity-epic");
+            _tooltipTitle.AddToClassList(ItemTooltipFormatter.RarityClass(def));
 
             _tooltipTitle.text = def.DisplayName;
             var (type, stats) = ItemTooltipFormatter.Build(def);

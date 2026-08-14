@@ -15,6 +15,7 @@ MonoBehaviour:
   _itemId: pocket_3
   _displayName: Pocket 3
   _category: 2
+  _rarity: 2
   _icon: {fileID: 0}
   _description: 
   _isStackable: 0

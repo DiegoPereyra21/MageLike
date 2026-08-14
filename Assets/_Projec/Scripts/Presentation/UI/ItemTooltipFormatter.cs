@@ -32,6 +32,18 @@ namespace Game.Presentation.UI
             return (type, stats);
         }
 
+        /// <summary>Clase CSS de color según rareza. Común = color por defecto (sin clase especial).</summary>
+        public static string RarityClass(ItemSO def)
+        {
+            if (def == null) return "rarity-common";
+            return def.Rarity switch
+            {
+                Rarity.Rare => "rarity-rare",
+                Rarity.Epic => "rarity-epic",
+                _ => "rarity-common"
+            };
+        }
+
         private static StatLine FormatModifier(StatModifier mod)
         {
             string statName = StatDisplayName(mod.Stat);
