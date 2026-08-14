@@ -1,13 +1,15 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements">
     <Style src="HUD.uss" />
     <ui:VisualElement name="hud-root" class="hud-root">
+        <ui:VisualElement name="danger-frame" class="danger-frame" />
+
         <ui:VisualElement name="run-info" class="run-info">
             <ui:Label name="run-timer" text="02:00" class="run-timer" />
-            <ui:Label name="run-danger" text="¡FASE DE PELIGRO!" class="run-danger" />
-            <ui:Label name="run-counter" text="Vivos: 0  ·  Extraídos: 0  ·  Muertos: 0" class="run-counter" />
+            <ui:Label name="run-danger" text="Danger Phase" class="run-danger" />
+            <ui:Label name="run-counter" text="Alive 0 · Extracted 0 · Dead 0" class="run-counter" />
         </ui:VisualElement>
         <ui:VisualElement name="extraction-container" class="extraction-container">
-            <ui:Label name="extraction-label" text="Extrayendo..." class="extraction-label" />
+            <ui:Label name="extraction-label" text="Extracting..." class="extraction-label" />
             <ui:VisualElement name="extraction-bar-bg" class="extraction-bar-bg">
                 <ui:VisualElement name="extraction-bar-fill" class="extraction-bar-fill" />
             </ui:VisualElement>
@@ -29,23 +31,33 @@
         <ui:VisualElement name="stat-modifiers" class="stat-modifiers" />
         <ui:VisualElement name="ability-bar" class="ability-bar">
             <ui:VisualElement name="slot-0" class="ability-slot">
+                <ui:VisualElement class="ability-icon icon-circle icon-violet" />
                 <ui:VisualElement name="slot-0-cd" class="slot-cooldown" />
+                <ui:Label name="slot-0-cd-text" class="slot-cd-text" />
                 <ui:Label name="slot-0-key" text="LMB" class="slot-key" />
             </ui:VisualElement>
             <ui:VisualElement name="slot-1" class="ability-slot">
+                <ui:VisualElement class="ability-icon icon-diamond icon-green" />
                 <ui:VisualElement name="slot-1-cd" class="slot-cooldown" />
+                <ui:Label name="slot-1-cd-text" class="slot-cd-text" />
                 <ui:Label name="slot-1-key" text="Shift" class="slot-key" />
             </ui:VisualElement>
             <ui:VisualElement name="slot-2" class="ability-slot">
+                <ui:VisualElement class="ability-icon icon-circle icon-gold" />
                 <ui:VisualElement name="slot-2-cd" class="slot-cooldown" />
+                <ui:Label name="slot-2-cd-text" class="slot-cd-text" />
                 <ui:Label name="slot-2-key" text="RMB" class="slot-key" />
             </ui:VisualElement>
             <ui:VisualElement name="slot-3" class="ability-slot">
+                <ui:VisualElement class="ability-icon icon-square icon-cyan" />
                 <ui:VisualElement name="slot-3-cd" class="slot-cooldown" />
+                <ui:Label name="slot-3-cd-text" class="slot-cd-text" />
                 <ui:Label name="slot-3-key" text="Q" class="slot-key" />
             </ui:VisualElement>
             <ui:VisualElement name="slot-4" class="ability-slot">
+                <ui:VisualElement class="ability-icon icon-diamond icon-gold" />
                 <ui:VisualElement name="slot-4-cd" class="slot-cooldown" />
+                <ui:Label name="slot-4-cd-text" class="slot-cd-text" />
                 <ui:Label name="slot-4-key" text="F" class="slot-key" />
             </ui:VisualElement>
         </ui:VisualElement>

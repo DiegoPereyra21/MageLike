@@ -22,4 +22,4 @@ MonoBehaviour:
   WorldPrefab: {fileID: 0}
   _slot: 5
   _modifiers: []
-  _backpackSlots: 18
+  _backpackSlots: 24

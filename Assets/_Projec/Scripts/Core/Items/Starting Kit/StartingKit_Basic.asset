@@ -22,3 +22,5 @@ MonoBehaviour:
   _backpack:
   - Item: {fileID: 11400000, guid: 8a3c86e0affa8b842a45ff8a82211619, type: 2}
     Quantity: 1
+  - Item: {fileID: 11400000, guid: 5f931db816594734aa8f131c2885c692, type: 2}
+    Quantity: 1

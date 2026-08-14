@@ -99,7 +99,7 @@ namespace Game.Presentation.UI
 
             if (result.m_nLobbiesMatching == 0)
             {
-                var empty = new Label("No hay partidas disponibles.");
+                var empty = new Label("No runs available.");
                 empty.AddToClassList("lobby-empty");
                 _lobbyList.Add(empty);
                 return;
@@ -112,7 +112,7 @@ namespace Game.Presentation.UI
                 int members      = SteamMatchmaking.GetNumLobbyMembers(lobbyId);
                 int maxMembers   = SteamMatchmaking.GetLobbyMemberLimit(lobbyId);
 
-                var entry = new Label($"Partida  {members}/{maxMembers} jugadores");
+                var entry = new Label($"Run  {members}/{maxMembers} players");
                 entry.AddToClassList("lobby-entry");
 
                 CSteamID capturedLobby = lobbyId;

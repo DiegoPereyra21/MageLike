@@ -1,19 +1,29 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements">
     <Style src="MainMenu.uss" />
     <ui:VisualElement name="menu-root" class="menu-root">
-        <ui:Label text="MageLike" class="game-title" />
-        <ui:VisualElement class="menu-buttons">
-            <ui:Button name="host-button" text="Crear Partida" class="menu-button" />
-            <ui:Button name="join-button" text="Unirse a Partida" class="menu-button" />
-            <ui:Button name="stash-button" text="Stash" class="menu-button" />
-            <ui:Button name="quit-button" text="Salir" class="menu-button quit" />
+        <ui:VisualElement class="menu-content">
+            <ui:Label text="SPELLHAUL" class="game-title" />
+            <ui:VisualElement class="title-divider">
+                <ui:VisualElement class="divider-line" />
+                <ui:VisualElement class="divider-diamond" />
+                <ui:VisualElement class="divider-line" />
+            </ui:VisualElement>
+            <ui:Label text="EXTRACTION SPELLCRAFT" class="game-subtitle" />
+            <ui:VisualElement class="menu-buttons">
+                <ui:Button name="host-button" text="Host Run" class="menu-button primary" />
+                <ui:Button name="join-button" text="Join Run" class="menu-button" />
+                <ui:Button name="stash-button" text="Stash" class="menu-button" />
+                <ui:Button name="quit-button" text="Exit" class="menu-button quit" />
+            </ui:VisualElement>
         </ui:VisualElement>
+
+        <ui:Label text="v0.4.2 · Vertical Slice" class="version-tag" />
 
         <!-- Panel de lobbies (oculto por defecto) -->
         <ui:VisualElement name="lobby-panel" class="lobby-panel">
-            <ui:Label text="Partidas disponibles" class="lobby-title" />
+            <ui:Label text="Available Runs" class="lobby-title" />
             <ui:ScrollView name="lobby-list" class="lobby-list" />
-            <ui:Button name="lobby-cancel" text="Cancelar" class="menu-button quit" />
+            <ui:Button name="lobby-cancel" text="Cancel" class="menu-button quit" />
         </ui:VisualElement>
     </ui:VisualElement>
 </ui:UXML>

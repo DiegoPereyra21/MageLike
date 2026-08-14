@@ -2,24 +2,25 @@
     flex-grow: 1;
     justify-content: center;
     align-items: center;
-    background-color: rgba(0, 0, 0, 0.7);
+    background-color: rgb(4, 4, 9);
     display: none;
 }
 
 .stash-panel {
-    background-color: rgba(22, 22, 32, 0.98);
-    border-width: 2px;
-    border-color: rgba(255, 255, 255, 0.25);
-    border-radius: 10px;
-    padding: 24px;
+    -unity-font-definition: url("/Assets/_Projec/Fonts/Manrope-Regular.ttf");
+    background-color: rgb(18, 19, 29);
+    border-width: 1px;
+    border-color: rgba(68, 70, 88, 0.4);
+    border-radius: 16px;
+    padding: 42px 52px;
     align-items: center;
 }
 
 .stash-title {
-    color: white;
-    font-size: 28px;
-    -unity-font-style: bold;
-    margin-bottom: 16px;
+    -unity-font-definition: url("/Assets/_Projec/Fonts/Cinzel-Medium.ttf");
+    color: rgb(237, 238, 245);
+    font-size: 32px;
+    margin-bottom: 26px;
 }
 
 .management-columns {
@@ -27,39 +28,95 @@
 }
 
 .mgmt-column {
-    margin: 10px;
+    margin: 0 26px;
 }
 
 .column-header {
-    color: rgba(255, 255, 255, 0.7);
-    font-size: 14px;
-    -unity-font-style: bold;
-    margin-top: 8px;
-    margin-bottom: 6px;
+    color: rgb(97, 98, 111);
+    font-size: 16px;
+    letter-spacing: 1px;
+    margin-bottom: 10px;
 }
+
+.grid-header {
+    color: rgb(97, 98, 111);
+    font-size: 15px;
+    letter-spacing: 1px;
+    margin-top: 18px;
+    margin-bottom: 10px;
+}
+
+/* ---------- Lista de Equipamiento ---------- */
 
 .equipment-slots {
     flex-direction: column;
+    width: 480px;
 }
+
+.equip-row {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 5px;
+    border-bottom-width: 1px;
+    border-bottom-color: rgba(48, 49, 66, 0.25);
+}
+
+.equip-row.no-border {
+    border-bottom-width: 0;
+}
+
+.equip-row-label {
+    color: rgb(111, 113, 125);
+    font-size: 17px;
+}
+
+.equip-row-empty {
+    color: rgb(83, 84, 97);
+    font-size: 16px;
+    -unity-font-style: italic;
+}
+
+.equip-row-item {
+    flex-direction: row;
+    align-items: center;
+}
+
+.equip-item-name {
+    color: rgb(227, 228, 235);
+    font-size: 16px;
+    -unity-font-style: bold;
+    margin-left: 8px;
+}
+
+.accent-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 6px;
+}
+
+/* ---------- Grillas (mochila / stash) ---------- */
 
 .grid {
     flex-direction: row;
     flex-wrap: wrap;
-    width: 320px;
+}
+
+.backpack-grid {
+    width: 450px;
 }
 
 .stash-grid-big {
-    width: 360px;
-    min-height: 360px;
+    width: 536px;
 }
 
 .item-slot {
-    width: 56px;
-    height: 56px;
-    margin: 3px;
-    background-color: rgba(12, 12, 20, 0.9);
-    border-width: 2px;
-    border-color: rgba(255, 255, 255, 0.2);
+    width: 60px;
+    height: 60px;
+    margin: 7px;
+    background-color: rgba(29, 30, 41, 0.4);
+    border-width: 1px;
+    border-color: rgba(55, 57, 74, 0.35);
     border-radius: 6px;
     justify-content: center;
     align-items: center;
@@ -67,38 +124,16 @@
 }
 
 .item-slot:hover {
-    border-color: rgba(255, 255, 255, 0.6);
-}
-
-.equip-slot {
-    flex-direction: row;
-    width: 390px;
-    height: 44px;
-    margin: 3px;
-    background-color: rgba(12, 12, 20, 0.9);
-    border-width: 2px;
-    border-color: rgba(255, 255, 255, 0.2);
-    border-radius: 6px;
-    align-items: center;
-    padding-left: 8px;
-    overflow: hidden;
-}
-
-.equip-slot-label {
-    color: rgba(255, 255, 255, 0.5);
-    font-size: 11px;
-    width: 80px;
+    border-color: rgba(237, 238, 245, 0.5);
 }
 
 .item-name {
-    color: white;
-    font-size: 11px;
-    -unity-font-style: bold;
+    color: rgb(227, 228, 235);
+    font-size: 13px;
     -unity-text-align: middle-center;
     white-space: normal;
     width: 100%;
-    padding: 2px 3px;
-    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95);
+    padding: 2px;
 }
 
 .item-qty {
@@ -106,59 +141,61 @@
     bottom: 2px;
     right: 4px;
     color: white;
-    font-size: 10px;
+    font-size: 12px;
     -unity-font-style: bold;
 }
 
+/* ---------- Acentos por slot / tipo de item ---------- */
+
+.accent-dot.accent-green   { background-color: rgb(103, 210, 131); }
+.accent-dot.accent-cyan    { background-color: rgb(62, 204, 226); }
+.accent-dot.accent-violet  { background-color: rgb(181, 139, 249); }
+.accent-dot.accent-gold    { background-color: rgb(228, 183, 80); }
+.accent-dot.accent-amber   { background-color: rgb(237, 131, 94); }
+.accent-dot.accent-loot    { background-color: rgb(226, 73, 71); }
+
+.item-slot.accent-green  { background-color: rgba(103, 210, 131, 0.18); border-color: rgba(103, 210, 131, 0.55); }
+.item-slot.accent-cyan   { background-color: rgba(62, 204, 226, 0.18); border-color: rgba(62, 204, 226, 0.55); }
+.item-slot.accent-violet { background-color: rgba(181, 139, 249, 0.18); border-color: rgba(181, 139, 249, 0.55); }
+.item-slot.accent-gold   { background-color: rgba(228, 183, 80, 0.18); border-color: rgba(228, 183, 80, 0.55); }
+.item-slot.accent-amber  { background-color: rgba(237, 131, 94, 0.18); border-color: rgba(237, 131, 94, 0.55); }
+.item-slot.accent-loot   { background-color: rgba(226, 73, 71, 0.18); border-color: rgba(226, 73, 71, 0.6); }
+
 .hint {
-    color: rgba(255, 255, 255, 0.45);
-    font-size: 12px;
+    color: rgb(97, 98, 111);
+    font-size: 14px;
     -unity-font-style: italic;
-    margin-top: 14px;
+    margin-top: 22px;
 }
 
 .stash-close-btn {
-    width: 200px;
-    height: 44px;
-    margin-top: 16px;
+    -unity-font-definition: url("/Assets/_Projec/Fonts/Manrope-Bold.ttf");
+    align-self: center;
+    width: auto;
+    padding: 14px 36px;
+    margin-top: 18px;
     font-size: 16px;
-    -unity-font-style: bold;
-    color: white;
-    background-color: rgba(90, 70, 140, 0.9);
-    border-width: 2px;
-    border-color: rgba(200, 170, 255, 0.5);
+    letter-spacing: 1px;
+    color: rgb(220, 221, 229);
+    background-color: rgba(25, 26, 36, 0.5);
+    border-width: 1px;
+    border-color: rgba(95, 98, 117, 0.5);
     border-radius: 8px;
+}
+
+.stash-close-btn:hover {
+    background-color: rgba(35, 36, 48, 0.7);
+    border-color: rgba(181, 139, 249, 0.5);
 }
 
 .drag-ghost {
     position: absolute;
-    width: 56px;
-    height: 56px;
+    width: 60px;
+    height: 60px;
     background-color: rgba(40, 40, 60, 0.95);
-    border-width: 2px;
-    border-color: rgba(255, 255, 255, 0.7);
+    border-width: 1px;
+    border-color: rgba(237, 238, 245, 0.6);
     border-radius: 6px;
     justify-content: center;
     align-items: center;
-    /* que no bloquee los eventos de puntero de los slots debajo */
 }
-
-/* Dentro de una fila de equipamiento, el nombre comparte espacio con el label de
-   categoría — no puede pedir 100% del ancho como en los slots cuadrados de grilla. */
-.equip-slot > .item-name {
-    width: auto;
-    flex-grow: 1;
-    flex-shrink: 1;
-    -unity-text-align: middle-left;
-    padding: 2px 4px;
-}
-
-
-.stash-close-btn:hover { background-color: rgba(120, 95, 180, 0.95); }
-
-.cat-material { border-left-color: rgb(150, 110, 70); border-left-width: 4px; }
-.cat-resource { border-left-color: rgb(200, 60, 60); border-left-width: 4px; }
-.cat-equipment { border-left-color: rgb(70, 130, 200); border-left-width: 4px; }
-.cat-catalyst { border-left-color: rgb(170, 90, 200); border-left-width: 4px; }
-.cat-consumable { border-left-color: rgb(80, 180, 100); border-left-width: 4px; }
-.cat-misc { border-left-color: rgba(255,255,255,0.3); border-left-width: 4px; }

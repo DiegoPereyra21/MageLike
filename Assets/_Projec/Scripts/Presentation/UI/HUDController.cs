@@ -36,6 +36,9 @@ namespace Game.Presentation.UI
         private Label _interactPrompt;
         private readonly VisualElement[] _cooldownOverlays = new VisualElement[5];
 
+        private readonly Label[] _cooldownTexts = new Label[5];
+        private VisualElement _dangerFrame;
+
         private VisualElement _dashRing;
         private float _dashRingProgress; // 0 = vacío (en cooldown), 1 = lleno (listo)
 
@@ -104,6 +107,11 @@ namespace Game.Presentation.UI
 
             for (int i = 0; i < _cooldownOverlays.Length; i++)
                 _cooldownOverlays[i] = root.Q<VisualElement>($"slot-{i}-cd");
+
+            for (int i = 0; i < _cooldownTexts.Length; i++)
+                _cooldownTexts[i] = root.Q<Label>($"slot-{i}-cd-text");
+
+            _dangerFrame = root.Q<VisualElement>("danger-frame");
         }
 
         public override void OnStopClient()
@@ -144,6 +152,19 @@ namespace Game.Presentation.UI
                     if (_cooldownOverlays[i] == null) continue;
                     float cd = _abilities.GetCooldownProgress(i);
                     _cooldownOverlays[i].style.height = Length.Percent(cd * 100f);
+
+                    if (_cooldownTexts[i] == null) continue;
+                    if (cd > 0f)
+                    {
+                        var ability = _abilities.GetAbility(i);
+                        float remaining = ability != null ? cd * ability.Cooldown : 0f;
+                        _cooldownTexts[i].text = remaining >= 1f ? $"{remaining:0}" : $"{remaining:0.0}";
+                        _cooldownTexts[i].style.display = DisplayStyle.Flex;
+                    }
+                    else
+                    {
+                        _cooldownTexts[i].style.display = DisplayStyle.None;
+                    }
                 }
             }
 
@@ -182,6 +203,11 @@ namespace Game.Presentation.UI
 
                 bool danger = run.Phase == Game.Core.Run.RunPhase.DangerPhase;
                 _runDanger.style.display = danger ? DisplayStyle.Flex : DisplayStyle.None;
+                if (_dangerFrame != null)
+                {
+                    if (danger) _dangerFrame.AddToClassList("active");
+                    else _dangerFrame.RemoveFromClassList("active");
+                }
 
                 _runCounter.text = $"Vivos: {run.AliveCount}  ·  Extraídos: {run.ExtractedCount}  ·  Muertos: {run.DeadCount}";
             }
