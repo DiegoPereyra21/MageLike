@@ -4,20 +4,41 @@
 
         <ui:VisualElement name="inv-panel" class="inv-panel">
 
-            <ui:VisualElement name="equipment-column" class="column">
-                <ui:Label text="Equipamiento" class="column-title" />
-                <ui:VisualElement name="equipment-slots" class="equipment-slots" />
+            <ui:VisualElement class="inv-header">
+                <ui:Label text="Inventory" class="inv-title" />
+                <ui:Label text="Tab to close" class="inv-hint-corner" />
             </ui:VisualElement>
 
-            <ui:VisualElement name="backpack-column" class="column">
-                <ui:Label text="Mochila" class="column-title" />
-                <ui:VisualElement name="backpack-grid" class="backpack-grid" />
+            <ui:VisualElement class="inv-columns">
+
+                <ui:VisualElement name="equipment-column" class="column equipment-column">
+                    <ui:Label text="Equipment" class="column-title" />
+                    <ui:VisualElement name="equipment-slots" class="equipment-slots" />
+                </ui:VisualElement>
+
+                <ui:VisualElement class="pockets-and-usables">
+                    <ui:VisualElement class="pockets-row">
+                        <ui:VisualElement class="pocket-column">
+                            <ui:Label text="Pocket L" class="column-title" />
+                            <ui:VisualElement name="pocket-l-grid" class="backpack-grid" />
+                        </ui:VisualElement>
+                        <ui:VisualElement class="pocket-column">
+                            <ui:Label text="Pocket R" class="column-title" />
+                            <ui:VisualElement name="pocket-r-grid" class="backpack-grid" />
+                        </ui:VisualElement>
+                    </ui:VisualElement>
+
+                    <ui:VisualElement name="usable-slots" class="usable-slots" />
+                </ui:VisualElement>
+
+                <ui:VisualElement name="container-column" class="column container-column">
+                    <ui:Label text="Loot Container" class="column-title" />
+                    <ui:VisualElement name="container-grid" class="backpack-grid" />
+                </ui:VisualElement>
+
             </ui:VisualElement>
 
-            <ui:VisualElement name="container-column" class="column container-column">
-                <ui:Label text="Contenedor" class="column-title" />
-                <ui:VisualElement name="container-grid" class="backpack-grid" />
-            </ui:VisualElement>
+            <ui:Label text="Tab — Close · Drag — Move · Shift+Click — Auto-Equip · Ctrl+Click — Drop to World" class="hint" />
 
         </ui:VisualElement>
 

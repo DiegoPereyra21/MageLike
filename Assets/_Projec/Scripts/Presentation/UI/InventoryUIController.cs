@@ -23,7 +23,9 @@ namespace Game.Presentation.UI
         private VisualElement _root;
         private VisualElement _invPanel; // panel interior — para detectar drag fuera
         private VisualElement _equipmentSlots;
-        private VisualElement _backpackGrid;
+        private VisualElement _pocketLGrid;
+        private VisualElement _pocketRGrid;
+        private VisualElement _usableSlots;
         private VisualElement _containerColumn;
         private VisualElement _containerGrid;
 
@@ -67,7 +69,10 @@ namespace Game.Presentation.UI
             _root         = _document.rootVisualElement.Q<VisualElement>("inv-root");
             _invPanel     = _root.Q<VisualElement>("inv-panel");
             _equipmentSlots = _root.Q<VisualElement>("equipment-slots");
-            _backpackGrid   = _root.Q<VisualElement>("backpack-grid");
+            _pocketLGrid    = _root.Q<VisualElement>("pocket-l-grid");
+            _pocketRGrid    = _root.Q<VisualElement>("pocket-r-grid");
+            _usableSlots    = _root.Q<VisualElement>("usable-slots");
+            BuildUsableSlots();
             _containerColumn = _root.Q<VisualElement>("container-column");
             _containerGrid   = _root.Q<VisualElement>("container-grid");
 
@@ -143,9 +148,12 @@ namespace Game.Presentation.UI
             var equip = _inventory.Equipment;
             for (int i = 0; i < equip.Count; i++)
             {
+                if ((EquipmentSlot)i == EquipmentSlot.Pants) continue; // oculto (pendiente sacarlo del código)
+
                 int slotIndex = i;
                 var slot = new VisualElement();
                 slot.AddToClassList("equip-slot");
+                if (slotIndex == equip.Count - 1) slot.AddToClassList("no-border");
 
                 var label = new Label(((EquipmentSlot)i).ToString());
                 label.AddToClassList("equip-slot-label");
@@ -155,10 +163,20 @@ namespace Game.Presentation.UI
                 if (!stack.IsEmpty)
                 {
                     ItemSO def = _database.GetById(stack.ItemId);
+
+                    var itemWrap = new VisualElement();
+                    itemWrap.AddToClassList("equip-row-item");
+
+                    var dot = new VisualElement();
+                    dot.AddToClassList("accent-dot");
+                    dot.AddToClassList(GetAccentClass(def));
+                    itemWrap.Add(dot);
+
                     var name = new Label(def != null ? def.DisplayName : stack.ItemId);
-                    name.AddToClassList("item-name");
-                    ApplyCategoryClass(slot, def);
-                    slot.Add(name);
+                    name.AddToClassList("equip-item-name");
+                    itemWrap.Add(name);
+
+                    slot.Add(itemWrap);
 
                     slot.RegisterCallback<ClickEvent>(evt =>
                     {
@@ -181,20 +199,43 @@ namespace Game.Presentation.UI
 
         private void DrawBackpack()
         {
-            _backpackGrid.Clear();
+            _pocketLGrid.Clear();
+            _pocketRGrid.Clear();
             var bp = _inventory.Backpack;
+
             for (int i = 0; i < bp.Count; i++)
             {
                 int slotIndex = i;
                 ItemStack stack = bp[i];
 
-                // Si es equipo, el clic lo manda al slot correcto vía TryMoveSlot (soporta swap de mochila).
-                // Si no es equipo, EquipServerRpc igual falla — no hay acción de clic para no-equipo.
                 System.Action onClick = null;
                 if (!stack.IsEmpty && _database.GetById(stack.ItemId) is EquipmentItemSO equip)
                     onClick = () => QuickEquipServerRpc(1, slotIndex);
 
-                _backpackGrid.Add(BuildItemSlot(stack, SlotZone.Backpack, slotIndex, onClick));
+                var cell = BuildItemSlot(stack, SlotZone.Backpack, slotIndex, onClick);
+
+                // Visual únicamente: primera mitad de la lista = Pocket L, segunda = Pocket R.
+                // El dato sigue siendo una sola lista (Backpack), sin cambios de lógica.
+                VisualElement target = i < bp.Count / 2 ? _pocketLGrid : _pocketRGrid;
+                target.Add(cell);
+            }
+        }
+
+        /// <summary>Placeholders visuales (sin lógica todavía) para los 3 slots de usables.</summary>
+        private void BuildUsableSlots()
+        {
+            if (_usableSlots == null) return;
+            _usableSlots.Clear();
+            for (int i = 0; i < 3; i++)
+            {
+                var slot = new VisualElement();
+                slot.AddToClassList("usable-slot");
+
+                var keyHint = new Label((i + 1).ToString());
+                keyHint.AddToClassList("usable-key-hint");
+                slot.Add(keyHint);
+
+                _usableSlots.Add(slot);
             }
         }
 
@@ -226,7 +267,7 @@ namespace Game.Presentation.UI
             if (!stack.IsEmpty)
             {
                 ItemSO def = _database.GetById(stack.ItemId);
-                ApplyCategoryClass(slot, def);
+                slot.AddToClassList(GetAccentClass(def));
 
                 var name = new Label(def != null ? def.DisplayName : stack.ItemId);
                 name.AddToClassList("item-name");
@@ -258,18 +299,21 @@ namespace Game.Presentation.UI
             return slot;
         }
 
-        private void ApplyCategoryClass(VisualElement slot, ItemSO def)
+        /// <summary>Mismo criterio de acentos que StashScreenController: por slot si es equipo, genérico si no.</summary>
+        private string GetAccentClass(ItemSO def)
         {
-            if (def == null) return;
-            switch (def.Category)
+            if (def is EquipmentItemSO equip)
             {
-                case ItemCategory.Material:   slot.AddToClassList("cat-material");   break;
-                case ItemCategory.Resource:   slot.AddToClassList("cat-resource");   break;
-                case ItemCategory.Equipment:  slot.AddToClassList("cat-equipment");  break;
-                case ItemCategory.Catalyst:   slot.AddToClassList("cat-catalyst");   break;
-                case ItemCategory.Consumable: slot.AddToClassList("cat-consumable"); break;
-                default:                      slot.AddToClassList("cat-misc");       break;
+                switch (equip.Slot)
+                {
+                    case EquipmentSlot.Boots: return "accent-green";
+                    case EquipmentSlot.Hat: return "accent-cyan";
+                    case EquipmentSlot.Robe: return "accent-violet";
+                    case EquipmentSlot.Catalyst: return "accent-gold";
+                    case EquipmentSlot.Backpack: return "accent-amber";
+                }
             }
+            return "accent-loot";
         }
 
         // ---------- Drag & drop ----------

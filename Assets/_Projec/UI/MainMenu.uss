@@ -10,42 +10,42 @@
 }
 
 .game-title {
-    -unity-font-definition: url("project:///Assets/_Projec/Fonts/Cinzel-Medium.ttf");
-    color: rgb(237, 238, 245);
-    font-size: 58px;
-    letter-spacing: 8px;
+    -unity-font-definition: url("/Assets/_Projec/Fonts/Cinzel-Medium.ttf");
+    color: rgb(243, 244, 252);
+    font-size: 92px;
+    letter-spacing: 20px;
     -unity-text-align: middle-center;
-    text-shadow: 0 0 24px rgba(181, 139, 249, 0.45);
+    text-shadow: 0 0 55px rgba(181, 139, 249, 0.45);
 }
 
 .title-divider {
     flex-direction: row;
     align-items: center;
-    margin-top: 14px;
-    margin-bottom: 8px;
+    margin-top: 20px;
+    margin-bottom: 10px;
 }
 
 .divider-line {
-    width: 22px;
+    width: 40px;
     height: 1px;
-    background-color: rgba(228, 183, 80, 0.6);
+    background-color: rgba(195, 151, 42, 0.6);
 }
 
 .divider-diamond {
-    width: 6px;
-    height: 6px;
+    width: 9px;
+    height: 9px;
     background-color: rgb(228, 183, 80);
     rotate: 45deg;
-    margin-left: 8px;
-    margin-right: 8px;
+    margin-left: 17px;
+    margin-right: 17px;
 }
 
 .game-subtitle {
-    -unity-font-definition: url("project:///Assets/_Projec/Fonts/Manrope-Regular.ttf");
-    font-size: 13px;
-    letter-spacing: 3px;
-    color: rgb(111, 113, 125);
-    margin-bottom: 42px;
+    -unity-font-definition: url("/Assets/_Projec/Fonts/Manrope-Regular.ttf");
+    font-size: 21px;
+    letter-spacing: 4px;
+    color: rgb(131, 133, 146);
+    margin-bottom: 46px;
 }
 
 .menu-buttons {
@@ -53,17 +53,18 @@
 }
 
 .menu-button {
-    -unity-font-definition: url("project:///Assets/_Projec/Fonts/Manrope-Bold.ttf");
-    width: 280px;
-    height: 52px;
-    margin: 6px;
-    font-size: 15px;
-    letter-spacing: 1px;
-    color: rgb(237, 238, 245);
+    -unity-font-definition: url("/Assets/_Projec/Fonts/Manrope-Bold.ttf");
+    width: 460px;
+    font-size: 22px;
+    letter-spacing: 1.5px;
+    padding: 23px 32px;
+    margin: 11px;
+    color: rgb(220, 221, 229);
     background-color: rgba(25, 26, 36, 0.5);
     border-width: 1px;
-    border-color: rgba(48, 49, 66, 0.5);
-    border-radius: 8px;
+    border-color: rgba(95, 98, 117, 0.5);
+    border-radius: 12px;
+    -unity-text-align: middle-center;
 }
 
 .menu-button:hover {
@@ -72,31 +73,32 @@
 }
 
 .menu-button.primary {
+    padding: 24px 32px;
     color: rgb(8, 8, 17);
-    background-color: rgb(181, 139, 249);
-    border-color: rgb(181, 139, 249);
+    background-color: rgb(186, 146, 253);
+    border-color: rgb(186, 146, 253);
 }
 
 .menu-button.primary:hover {
-    background-color: rgb(196, 162, 251);
+    background-color: rgb(200, 165, 254);
 }
 
 .menu-button.quit {
-    color: rgb(97, 98, 111);
+    color: rgb(111, 113, 125);
     background-color: transparent;
-    border-color: rgba(55, 57, 74, 0.6);
+    border-color: rgba(56, 58, 69, 0.4);
 }
 
 .menu-button.quit:hover {
-    color: rgb(237, 238, 245);
-    border-color: rgba(97, 98, 111, 0.6);
+    color: rgb(220, 221, 229);
+    border-color: rgba(111, 113, 125, 0.6);
 }
 
 .version-tag {
     position: absolute;
-    bottom: 18px;
-    left: 24px;
-    font-size: 11px;
+    bottom: 26px;
+    left: 36px;
+    font-size: 16px;
     letter-spacing: 1px;
     color: rgb(83, 84, 97);
 }
@@ -107,34 +109,35 @@
     top: 50%;
     left: 50%;
     translate: -50% -50%;
-    width: 400px;
+    width: 480px;
     background-color: rgba(14, 14, 24, 0.96);
     border-width: 1px;
     border-color: rgba(48, 49, 66, 0.5);
-    border-radius: 10px;
-    padding: 20px;
+    border-radius: 12px;
+    padding: 26px;
 }
 
 .lobby-title {
-    -unity-font-definition: url("project:///Assets/_Projec/Fonts/Cinzel-Medium.ttf");
-    font-size: 16px;
-    color: rgb(237, 238, 245);
-    margin-bottom: 12px;
+    -unity-font-definition: url("/Assets/_Projec/Fonts/Cinzel-Medium.ttf");
+    font-size: 20px;
+    color: rgb(243, 244, 252);
+    margin-bottom: 16px;
     -unity-text-align: upper-center;
 }
 
 .lobby-list {
-    min-height: 200px;
-    max-height: 300px;
-    margin-bottom: 12px;
+    min-height: 220px;
+    max-height: 340px;
+    margin-bottom: 16px;
 }
 
 .lobby-entry {
     background-color: rgba(29, 30, 41, 0.5);
-    border-radius: 6px;
-    padding: 10px;
-    margin-bottom: 6px;
-    color: rgb(237, 238, 245);
+    border-radius: 7px;
+    padding: 13px;
+    margin-bottom: 8px;
+    color: rgb(220, 221, 229);
+    font-size: 15px;
 }
 
 .lobby-entry:hover {
@@ -142,7 +145,8 @@
 }
 
 .lobby-empty {
-    color: rgb(97, 98, 111);
-    padding: 10px;
+    color: rgb(111, 113, 125);
+    padding: 13px;
+    font-size: 14px;
     -unity-text-align: upper-center;
 }

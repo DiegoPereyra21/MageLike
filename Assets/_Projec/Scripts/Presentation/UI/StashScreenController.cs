@@ -21,6 +21,8 @@ namespace Game.Presentation.UI
         private VisualElement _equipmentSlots;
         private VisualElement _backpackGrid;
         private VisualElement _stashGrid;
+        private Label _backpackLabel;
+        private Label _stashLabel;
 
         private enum SlotZone { Equipment, Backpack, Stash }
 
@@ -45,6 +47,8 @@ namespace Game.Presentation.UI
             _equipmentSlots = _root.Q<VisualElement>("equipment-slots");
             _backpackGrid = _root.Q<VisualElement>("backpack-grid");
             _stashGrid = _root.Q<VisualElement>("stash-grid");
+            _backpackLabel = _root.Q<Label>("backpack-label");
+            _stashLabel = _root.Q<Label>("stash-label");
 
             var closeBtn = _root.Q<Button>("stash-close");
             if (closeBtn != null) closeBtn.clicked += Hide;
@@ -73,6 +77,7 @@ namespace Game.Presentation.UI
         }
 
         // ---------- Equipamiento ----------
+        // ---------- Equipamiento ----------
         private void DrawEquipment()
         {
             _equipmentSlots.Clear();
@@ -80,39 +85,58 @@ namespace Game.Presentation.UI
 
             for (int i = 0; i < equip.Count; i++)
             {
+                if ((EquipmentSlot)i == EquipmentSlot.Pants) continue; // oculto (pendiente sacarlo del código)
+
                 int slotIndex = i;
-                var slot = new VisualElement();
-                slot.AddToClassList("equip-slot");
-                slot.userData = new DragInfo { Zone = SlotZone.Equipment, Index = slotIndex, Stack = equip[i] };
+                var row = new VisualElement();
+                row.AddToClassList("equip-row");
+                if (slotIndex == equip.Count - 1) row.AddToClassList("no-border"); // última fila real
+                row.userData = new DragInfo { Zone = SlotZone.Equipment, Index = slotIndex, Stack = equip[i] };
 
                 var label = new Label(((EquipmentSlot)i).ToString());
-                label.AddToClassList("equip-slot-label");
-                slot.Add(label);
+                label.AddToClassList("equip-row-label");
+                row.Add(label);
 
                 ItemStack stack = equip[i];
                 if (!stack.IsEmpty)
                 {
                     ItemSO def = _database.GetById(stack.ItemId);
-                    ApplyCategoryClass(slot, def);
-                    var name = new Label(def != null ? def.DisplayName : stack.ItemId);
-                    name.AddToClassList("item-name");
-                    slot.Add(name);
 
-                    slot.RegisterCallback<ClickEvent>(_ =>
+                    var itemWrap = new VisualElement();
+                    itemWrap.AddToClassList("equip-row-item");
+
+                    var dot = new VisualElement();
+                    dot.AddToClassList("accent-dot");
+                    dot.AddToClassList(GetAccentClass(def));
+                    itemWrap.Add(dot);
+
+                    var name = new Label(def != null ? def.DisplayName : stack.ItemId);
+                    name.AddToClassList("equip-item-name");
+                    itemWrap.Add(name);
+
+                    row.Add(itemWrap);
+
+                    row.RegisterCallback<ClickEvent>(_ =>
                     {
                         if (_dragMoved) { _dragMoved = false; return; }
                         UnequipToBackpack(slotIndex);
                     });
 
-                    slot.RegisterCallback<PointerDownEvent>(evt =>
+                    row.RegisterCallback<PointerDownEvent>(evt =>
                     {
                         if (evt.button != 0) return;
                         BeginDrag(SlotZone.Equipment, slotIndex, stack, evt.position);
                     });
                 }
+                else
+                {
+                    var empty = new Label("— empty —");
+                    empty.AddToClassList("equip-row-empty");
+                    row.Add(empty);
+                }
 
-                slot.RegisterCallback<PointerUpEvent>(_ => TryDrop(SlotZone.Equipment, slotIndex));
-                _equipmentSlots.Add(slot);
+                row.RegisterCallback<PointerUpEvent>(_ => TryDrop(SlotZone.Equipment, slotIndex));
+                _equipmentSlots.Add(row);
             }
         }
 
@@ -122,6 +146,8 @@ namespace Game.Presentation.UI
             NormalizeBackpack();
             _backpackGrid.Clear();
             var bp = Inv.Backpack;
+            if (_backpackLabel != null) _backpackLabel.text = $"Backpack — {bp.Count} Slots";
+
             for (int i = 0; i < bp.Count; i++)
             {
                 int idx = i;
@@ -153,10 +179,13 @@ namespace Game.Presentation.UI
         }
 
         // ---------- Stash ----------
+        // ---------- Stash ----------
         private void DrawStash()
         {
             _stashGrid.Clear();
             var slots = Stash.Slots;
+            if (_stashLabel != null) _stashLabel.text = $"Stash — {slots.Count} Slots";
+
             for (int i = 0; i < slots.Count; i++)
             {
                 int idx = i;
@@ -177,7 +206,7 @@ namespace Game.Presentation.UI
             if (!stack.IsEmpty)
             {
                 ItemSO def = _database.GetById(stack.ItemId);
-                ApplyCategoryClass(slot, def);
+                slot.AddToClassList(GetAccentClass(def));
 
                 var name = new Label(def != null ? def.DisplayName : stack.ItemId);
                 name.AddToClassList("item-name");
@@ -397,18 +426,25 @@ namespace Game.Presentation.UI
             return false;
         }
 
-        private void ApplyCategoryClass(VisualElement slot, ItemSO def)
+        /// <summary>
+        /// Acento de color: por slot específico si es equipo (verde=movilidad/Boots,
+        /// cian=utilidad/Hat, violeta=protección/Robe, dorado=Catalyst, ámbar=Backpack);
+        /// genérico rojizo para todo lo demás (recursos, materiales, consumibles).
+        /// </summary>
+        private string GetAccentClass(ItemSO def)
         {
-            if (def == null) { slot.AddToClassList("cat-misc"); return; }
-            switch (def.Category)
+            if (def is EquipmentItemSO equip)
             {
-                case ItemCategory.Material: slot.AddToClassList("cat-material"); break;
-                case ItemCategory.Resource: slot.AddToClassList("cat-resource"); break;
-                case ItemCategory.Equipment: slot.AddToClassList("cat-equipment"); break;
-                case ItemCategory.Catalyst: slot.AddToClassList("cat-catalyst"); break;
-                case ItemCategory.Consumable: slot.AddToClassList("cat-consumable"); break;
-                default: slot.AddToClassList("cat-misc"); break;
+                switch (equip.Slot)
+                {
+                    case EquipmentSlot.Boots: return "accent-green";
+                    case EquipmentSlot.Hat: return "accent-cyan";
+                    case EquipmentSlot.Robe: return "accent-violet";
+                    case EquipmentSlot.Catalyst: return "accent-gold";
+                    case EquipmentSlot.Backpack: return "accent-amber";
+                }
             }
+            return "accent-loot";
         }
     }
 }
