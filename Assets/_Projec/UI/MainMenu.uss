@@ -2,15 +2,50 @@
     flex-grow: 1;
     justify-content: center;
     align-items: center;
-    background-color: rgb(18, 16, 26);
+    background-color: rgb(8, 8, 17);
+}
+
+.menu-content {
+    align-items: center;
 }
 
 .game-title {
-    color: rgb(200, 170, 255);
-    font-size: 56px;
-    -unity-font-style: bold;
-    margin-bottom: 50px;
-    text-shadow: 0 3px 8px rgba(0, 0, 0, 0.8);
+    -unity-font-definition: url("project:///Assets/_Projec/Fonts/Cinzel-Medium.ttf");
+    color: rgb(237, 238, 245);
+    font-size: 58px;
+    letter-spacing: 8px;
+    -unity-text-align: middle-center;
+    text-shadow: 0 0 24px rgba(181, 139, 249, 0.45);
+}
+
+.title-divider {
+    flex-direction: row;
+    align-items: center;
+    margin-top: 14px;
+    margin-bottom: 8px;
+}
+
+.divider-line {
+    width: 22px;
+    height: 1px;
+    background-color: rgba(228, 183, 80, 0.6);
+}
+
+.divider-diamond {
+    width: 6px;
+    height: 6px;
+    background-color: rgb(228, 183, 80);
+    rotate: 45deg;
+    margin-left: 8px;
+    margin-right: 8px;
+}
+
+.game-subtitle {
+    -unity-font-definition: url("project:///Assets/_Projec/Fonts/Manrope-Regular.ttf");
+    font-size: 13px;
+    letter-spacing: 3px;
+    color: rgb(111, 113, 125);
+    margin-bottom: 42px;
 }
 
 .menu-buttons {
@@ -18,26 +53,52 @@
 }
 
 .menu-button {
+    -unity-font-definition: url("project:///Assets/_Projec/Fonts/Manrope-Bold.ttf");
     width: 280px;
-    height: 54px;
-    margin: 8px;
-    font-size: 18px;
-    -unity-font-style: bold;
-    color: white;
-    background-color: rgba(90, 70, 140, 0.9);
-    border-width: 2px;
-    border-color: rgba(200, 170, 255, 0.5);
+    height: 52px;
+    margin: 6px;
+    font-size: 15px;
+    letter-spacing: 1px;
+    color: rgb(237, 238, 245);
+    background-color: rgba(25, 26, 36, 0.5);
+    border-width: 1px;
+    border-color: rgba(48, 49, 66, 0.5);
     border-radius: 8px;
 }
 
 .menu-button:hover {
-    background-color: rgba(120, 95, 180, 0.95);
-    border-color: rgba(220, 190, 255, 0.8);
+    background-color: rgba(35, 36, 48, 0.7);
+    border-color: rgba(181, 139, 249, 0.5);
+}
+
+.menu-button.primary {
+    color: rgb(8, 8, 17);
+    background-color: rgb(181, 139, 249);
+    border-color: rgb(181, 139, 249);
+}
+
+.menu-button.primary:hover {
+    background-color: rgb(196, 162, 251);
 }
 
 .menu-button.quit {
-    background-color: rgba(60, 55, 75, 0.9);
-    border-color: rgba(150, 140, 170, 0.5);
+    color: rgb(97, 98, 111);
+    background-color: transparent;
+    border-color: rgba(55, 57, 74, 0.6);
+}
+
+.menu-button.quit:hover {
+    color: rgb(237, 238, 245);
+    border-color: rgba(97, 98, 111, 0.6);
+}
+
+.version-tag {
+    position: absolute;
+    bottom: 18px;
+    left: 24px;
+    font-size: 11px;
+    letter-spacing: 1px;
+    color: rgb(83, 84, 97);
 }
 
 .lobby-panel {
@@ -47,14 +108,17 @@
     left: 50%;
     translate: -50% -50%;
     width: 400px;
-    background-color: rgba(20, 20, 30, 0.97);
+    background-color: rgba(14, 14, 24, 0.96);
+    border-width: 1px;
+    border-color: rgba(48, 49, 66, 0.5);
     border-radius: 10px;
     padding: 20px;
 }
 
 .lobby-title {
-    font-size: 18px;
-    color: white;
+    -unity-font-definition: url("project:///Assets/_Projec/Fonts/Cinzel-Medium.ttf");
+    font-size: 16px;
+    color: rgb(237, 238, 245);
     margin-bottom: 12px;
     -unity-text-align: upper-center;
 }
@@ -66,19 +130,19 @@
 }
 
 .lobby-entry {
-    background-color: rgba(255, 255, 255, 0.05);
+    background-color: rgba(29, 30, 41, 0.5);
     border-radius: 6px;
     padding: 10px;
     margin-bottom: 6px;
-    color: white;
+    color: rgb(237, 238, 245);
 }
 
 .lobby-entry:hover {
-    background-color: rgba(255, 255, 255, 0.12);
+    background-color: rgba(48, 49, 66, 0.6);
 }
 
 .lobby-empty {
-    color: rgba(255, 255, 255, 0.5);
+    color: rgb(97, 98, 111);
     padding: 10px;
     -unity-text-align: upper-center;
 }
