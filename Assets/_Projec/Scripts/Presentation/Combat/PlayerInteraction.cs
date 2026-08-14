@@ -89,35 +89,41 @@ namespace Game.Presentation.Combat
             ItemStack stack = item.ToStack();
             ItemSO def = _database.GetById(stack.ItemId);
 
-            // ¿Es una mochila? Intentar auto-equip si conviene.
-            if (def is EquipmentItemSO equip && equip.Slot == EquipmentSlot.Backpack)
+            // ¿Es un pocket? Intentar auto-equip si mejora alguna de las dos posiciones.
+            if (def is EquipmentItemSO equip && equip.Slot.IsPocket())
             {
-                int equipSlot = (int)EquipmentSlot.Backpack;
-                ItemStack current = _inventory.Equipment[equipSlot];
+                EquipmentSlot lSlot = EquipmentSlot.PocketL;
+                EquipmentSlot rSlot = EquipmentSlot.PocketR;
+                ItemStack currentL = _inventory.Equipment[(int)lSlot];
+                ItemStack currentR = _inventory.Equipment[(int)rSlot];
 
-                // Calcular capacidad actual vs nueva.
-                int currentCap = 0;
-                if (!current.IsEmpty && _database.GetById(current.ItemId) is EquipmentItemSO currentEquip)
-                    currentCap = currentEquip.BackpackSlots;
+                int capL = (!currentL.IsEmpty && _database.GetById(currentL.ItemId) is EquipmentItemSO eL) ? eL.PocketSlots : 0;
+                int capR = (!currentR.IsEmpty && _database.GetById(currentR.ItemId) is EquipmentItemSO eR) ? eR.PocketSlots : 0;
 
-                if (equip.BackpackSlots > currentCap)
+                // Reemplazar la posición más floja de las dos (empate → preferimos L).
+                bool replaceL = capL <= capR;
+                EquipmentSlot targetSlot = replaceL ? lSlot : rSlot;
+                int worseCap = replaceL ? capL : capR;
+                ItemStack displaced = replaceL ? currentL : currentR;
+
+                if (equip.PocketSlots > worseCap)
                 {
-                    _inventory.EquipBackpackFromWorld(stack);
+                    _inventory.EquipPocketFromWorld(stack, targetSlot);
 
-                    if (!current.IsEmpty)
+                    if (!displaced.IsEmpty)
                     {
-                        int leftover = _inventory.TryAddStack(current);
+                        int leftover = _inventory.TryAddStack(displaced);
                         if (leftover > 0)
-                            SpawnWorldItemNear(new ItemStack(current.ItemId, leftover, current.Durability));
+                            SpawnWorldItemNear(new ItemStack(displaced.ItemId, leftover, displaced.Durability));
                     }
 
                     item.Despawn();
                     return;
                 }
-                // Si no es mejor, cae al flujo normal (intentar meter a mochila).
+                // Si no mejora ninguna de las dos posiciones, cae al flujo normal.
             }
 
-            // Flujo normal: intentar agregar a la mochila.
+            // Flujo normal: intentar agregar a los pockets.
             int notAdded = _inventory.TryAddItem(stack.ItemId, stack.Quantity);
 
             if (notAdded <= 0)

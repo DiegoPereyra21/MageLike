@@ -122,16 +122,13 @@ namespace Game.Presentation.Combat
             return true;
         }
 
-        /// <summary>Server-only. Equipa un pocket que viene del mundo (sin origen en el inventario interno).
-        /// Va a la primera posición vacía (L primero, R después); si ambas están ocupadas, reemplaza L.</summary>
+        /// <summary>Server-only. Equipa un pocket que viene del mundo en la posición indicada.
+        /// Quién llama decide el target (PlayerInteraction ya calcula cuál conviene reemplazar).</summary>
         [Server]
-        public void EquipPocketFromWorld(ItemStack stack)
+        public void EquipPocketFromWorld(ItemStack stack, EquipmentSlot targetSlot)
         {
-            int lIdx = (int)EquipmentSlot.PocketL;
-            int rIdx = (int)EquipmentSlot.PocketR;
-            int slotIndex = _equipment[lIdx].IsEmpty ? lIdx : (_equipment[rIdx].IsEmpty ? rIdx : lIdx);
-
-            _equipment[slotIndex] = new ItemStack(stack.ItemId, 1, stack.Durability);
+            if (!targetSlot.IsPocket()) return;
+            _equipment[(int)targetSlot] = new ItemStack(stack.ItemId, 1, stack.Durability);
             RebuildAllPocketCapacities();
         }
 

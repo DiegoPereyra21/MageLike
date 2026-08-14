@@ -26,14 +26,14 @@ namespace Game.Core.Items
             Definition = definition;
             Quantity = quantity;
 
-            // Si es mochila, inicializa su contenedor interno con la capacidad definida.
-            if (definition is EquipmentItemSO equip && equip.Slot == EquipmentSlot.Backpack && equip.BackpackSlots > 0)
+            // Si es un pocket, inicializa su contenedor interno con la capacidad definida.
+            if (definition is EquipmentItemSO equip && equip.Slot.IsPocket() && equip.PocketSlots > 0)
                 Contents = new List<ItemInstance>();
         }
 
         public bool IsStackable => Definition != null && Definition.IsStackable;
         public int MaxStack => Definition != null ? Definition.MaxStack : 1;
-        public bool IsBackpack => Definition is EquipmentItemSO e && e.Slot == EquipmentSlot.Backpack;
+        public bool IsBackpack => Definition is EquipmentItemSO e && e.Slot.IsPocket();
 
         /// <summary>Espacio libre en esta pila (0 si no es apilable o está llena).</summary>
         public int RemainingStackSpace => IsStackable ? Math.Max(0, MaxStack - Quantity) : 0;

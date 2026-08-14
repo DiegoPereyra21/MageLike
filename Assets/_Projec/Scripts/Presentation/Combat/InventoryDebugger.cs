@@ -24,7 +24,7 @@ namespace Game.Presentation.Combat
         }
 
         [ServerRpc] private void AddServerRpc(string id, int qty) => _inventory.TryAddItem(id, qty);
-        [ServerRpc] private void EquipServerRpc(int index) => _inventory.TryEquipFromBackpack(index);
+        [ServerRpc] private void EquipServerRpc(int index) => _inventory.TryEquipFromInventory(1, index);
         [ServerRpc] private void LogServerRpc() => _inventory.DebugLogContents();
     }
 }
