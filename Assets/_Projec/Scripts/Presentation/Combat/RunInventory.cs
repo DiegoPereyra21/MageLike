@@ -455,7 +455,6 @@ namespace Game.Presentation.Combat
                         container.ServerUpdateAt(fromIndex, remaining > 0
                             ? new ItemStack(dragged.ItemId, remaining, dragged.Durability)
                             : ItemStack.Empty);
-                        container.ServerDespawnIfEmpty();
                         return true;
                     }
                 }
@@ -466,7 +465,6 @@ namespace Game.Presentation.Combat
                 if (!existing.IsEmpty)
                     container.ServerDeposit(existing); // si el contenedor se hubiera despawneado antes, esto se perdía
 
-                container.ServerDespawnIfEmpty(); // recién ahora, después del posible depósito de vuelta
                 if (toZone == 0) RebuildAllPocketCapacities();
                 return true;
             }

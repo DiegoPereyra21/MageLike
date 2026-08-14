@@ -495,9 +495,14 @@ namespace Game.Presentation.UI
             bool moved = _dragMoved;
             EndDrag();
 
-            if (!moved) return;
+            if (!moved) return; // clic suelto fuera de slot, no arrastre
 
-            if (from.Zone == SlotZone.Container) return;
+            if (from.Zone == SlotZone.Container)
+            {
+                if (_openContainer != null)
+                    DropContainerItemToWorldServerRpc(_openContainer, from.Index);
+                return;
+            }
 
             DropToWorldServerRpc((int)from.Zone, from.Index);
         }
@@ -526,7 +531,7 @@ namespace Game.Presentation.UI
             if (notAdded > 0)
                 container.ServerFill(new[] { new ItemStack(taken.ItemId, notAdded, taken.Durability) });
 
-            container.ServerDespawnIfEmpty(); // recién acá, ya no hace falta escribirle nada más
+
         }
 
         [ServerRpc]
@@ -540,6 +545,14 @@ namespace Game.Presentation.UI
         [ServerRpc]
         private void DropToWorldServerRpc(int zone, int index)
             => _inventory.TryDropToWorld(zone, index, transform.position);
+
+        [ServerRpc]
+        private void DropContainerItemToWorldServerRpc(LootContainer container, int index)
+        {
+            if (container == null) return;
+            if (!container.ServerTryTake(index, out ItemStack taken)) return;
+            _inventory.SpawnWorldItemPublic(taken, transform.position);
+        }
 
         [ServerRpc]
         private void DropItemServerRpc(int zone, int index)
