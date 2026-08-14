@@ -32,5 +32,11 @@
             <ui:Label text="Click an item to move it between pockets and stash · Shift-click to auto-equip · Drag to place manually" class="hint" />
             <ui:Button name="stash-close" text="Close" class="stash-close-btn" />
         </ui:VisualElement>
+        <ui:VisualElement name="item-tooltip" class="item-tooltip" picking-mode="Ignore">
+            <ui:Label name="tooltip-title" class="tooltip-title" />
+            <ui:Label name="tooltip-type" class="tooltip-type" />
+            <ui:Label name="tooltip-description" class="tooltip-description" />
+            <ui:VisualElement name="tooltip-stats" class="tooltip-stats" />
+        </ui:VisualElement>
     </ui:VisualElement>
 </ui:UXML>

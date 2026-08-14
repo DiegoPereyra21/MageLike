@@ -215,3 +215,44 @@
     justify-content: center;
     align-items: center;
 }
+
+.item-tooltip {
+    position: absolute;
+    display: none;
+    background-color: rgb(14, 14, 24);
+    border-width: 1px;
+    border-color: rgba(68, 70, 88, 0.5);
+    border-radius: 8px;
+    padding: 12px 14px;
+    max-width: 260px;
+}
+
+.tooltip-title {
+    -unity-font-definition: url("/Assets/_Projec/Fonts/Manrope-Bold.ttf");
+    color: rgb(237, 238, 245);
+    font-size: 15px;
+    margin-bottom: 2px;
+}
+
+.tooltip-type {
+    color: rgb(97, 98, 111);
+    font-size: 11px;
+    letter-spacing: 1px;
+    margin-bottom: 6px;
+}
+
+.tooltip-description {
+    color: rgb(180, 182, 192);
+    font-size: 12px;
+    white-space: normal;
+    margin-bottom: 6px;
+}
+
+.tooltip-stat-line {
+    font-size: 12px;
+    -unity-font-style: bold;
+}
+
+.tooltip-stat-positive { color: rgb(80, 210, 100); }
+.tooltip-stat-negative { color: rgb(240, 90, 88); }
+.tooltip-stat-neutral  { color: rgb(210, 211, 219); }

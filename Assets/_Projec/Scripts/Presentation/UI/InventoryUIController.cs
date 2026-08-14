@@ -32,7 +32,12 @@ namespace Game.Presentation.UI
         private VisualElement _usableSlots;
         private VisualElement _containerColumn;
         private VisualElement _containerGrid;
-
+        private VisualElement _tooltip;
+        private Label _tooltipTitle;
+        private Label _tooltipType;
+        private Label _tooltipDescription;
+        private VisualElement _tooltipStats;
+        private float _pendingTooltipAnchorBottom;
         private InputAction _toggleAction;
         private bool _isOpen;
 
@@ -80,6 +85,11 @@ namespace Game.Presentation.UI
             _usableSlots     = _root.Q<VisualElement>("usable-slots");
             _containerColumn = _root.Q<VisualElement>("container-column");
             _containerGrid   = _root.Q<VisualElement>("container-grid");
+            _tooltip = _root.Q<VisualElement>("item-tooltip");
+            _tooltipTitle = _root.Q<Label>("tooltip-title");
+            _tooltipType = _root.Q<Label>("tooltip-type");
+            _tooltipDescription = _root.Q<Label>("tooltip-description");
+            _tooltipStats = _root.Q<VisualElement>("tooltip-stats");
 
             BuildUsableSlots();
 
@@ -183,6 +193,9 @@ namespace Game.Presentation.UI
                     itemWrap.Add(name);
 
                     slot.Add(itemWrap);
+
+                    slot.RegisterCallback<PointerEnterEvent>(_ => ShowTooltip(slot, def));
+                    slot.RegisterCallback<PointerLeaveEvent>(_ => HideTooltip());
 
                     slot.RegisterCallback<ClickEvent>(evt =>
                     {
@@ -288,6 +301,9 @@ namespace Game.Presentation.UI
                     slot.Add(qty);
                 }
 
+                slot.RegisterCallback<PointerEnterEvent>(_ => ShowTooltip(slot, def));
+                slot.RegisterCallback<PointerLeaveEvent>(_ => HideTooltip());
+
                 slot.RegisterCallback<ClickEvent>(evt =>
                 {
                     if (_dragMoved) { _dragMoved = false; return; }
@@ -343,6 +359,47 @@ namespace Game.Presentation.UI
             return "accent-loot";
         }
 
+
+        // ---------- Tooltip ----------
+        private void ShowTooltip(VisualElement anchor, ItemSO def)
+        {
+            if (_tooltip == null || def == null || _isDragging) return;
+
+            _tooltipTitle.text = def.DisplayName;
+            var (type, stats) = ItemTooltipFormatter.Build(def);
+            _tooltipType.text = type;
+
+            bool hasDescription = !string.IsNullOrEmpty(def.Description);
+            _tooltipDescription.text = def.Description;
+            _tooltipDescription.style.display = hasDescription ? DisplayStyle.Flex : DisplayStyle.None;
+
+            _tooltipStats.Clear();
+            foreach (var stat in stats)
+            {
+                var line = new Label(stat.Text);
+                line.AddToClassList("tooltip-stat-line");
+                line.AddToClassList(stat.Sign > 0 ? "tooltip-stat-positive" : stat.Sign < 0 ? "tooltip-stat-negative" : "tooltip-stat-neutral");
+                _tooltipStats.Add(line);
+            }
+
+            Rect bound = anchor.worldBound;
+            _tooltip.style.left = bound.x;
+            _tooltip.style.top = bound.y; // provisional, se corrige abajo cuando se conoce la altura real
+            _pendingTooltipAnchorBottom = bound.y;
+            _tooltip.style.display = DisplayStyle.Flex;
+            _tooltip.RegisterCallback<GeometryChangedEvent>(OnTooltipGeometryChanged);
+        }
+
+        private void OnTooltipGeometryChanged(GeometryChangedEvent evt)
+        {
+            _tooltip.UnregisterCallback<GeometryChangedEvent>(OnTooltipGeometryChanged);
+            _tooltip.style.top = _pendingTooltipAnchorBottom - evt.newRect.height - 10; // arriba del slot, con aire
+        }
+
+        private void HideTooltip()
+        {
+            if (_tooltip != null) _tooltip.style.display = DisplayStyle.None;
+        }
         // ---------- Drag & drop ----------
 
         private void BeginDrag(SlotZone zone, int index, ItemStack stack, Vector2 pos)

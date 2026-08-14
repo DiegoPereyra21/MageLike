@@ -41,6 +41,12 @@
             <ui:Label text="Tab — Close · Drag — Move · Shift+Click — Auto-Equip · Ctrl+Click — Drop to World" class="hint" />
 
         </ui:VisualElement>
+        <ui:VisualElement name="item-tooltip" class="item-tooltip" picking-mode="Ignore">
+            <ui:Label name="tooltip-title" class="tooltip-title" />
+            <ui:Label name="tooltip-type" class="tooltip-type" />
+            <ui:Label name="tooltip-description" class="tooltip-description" />
+            <ui:VisualElement name="tooltip-stats" class="tooltip-stats" />
+        </ui:VisualElement>
 
     </ui:VisualElement>
 </ui:UXML>
