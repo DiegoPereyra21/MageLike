@@ -53,7 +53,7 @@
     width: 480px;
 }
 
-.equip-row {
+.equip-slot {
     flex-direction: row;
     justify-content: space-between;
     align-items: center;
@@ -62,11 +62,11 @@
     border-bottom-color: rgba(48, 49, 66, 0.25);
 }
 
-.equip-row.no-border {
+.equip-slot.no-border {
     border-bottom-width: 0;
 }
 
-.equip-row-label {
+.equip-slot-label {
     color: rgb(111, 113, 125);
     font-size: 17px;
 }
@@ -95,7 +95,17 @@
     border-radius: 6px;
 }
 
-/* ---------- Grillas (mochila / stash) ---------- */
+/* ---------- Pockets ---------- */
+
+.pockets-row {
+    flex-direction: row;
+}
+
+.pocket-column {
+    margin-right: 24px;
+}
+
+/* ---------- Grillas (pockets / stash) ---------- */
 
 .grid {
     flex-direction: row;
@@ -103,7 +113,7 @@
 }
 
 .backpack-grid {
-    width: 450px;
+    width: 296px;
 }
 
 .stash-grid-big {
@@ -127,6 +137,12 @@
     border-color: rgba(237, 238, 245, 0.5);
 }
 
+/* Slot bloqueado: capacidad actual del pocket no lo alcanza todavía. Sin interacción. */
+.item-slot.locked {
+    background-color: rgba(6, 6, 10, 0.7);
+    border-color: rgba(30, 31, 40, 0.3);
+    opacity: 0.3;
+}
 .item-name {
     color: rgb(227, 228, 235);
     font-size: 13px;

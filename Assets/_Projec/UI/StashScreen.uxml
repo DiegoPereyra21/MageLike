@@ -9,8 +9,17 @@
                 <ui:VisualElement class="mgmt-column">
                     <ui:Label text="Loadout" class="column-header" />
                     <ui:VisualElement name="equipment-slots" class="equipment-slots" />
-                    <ui:Label name="backpack-label" text="Backpack" class="grid-header" />
-                    <ui:VisualElement name="backpack-grid" class="grid backpack-grid" />
+
+                    <ui:VisualElement class="pockets-row">
+                        <ui:VisualElement class="pocket-column">
+                            <ui:Label name="pocket-l-label" text="Pocket L" class="grid-header" />
+                            <ui:VisualElement name="pocket-l-grid" class="grid backpack-grid" />
+                        </ui:VisualElement>
+                        <ui:VisualElement class="pocket-column">
+                            <ui:Label name="pocket-r-label" text="Pocket R" class="grid-header" />
+                            <ui:VisualElement name="pocket-r-grid" class="grid backpack-grid" />
+                        </ui:VisualElement>
+                    </ui:VisualElement>
                 </ui:VisualElement>
 
                 <ui:VisualElement class="mgmt-column">
@@ -20,7 +29,7 @@
 
             </ui:VisualElement>
 
-            <ui:Label text="Click an item to move it between backpack and stash · Shift-click to auto-equip · Drag to place manually" class="hint" />
+            <ui:Label text="Click an item to move it between pockets and stash · Shift-click to auto-equip · Drag to place manually" class="hint" />
             <ui:Button name="stash-close" text="Close" class="stash-close-btn" />
         </ui:VisualElement>
     </ui:VisualElement>

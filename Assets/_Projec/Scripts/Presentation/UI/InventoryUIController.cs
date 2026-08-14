@@ -20,11 +20,15 @@ namespace Game.Presentation.UI
         [SerializeField] private PlayerInteraction _interaction;
         [SerializeField] private UIDocument _document;
 
+        private const int MaxPocketSlots = 12;
+
         private VisualElement _root;
-        private VisualElement _invPanel; // panel interior — para detectar drag fuera
+        private VisualElement _invPanel;
         private VisualElement _equipmentSlots;
         private VisualElement _pocketLGrid;
         private VisualElement _pocketRGrid;
+        private Label _pocketLLabel;
+        private Label _pocketRLabel;
         private VisualElement _usableSlots;
         private VisualElement _containerColumn;
         private VisualElement _containerGrid;
@@ -35,13 +39,13 @@ namespace Game.Presentation.UI
         private LootContainer _openContainer;
 
         // ---------- Drag & drop ----------
-        private enum SlotZone { Equipment, Backpack, Container }
+        private enum SlotZone { Equipment, PocketL, PocketR, Container }
         private struct DragInfo { public SlotZone Zone; public int Index; public ItemStack Stack; }
         private DragInfo _dragging;
         private bool _isDragging;
         private VisualElement _ghost;
         private bool _dragMoved;
-        private bool _dragOutside; // true cuando el puntero está fuera del inv-panel
+        private bool _dragOutside;
 
         private static readonly Color GhostColorNormal  = new Color(0.16f, 0.16f, 0.24f, 0.95f);
         private static readonly Color GhostColorDrop    = new Color(0.55f, 0.08f, 0.08f, 0.95f);
@@ -66,20 +70,22 @@ namespace Game.Presentation.UI
                 return;
             }
 
-            _root         = _document.rootVisualElement.Q<VisualElement>("inv-root");
-            _invPanel     = _root.Q<VisualElement>("inv-panel");
-            _equipmentSlots = _root.Q<VisualElement>("equipment-slots");
-            _pocketLGrid    = _root.Q<VisualElement>("pocket-l-grid");
-            _pocketRGrid    = _root.Q<VisualElement>("pocket-r-grid");
-            _usableSlots    = _root.Q<VisualElement>("usable-slots");
-            BuildUsableSlots();
+            _root            = _document.rootVisualElement.Q<VisualElement>("inv-root");
+            _invPanel        = _root.Q<VisualElement>("inv-panel");
+            _equipmentSlots  = _root.Q<VisualElement>("equipment-slots");
+            _pocketLGrid     = _root.Q<VisualElement>("pocket-l-grid");
+            _pocketRGrid     = _root.Q<VisualElement>("pocket-r-grid");
+            _pocketLLabel    = _root.Q<Label>("pocket-l-label") ?? _root.Q<VisualElement>("pocket-l-grid").parent.Q<Label>();
+            _pocketRLabel    = _root.Q<Label>("pocket-r-label") ?? _root.Q<VisualElement>("pocket-r-grid").parent.Q<Label>();
+            _usableSlots     = _root.Q<VisualElement>("usable-slots");
             _containerColumn = _root.Q<VisualElement>("container-column");
             _containerGrid   = _root.Q<VisualElement>("container-grid");
+
+            BuildUsableSlots();
 
             _inventory.OnInventoryChanged += Redraw;
             _toggleAction.Enable();
 
-            // Soltar fuera de un slot: drop al mundo si se arrastró, cancelar si no.
             _root.RegisterCallback<PointerUpEvent>(OnRootPointerUp);
         }
 
@@ -138,7 +144,7 @@ namespace Game.Presentation.UI
         {
             if (!_isOpen) return;
             DrawEquipment();
-            DrawBackpack();
+            DrawPockets();
             DrawContainer();
         }
 
@@ -155,7 +161,7 @@ namespace Game.Presentation.UI
                 slot.AddToClassList("equip-slot");
                 if (slotIndex == equip.Count - 1) slot.AddToClassList("no-border");
 
-                var label = new Label(((EquipmentSlot)i).ToString());
+                var label = new Label(DisplayNameForSlot((EquipmentSlot)i));
                 label.AddToClassList("equip-slot-label");
                 slot.Add(label);
 
@@ -197,45 +203,47 @@ namespace Game.Presentation.UI
             }
         }
 
-        private void DrawBackpack()
+        private string DisplayNameForSlot(EquipmentSlot slot)
         {
-            _pocketLGrid.Clear();
-            _pocketRGrid.Clear();
-            var bp = _inventory.Backpack;
-
-            for (int i = 0; i < bp.Count; i++)
+            return slot switch
             {
-                int slotIndex = i;
-                ItemStack stack = bp[i];
-
-                System.Action onClick = null;
-                if (!stack.IsEmpty && _database.GetById(stack.ItemId) is EquipmentItemSO equip)
-                    onClick = () => QuickEquipServerRpc(1, slotIndex);
-
-                var cell = BuildItemSlot(stack, SlotZone.Backpack, slotIndex, onClick);
-
-                // Visual únicamente: primera mitad de la lista = Pocket L, segunda = Pocket R.
-                // El dato sigue siendo una sola lista (Backpack), sin cambios de lógica.
-                VisualElement target = i < bp.Count / 2 ? _pocketLGrid : _pocketRGrid;
-                target.Add(cell);
-            }
+                EquipmentSlot.PocketL => "Pocket L",
+                EquipmentSlot.PocketR => "Pocket R",
+                _ => slot.ToString()
+            };
         }
 
-        /// <summary>Placeholders visuales (sin lógica todavía) para los 3 slots de usables.</summary>
-        private void BuildUsableSlots()
+        private void DrawPockets()
         {
-            if (_usableSlots == null) return;
-            _usableSlots.Clear();
-            for (int i = 0; i < 3; i++)
+            DrawPocketGrid(_pocketLGrid, _pocketLLabel, "Pocket L", _inventory.PocketL, SlotZone.PocketL);
+            DrawPocketGrid(_pocketRGrid, _pocketRLabel, "Pocket R", _inventory.PocketR, SlotZone.PocketR);
+        }
+
+        private void DrawPocketGrid(VisualElement grid, Label label, string title, IReadOnlyList<ItemStack> list, SlotZone zone)
+        {
+            if (grid == null) return;
+            grid.Clear();
+            if (label != null) label.text = $"{title} — {list.Count}/{MaxPocketSlots}";
+
+            for (int i = 0; i < MaxPocketSlots; i++)
             {
-                var slot = new VisualElement();
-                slot.AddToClassList("usable-slot");
+                if (i < list.Count)
+                {
+                    int slotIndex = i;
+                    ItemStack stack = list[i];
+                    System.Action onClick = null;
+                    if (!stack.IsEmpty && _database.GetById(stack.ItemId) is EquipmentItemSO)
+                        onClick = () => QuickEquipServerRpc((int)zone, slotIndex);
 
-                var keyHint = new Label((i + 1).ToString());
-                keyHint.AddToClassList("usable-key-hint");
-                slot.Add(keyHint);
-
-                _usableSlots.Add(slot);
+                    grid.Add(BuildItemSlot(stack, zone, slotIndex, onClick));
+                }
+                else
+                {
+                    var locked = new VisualElement();
+                    locked.AddToClassList("item-slot");
+                    locked.AddToClassList("locked");
+                    grid.Add(locked);
+                }
             }
         }
 
@@ -243,11 +251,11 @@ namespace Game.Presentation.UI
         {
             if (_openContainer == null)
             {
-                _containerColumn.style.display = DisplayStyle.None;
+                if (_containerColumn != null) _containerColumn.style.display = DisplayStyle.None;
                 return;
             }
 
-            _containerColumn.style.display = DisplayStyle.Flex;
+            if (_containerColumn != null) _containerColumn.style.display = DisplayStyle.Flex;
             _containerGrid.Clear();
 
             var contents = _openContainer.Contents;
@@ -299,7 +307,24 @@ namespace Game.Presentation.UI
             return slot;
         }
 
-        /// <summary>Mismo criterio de acentos que StashScreenController: por slot si es equipo, genérico si no.</summary>
+        /// <summary>Placeholders visuales (sin lógica todavía) para los 3 slots de usables.</summary>
+        private void BuildUsableSlots()
+        {
+            if (_usableSlots == null) return;
+            _usableSlots.Clear();
+            for (int i = 0; i < 3; i++)
+            {
+                var slot = new VisualElement();
+                slot.AddToClassList("usable-slot");
+
+                var keyHint = new Label((i + 1).ToString());
+                keyHint.AddToClassList("usable-key-hint");
+                slot.Add(keyHint);
+
+                _usableSlots.Add(slot);
+            }
+        }
+
         private string GetAccentClass(ItemSO def)
         {
             if (def is EquipmentItemSO equip)
@@ -310,7 +335,9 @@ namespace Game.Presentation.UI
                     case EquipmentSlot.Hat: return "accent-cyan";
                     case EquipmentSlot.Robe: return "accent-violet";
                     case EquipmentSlot.Catalyst: return "accent-gold";
-                    case EquipmentSlot.Backpack: return "accent-amber";
+                    case EquipmentSlot.PocketL:
+                    case EquipmentSlot.PocketR:
+                        return "accent-amber";
                 }
             }
             return "accent-loot";
@@ -345,7 +372,6 @@ namespace Game.Presentation.UI
             _dragMoved = true;
             MoveGhost(evt.position);
 
-            // Detectar si el puntero está fuera del inv-panel y cambiar color del ghost.
             bool outside = _invPanel != null && !_invPanel.worldBound.Contains(evt.position);
             if (outside != _dragOutside)
             {
@@ -357,8 +383,8 @@ namespace Game.Presentation.UI
         private void MoveGhost(Vector2 pos)
         {
             if (_ghost == null) return;
-            _ghost.style.left = pos.x - 28;
-            _ghost.style.top  = pos.y - 28;
+            _ghost.style.left = pos.x - 30;
+            _ghost.style.top  = pos.y - 30;
         }
 
         private void TryDrop(SlotZone destZone, int destIndex)
@@ -371,7 +397,6 @@ namespace Game.Presentation.UI
 
             if (!moved) return;
 
-            // No se puede depositar en el contenedor, solo sacar de él.
             if (destZone == SlotZone.Container) return;
 
             if (from.Zone == SlotZone.Container)
@@ -385,7 +410,6 @@ namespace Game.Presentation.UI
             }
         }
 
-        // Soltar en el root (fuera de cualquier slot): drop al mundo si se arrastró.
         private void OnRootPointerUp(PointerUpEvent evt)
         {
             if (!_isDragging) return;
@@ -394,9 +418,8 @@ namespace Game.Presentation.UI
             bool moved = _dragMoved;
             EndDrag();
 
-            if (!moved) return; // clic suelto fuera de slot, no arrastre
+            if (!moved) return;
 
-            // Items del contenedor no se dropean al mundo desde acá (solo se pueden sacar a slots).
             if (from.Zone == SlotZone.Container) return;
 
             DropToWorldServerRpc((int)from.Zone, from.Index);
@@ -414,7 +437,6 @@ namespace Game.Presentation.UI
 
         // ---------- Acciones (server-authoritative) ----------
 
-        [ServerRpc] private void EquipServerRpc(int backpackIndex) => _inventory.TryEquipFromBackpack(backpackIndex);
         [ServerRpc] private void UnequipServerRpc(int equipmentSlotIndex) => _inventory.TryUnequip(equipmentSlotIndex);
 
         [ServerRpc]
@@ -446,13 +468,6 @@ namespace Game.Presentation.UI
 
         [ServerRpc]
         private void QuickEquipServerRpc(int zone, int index)
-        {
-            ItemStack stack = zone == 1 ? _inventory.Backpack[index] : ItemStack.Empty;
-            if (stack.IsEmpty) return;
-            if (_database.GetById(stack.ItemId) is not EquipmentItemSO equip) return;
-            _inventory.TryMoveSlot(zone, index, 0, (int)equip.Slot);
-        }
-
-
+            => _inventory.TryEquipFromInventory(zone, index);
     }
 }
