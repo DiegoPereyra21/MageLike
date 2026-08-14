@@ -1,6 +1,5 @@
 namespace Game.Core.Items
 {
-    /// <summary>Slots de equipamiento del mago.</summary>
     public enum EquipmentSlot
     {
         Boots,
@@ -8,6 +7,17 @@ namespace Game.Core.Items
         Robe,
         Pants,
         Catalyst,
-        Backpack
+        PocketL,
+        PocketR
+    }
+
+    /// <summary>
+    /// PocketL y PocketR aceptan el mismo tipo de ítem (una bolsa cualquiera va en cualquiera
+    /// de los dos lados) — este helper es la única razón por la que existe este archivo aparte.
+    /// </summary>
+    public static class EquipmentSlotExtensions
+    {
+        public static bool IsPocket(this EquipmentSlot slot)
+            => slot == EquipmentSlot.PocketL || slot == EquipmentSlot.PocketR;
     }
 }

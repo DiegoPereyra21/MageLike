@@ -9,24 +9,27 @@ using FishNet;
 namespace Game.Presentation.Combat
 {
     /// <summary>
-    /// Inventario de run server-authoritative. Mochila (slots) y equipamiento (por slot),
-    /// ambos sincronizados por SyncList. Implementa IRunInventory (extracción salva, muerte pierde).
+    /// Inventario de run server-authoritative. Dos pockets independientes (L/R) + equipamiento
+    /// (por slot), todos sincronizados por SyncList. Implementa IRunInventory (extracción salva,
+    /// muerte pierde).
+    /// Zonas: 0 = Equipment, 1 = Pocket L, 2 = Pocket R, 3 = Container (LootContainer externo).
     /// </summary>
     public class RunInventory : NetworkBehaviour, IRunInventory
     {
         [SerializeField] private ItemDatabase _database;
-        [SerializeField] private int _fallbackBackpackSlots = 8; // capacidad si no hay mochila equipada
         [SerializeField] private GameObject _lootContainerPrefab; // asignar en el Inspector
         [SerializeField] private Game.Core.Items.StartingKitSO _startingKit;
         [SerializeField] private GameObject _worldItemPrefab; // prefab con WorldItem + NetworkObject
 
-        // Mochila: lista de stacks. Vacíos representan slots libres.
-        private readonly SyncList<ItemStack> _backpack = new SyncList<ItemStack>();
+        // Pockets: dos listas independientes. Vacíos representan slots libres.
+        private readonly SyncList<ItemStack> _pocketL = new SyncList<ItemStack>();
+        private readonly SyncList<ItemStack> _pocketR = new SyncList<ItemStack>();
 
         // Equipamiento por slot. Indexado por (int)EquipmentSlot. Vacío = nada equipado.
         private readonly SyncList<ItemStack> _equipment = new SyncList<ItemStack>();
 
-        public IReadOnlyList<ItemStack> Backpack => _backpack;
+        public IReadOnlyList<ItemStack> PocketL => _pocketL;
+        public IReadOnlyList<ItemStack> PocketR => _pocketR;
         public IReadOnlyList<ItemStack> Equipment => _equipment;
 
         public event System.Action OnInventoryChanged;
@@ -38,7 +41,7 @@ namespace Game.Presentation.Combat
             for (int i = 0; i < slotCount; i++)
                 _equipment.Add(ItemStack.Empty);
 
-            RebuildBackpackCapacity();
+            RebuildAllPocketCapacities();
 
             // Cargar el inventario propio persistente (o el kit inicial la primera vez).
             Game.Presentation.Run.PlayerLoadoutService.EnsureInitialized(_startingKit);
@@ -47,41 +50,40 @@ namespace Game.Presentation.Combat
 
         public override void OnStartClient()
         {
-            _backpack.OnChange += (op, index, oldItem, newItem, asServer) => OnInventoryChanged?.Invoke();
+            _pocketL.OnChange += (op, index, oldItem, newItem, asServer) => OnInventoryChanged?.Invoke();
+            _pocketR.OnChange += (op, index, oldItem, newItem, asServer) => OnInventoryChanged?.Invoke();
             _equipment.OnChange += (op, index, oldItem, newItem, asServer) => OnInventoryChanged?.Invoke();
         }
 
-        // ---------- Capacidad de mochila ----------
+        // ---------- Capacidad de pockets ----------
 
-        private int CurrentBackpackCapacity()
+        /// <summary>Capacidad de un pocket: 1 por defecto sin nada equipado, exacta a lo que declare el ítem si hay algo puesto.</summary>
+        private int PocketCapacity(EquipmentSlot pocketSlot)
         {
-            ItemStack bp = _equipment[(int)EquipmentSlot.Backpack];
-            if (!bp.IsEmpty && _database.GetById(bp.ItemId) is EquipmentItemSO e && e.Slot == EquipmentSlot.Backpack)
-                return Mathf.Max(e.BackpackSlots, 0);
-            return _fallbackBackpackSlots;
+            ItemStack eq = _equipment[(int)pocketSlot];
+            if (!eq.IsEmpty && _database.GetById(eq.ItemId) is EquipmentItemSO e && e.Slot.IsPocket())
+                return Mathf.Max(e.PocketSlots, 0);
+            return 1;
         }
 
-        private void RebuildBackpackCapacity()
+        private void RebuildPocketCapacity(SyncList<ItemStack> list, int cap)
         {
-            int cap = CurrentBackpackCapacity();
-
-            while (_backpack.Count < cap) _backpack.Add(ItemStack.Empty);
+            while (list.Count < cap) list.Add(ItemStack.Empty);
 
             // Si la capacidad bajó, rescatar los items de los slots que desaparecen.
-            while (_backpack.Count > cap)
+            while (list.Count > cap)
             {
-                int last = _backpack.Count - 1;
-                ItemStack orphan = _backpack[last];
-                _backpack.RemoveAt(last);
+                int last = list.Count - 1;
+                ItemStack orphan = list[last];
+                list.RemoveAt(last);
 
                 if (orphan.IsEmpty) continue;
 
-                // Intentar mover al primer slot libre que queda dentro de la nueva capacidad.
                 bool rescued = false;
-                for (int i = 0; i < _backpack.Count; i++)
+                for (int i = 0; i < list.Count; i++)
                 {
-                    if (!_backpack[i].IsEmpty) continue;
-                    _backpack[i] = orphan;
+                    if (!list[i].IsEmpty) continue;
+                    list[i] = orphan;
                     rescued = true;
                     break;
                 }
@@ -91,15 +93,19 @@ namespace Game.Presentation.Combat
             }
         }
 
+        private void RebuildAllPocketCapacities()
+        {
+            RebuildPocketCapacity(_pocketL, PocketCapacity(EquipmentSlot.PocketL));
+            RebuildPocketCapacity(_pocketR, PocketCapacity(EquipmentSlot.PocketR));
+        }
+
         [Server]
         private void SpawnWorldItem(ItemStack stack)
         {
             SpawnWorldItemPublic(stack, transform.position);
         }
 
-
-
-/// <summary>Server-only. Dropea un item del inventario al mundo.</summary>
+        /// <summary>Server-only. Dropea un item del inventario al mundo.</summary>
         [Server]
         public bool TryDropToWorld(int zone, int index, Vector3 nearPosition)
         {
@@ -108,22 +114,25 @@ namespace Game.Presentation.Combat
 
             SetSlot(zone, index, ItemStack.Empty);
 
-            // Si era la mochila equipada, RebuildBackpackCapacity rescata/dropea el contenido.
-            if (zone == 0 && index == (int)EquipmentSlot.Backpack)
-                RebuildBackpackCapacity();
+            // Si era un pocket equipado, RebuildAllPocketCapacities rescata/dropea el contenido.
+            if (zone == 0 && ((EquipmentSlot)index).IsPocket())
+                RebuildAllPocketCapacities();
 
             SpawnWorldItemPublic(stack, nearPosition);
             return true;
         }
 
-
-        /// <summary>Server-only. Equipa una mochila que viene del mundo (sin origen en la mochila interna).</summary>
+        /// <summary>Server-only. Equipa un pocket que viene del mundo (sin origen en el inventario interno).
+        /// Va a la primera posición vacía (L primero, R después); si ambas están ocupadas, reemplaza L.</summary>
         [Server]
-        public void EquipBackpackFromWorld(ItemStack stack)
+        public void EquipPocketFromWorld(ItemStack stack)
         {
-            int slotIndex = (int)EquipmentSlot.Backpack;
+            int lIdx = (int)EquipmentSlot.PocketL;
+            int rIdx = (int)EquipmentSlot.PocketR;
+            int slotIndex = _equipment[lIdx].IsEmpty ? lIdx : (_equipment[rIdx].IsEmpty ? rIdx : lIdx);
+
             _equipment[slotIndex] = new ItemStack(stack.ItemId, 1, stack.Durability);
-            RebuildBackpackCapacity();
+            RebuildAllPocketCapacities();
         }
 
         /// <summary>Server-only. Punto de entrada público para spawnear un WorldItem cerca de una posición.</summary>
@@ -132,7 +141,6 @@ namespace Game.Presentation.Combat
         {
             if (_worldItemPrefab == null) return;
 
-            // Spawnear a la altura del jugador con offset aleatorio — el Rigidbody hace caer.
             Vector3 pos = nearPosition + Vector3.up * 0.5f;
             pos += new Vector3(Random.Range(-0.3f, 0.3f), 0f, Random.Range(-0.3f, 0.3f));
 
@@ -144,11 +152,9 @@ namespace Game.Presentation.Combat
             }
         }
 
-
-
         // ---------- Agregar item (con stacking) ----------
 
-        /// <summary>Server-only. Intenta agregar cantidad de un item. Devuelve lo que NO entró.</summary>
+        /// <summary>Server-only. Intenta agregar cantidad de un item, primero en Pocket L y luego en Pocket R. Devuelve lo que NO entró.</summary>
         [Server]
         public int TryAddItem(string itemId, int quantity)
         {
@@ -156,13 +162,21 @@ namespace Game.Presentation.Combat
             if (def == null || quantity <= 0) return quantity;
 
             int remaining = quantity;
+            remaining = TryAddItemToList(_pocketL, def, itemId, remaining);
+            if (remaining > 0)
+                remaining = TryAddItemToList(_pocketR, def, itemId, remaining);
 
+            return remaining; // lo que no entró (los dos pockets llenos)
+        }
+
+        private int TryAddItemToList(SyncList<ItemStack> list, ItemSO def, string itemId, int remaining)
+        {
             // 1. Si es apilable, rellenar pilas existentes del mismo item.
             if (def.IsStackable)
             {
-                for (int i = 0; i < _backpack.Count && remaining > 0; i++)
+                for (int i = 0; i < list.Count && remaining > 0; i++)
                 {
-                    ItemStack s = _backpack[i];
+                    ItemStack s = list[i];
                     if (s.IsEmpty || s.ItemId != itemId) continue;
 
                     int space = def.MaxStack - s.Quantity;
@@ -170,24 +184,23 @@ namespace Game.Presentation.Combat
 
                     int add = Mathf.Min(space, remaining);
                     s.Quantity += add;
-                    _backpack[i] = s;
+                    list[i] = s;
                     remaining -= add;
                 }
             }
 
             // 2. Ocupar slots vacíos con nuevas pilas.
-            for (int i = 0; i < _backpack.Count && remaining > 0; i++)
+            for (int i = 0; i < list.Count && remaining > 0; i++)
             {
-                if (!_backpack[i].IsEmpty) continue;
+                if (!list[i].IsEmpty) continue;
 
                 int add = def.IsStackable ? Mathf.Min(def.MaxStack, remaining) : 1;
-                _backpack[i] = new ItemStack(itemId, add, 1f);
+                list[i] = new ItemStack(itemId, add, 1f);
                 remaining -= add;
             }
 
-            return remaining; // lo que no entró (mochila llena)
+            return remaining;
         }
-
 
         /// <summary>Server-only. Crea un snapshot del inventario actual (para persistir al extraer).</summary>
         [Server]
@@ -195,16 +208,15 @@ namespace Game.Presentation.Combat
         {
             var snap = new Game.Core.Items.InventorySnapshot();
             foreach (var s in _equipment) snap.Equipment.Add(s);   // incluye vacíos: preserva los slots
-            foreach (var s in _backpack) if (!s.IsEmpty) snap.Backpack.Add(s);
+            foreach (var s in _pocketL) if (!s.IsEmpty) snap.PocketL.Add(s);
+            foreach (var s in _pocketR) if (!s.IsEmpty) snap.PocketR.Add(s);
             return snap;
         }
-
 
         /// <summary>Server-only. Restaura el inventario desde un snapshot (inventario propio persistente).</summary>
         [Server]
         public void ApplySnapshot(Game.Core.Items.InventorySnapshot snap)
         {
-            // Limpiar primero.
             ClearAll();
 
             if (snap == null) return;
@@ -213,64 +225,76 @@ namespace Game.Presentation.Combat
             for (int i = 0; i < snap.Equipment.Count && i < _equipment.Count; i++)
                 _equipment[i] = snap.Equipment[i];
 
-            // Recalcular capacidad de mochila según la mochila equipada del snapshot.
-            RebuildBackpackCapacity();
+            // Recalcular capacidad de ambos pockets según lo equipado del snapshot.
+            RebuildAllPocketCapacities();
 
-            // Restaurar items de mochila.
-            foreach (var stack in snap.Backpack)
+            RestoreIntoList(_pocketL, snap.PocketL);
+            RestoreIntoList(_pocketR, snap.PocketR);
+        }
+
+        private void RestoreIntoList(SyncList<ItemStack> list, List<ItemStack> source)
+        {
+            foreach (var stack in source)
             {
                 if (stack.IsEmpty) continue;
-                // Colocar en el primer slot libre.
-                for (int i = 0; i < _backpack.Count; i++)
+                for (int i = 0; i < list.Count; i++)
                 {
-                    if (_backpack[i].IsEmpty)
+                    if (list[i].IsEmpty)
                     {
-                        _backpack[i] = stack;
+                        list[i] = stack;
                         break;
                     }
                 }
             }
         }
 
-
-
         // ---------- Equipar / desequipar ----------
 
-        /// <summary>Server-only. Equipa un item desde un slot de mochila.</summary>
+        /// <summary>Server-only. Equipa un item desde un slot de un pocket (zone 1 o 2).</summary>
         [Server]
-        public bool TryEquipFromBackpack(int backpackIndex)
+        public bool TryEquipFromInventory(int zone, int index)
         {
-            if (backpackIndex < 0 || backpackIndex >= _backpack.Count) return false;
-            ItemStack stack = _backpack[backpackIndex];
-            if (stack.IsEmpty) return false;
+            if (zone != 1 && zone != 2) return false;
+            SyncList<ItemStack> list = zone == 1 ? _pocketL : _pocketR;
+            if (index < 0 || index >= list.Count) return false;
 
+            ItemStack stack = list[index];
+            if (stack.IsEmpty) return false;
             if (_database.GetById(stack.ItemId) is not EquipmentItemSO equip) return false;
 
-            int slotIndex = (int)equip.Slot;
-
-            // Regla de mochila: no se puede equipar una mochila si ya hay una puesta.
-            if (equip.Slot == EquipmentSlot.Backpack && !_equipment[slotIndex].IsEmpty)
-                return false;
-
-            // Si el slot está ocupado (no-mochila), mover lo actual a la mochila.
-            if (!_equipment[slotIndex].IsEmpty)
+            int slotIndex;
+            if (equip.Slot.IsPocket())
             {
-                ItemStack current = _equipment[slotIndex];
-                _backpack[backpackIndex] = current; // swap
+                int lIdx = (int)EquipmentSlot.PocketL;
+                int rIdx = (int)EquipmentSlot.PocketR;
+                if (_equipment[lIdx].IsEmpty) slotIndex = lIdx;
+                else if (_equipment[rIdx].IsEmpty) slotIndex = rIdx;
+                else return false; // las dos posiciones de pocket ya ocupadas
             }
             else
             {
-                _backpack[backpackIndex] = ItemStack.Empty;
+                slotIndex = (int)equip.Slot;
+            }
+
+            if (!_equipment[slotIndex].IsEmpty)
+            {
+                ItemStack current = _equipment[slotIndex];
+                list[index] = current; // swap
+            }
+            else
+            {
+                list[index] = ItemStack.Empty;
             }
 
             _equipment[slotIndex] = new ItemStack(stack.ItemId, 1, stack.Durability);
 
-            if (equip.Slot == EquipmentSlot.Backpack)
-                RebuildBackpackCapacity();
+            if (((EquipmentSlot)slotIndex).IsPocket())
+                RebuildAllPocketCapacities();
 
             return true;
         }
-        /// <summary>Server-only. Desequipa el slot de equipo dado, mandando el item a la mochila.</summary>
+
+        /// <summary>Server-only. Desequipa el slot de equipo dado, mandando el item al primer pocket con espacio (L primero).</summary>
         [Server]
         public bool TryUnequip(int equipmentSlotIndex)
         {
@@ -278,43 +302,62 @@ namespace Game.Presentation.Combat
             ItemStack equipped = _equipment[equipmentSlotIndex];
             if (equipped.IsEmpty) return false;
 
-            // Buscar un slot libre en la mochila.
-            int freeSlot = -1;
-            for (int i = 0; i < _backpack.Count; i++)
-                if (_backpack[i].IsEmpty) { freeSlot = i; break; }
+            int freeZone = -1, freeIndex = -1;
+            for (int i = 0; i < _pocketL.Count; i++)
+                if (_pocketL[i].IsEmpty) { freeZone = 1; freeIndex = i; break; }
+            if (freeZone < 0)
+                for (int i = 0; i < _pocketR.Count; i++)
+                    if (_pocketR[i].IsEmpty) { freeZone = 2; freeIndex = i; break; }
 
-            if (freeSlot < 0) return false; // mochila llena, no se puede desequipar
+            if (freeZone < 0) return false; // los dos pockets llenos, no se puede desequipar
 
-            _backpack[freeSlot] = equipped;
+            SetSlot(freeZone, freeIndex, equipped);
             _equipment[equipmentSlotIndex] = ItemStack.Empty;
 
-            if ((EquipmentSlot)equipmentSlotIndex == EquipmentSlot.Backpack)
-                RebuildBackpackCapacity();
+            if (((EquipmentSlot)equipmentSlotIndex).IsPocket())
+                RebuildAllPocketCapacities();
 
             return true;
         }
 
-        /// <summary>Server-only. Agrega un stack ya formado a la mochila (para saqueo de contenedores).</summary>
+        /// <summary>Server-only. Agrega un stack ya formado al inventario (para saqueo de contenedores).</summary>
         [Server]
         public int TryAddStack(ItemStack stack)
         {
             return TryAddItem(stack.ItemId, stack.Quantity);
         }
 
+        /// <summary>Valida si un ítem de equipo puede ir al índice de slot dado (pocket-aware: L/R son intercambiables).</summary>
+        private bool ValidEquipTarget(EquipmentItemSO equip, int toIndex)
+        {
+            if (equip.Slot.IsPocket())
+                return toIndex == (int)EquipmentSlot.PocketL || toIndex == (int)EquipmentSlot.PocketR;
+            return (int)equip.Slot == toIndex;
+        }
+
+        /// <summary>Busca el primer slot libre entre los dos pockets. Devuelve (-1,-1) si no hay.</summary>
+        private (int zone, int index) FindFreePocketSlot()
+        {
+            for (int i = 0; i < _pocketL.Count; i++)
+                if (_pocketL[i].IsEmpty) return (1, i);
+            for (int i = 0; i < _pocketR.Count; i++)
+                if (_pocketR[i].IsEmpty) return (2, i);
+            return (-1, -1);
+        }
 
         /// <summary>Server-only. Mueve un item entre dos slots cualesquiera del inventario propio.
-        /// Soporta reorden de mochila, equipar a slot exacto, desequipar, y merge de apilables.</summary>
+        /// Soporta reorden de pockets, equipar a slot exacto, desequipar, y merge de apilables.</summary>
         [Server]
         public bool TryMoveSlot(int fromZone, int fromIndex, int toZone, int toIndex)
         {
             ItemStack from = GetSlot(fromZone, fromIndex);
             if (from.IsEmpty) return false;
 
-            // Validar destino de equipo: el item debe corresponder al slot exacto.
+            // Validar destino de equipo: el item debe corresponder al slot (pocket-aware).
             if (toZone == 0) // Equipment
             {
                 if (_database.GetById(from.ItemId) is not EquipmentItemSO equip) return false;
-                if ((int)equip.Slot != toIndex) return false;
+                if (!ValidEquipTarget(equip, toIndex)) return false;
             }
 
             ItemStack to = GetSlot(toZone, toIndex);
@@ -334,41 +377,38 @@ namespace Game.Presentation.Combat
                         ? new ItemStack(from.ItemId, remaining, from.Durability)
                         : ItemStack.Empty);
 
-                    if (toZone == 0 || fromZone == 0) RebuildBackpackCapacity();
+                    if (toZone == 0 || fromZone == 0) RebuildAllPocketCapacities();
                     return true;
                 }
             }
 
             // Swap normal.
-            // Si el origen es equipo y el destino es mochila, validar que el item
+            // Si el origen es equipo y el destino es un pocket, validar que el item
             // del destino (si hay) pueda ir al slot de equipo origen.
-            if (fromZone == 0 && toZone == 1 && !to.IsEmpty)
+            if (fromZone == 0 && (toZone == 1 || toZone == 2) && !to.IsEmpty)
             {
-                if (_database.GetById(to.ItemId) is not EquipmentItemSO toEquip || (int)toEquip.Slot != fromIndex)
-                {
-                    // No puede ir al slot de equipo: mover el equipo al primer slot libre de mochila.
-                    int freeSlot = -1;
-                    for (int i = 0; i < _backpack.Count; i++)
-                    {
-                        if (_backpack[i].IsEmpty) { freeSlot = i; break; }
-                    }
+                bool destinationFitsBack = _database.GetById(to.ItemId) is EquipmentItemSO toEquip
+                                             && ValidEquipTarget(toEquip, fromIndex);
 
-                    if (freeSlot >= 0)
+                if (!destinationFitsBack)
+                {
+                    // No puede ir al slot de equipo: mover el equipo al primer slot libre entre los pockets.
+                    var (freeZone, freeIndex) = FindFreePocketSlot();
+
+                    if (freeZone >= 0)
                     {
-                        // Hay slot libre: mover equipo ahí, el slot origen queda vacío.
-                        SetSlot(1, freeSlot, from);
+                        SetSlot(freeZone, freeIndex, from);
                         SetSlot(0, fromIndex, ItemStack.Empty);
                     }
                     else
                     {
-                        // No hay slot libre: mover igualmente al slot destino (pisa el item).
-                        // El item pisado se dropea al mundo.
+                        // No hay slot libre: mover igualmente al slot destino (pisa el item, que se dropea).
                         SpawnWorldItemPublic(to, transform.position);
-                        SetSlot(1, toIndex, from);
+                        SetSlot(toZone, toIndex, from);
                         SetSlot(0, fromIndex, ItemStack.Empty);
                     }
 
-                    RebuildBackpackCapacity();
+                    RebuildAllPocketCapacities();
                     return true;
                 }
             }
@@ -376,39 +416,35 @@ namespace Game.Presentation.Combat
             SetSlot(toZone, toIndex, from);
             SetSlot(fromZone, fromIndex, to.IsEmpty ? ItemStack.Empty : to);
 
-            if (toZone == 0 || fromZone == 0) RebuildBackpackCapacity();
+            if (toZone == 0 || fromZone == 0) RebuildAllPocketCapacities();
             return true;
         }
 
-
-        /// <summary>Server-only. Mueve entre el inventario propio y un LootContainer externo.</summary>
+        /// <summary>Server-only. Mueve entre el inventario propio y un LootContainer externo (zone 3).</summary>
         [Server]
         public bool TryMoveWithContainer(int fromZone, int fromIndex, int toZone, int toIndex, LootContainer container)
         {
-            // fromZone/toZone: 0=Equipment, 1=Backpack, 2=Container
-            bool fromContainer = fromZone == 2;
-            bool toContainer   = toZone   == 2;
+            // fromZone/toZone: 0=Equipment, 1=Pocket L, 2=Pocket R, 3=Container
+            bool fromContainer = fromZone == 3;
+            bool toContainer   = toZone   == 3;
 
             if (fromContainer && toContainer) return false; // container→container no aplica
             if (!fromContainer && !toContainer) return false; // ambos internos: usar TryMoveSlot
 
             if (fromContainer)
             {
-                // Container → inventario propio (slot exacto con swap/merge)
                 if (fromIndex < 0 || fromIndex >= container.Contents.Count) return false;
                 ItemStack dragged = container.Contents[fromIndex];
                 if (dragged.IsEmpty) return false;
 
                 ItemStack existing = GetSlot(toZone, toIndex);
 
-                // Validar slot de equipo
                 if (toZone == 0)
                 {
                     if (_database.GetById(dragged.ItemId) is not EquipmentItemSO equip) return false;
-                    if ((int)equip.Slot != toIndex) return false;
+                    if (!ValidEquipTarget(equip, toIndex)) return false;
                 }
 
-                // Merge
                 if (!existing.IsEmpty && existing.ItemId == dragged.ItemId)
                 {
                     ItemSO def = _database.GetById(dragged.ItemId);
@@ -419,7 +455,6 @@ namespace Game.Presentation.Combat
                         int move = Mathf.Min(space, dragged.Quantity);
                         SetSlot(toZone, toIndex, new ItemStack(existing.ItemId, existing.Quantity + move, existing.Durability));
                         int remaining = dragged.Quantity - move;
-                        // Actualizar o quitar del contenedor
                         container.ServerUpdateAt(fromIndex, remaining > 0
                             ? new ItemStack(dragged.ItemId, remaining, dragged.Durability)
                             : ItemStack.Empty);
@@ -427,37 +462,34 @@ namespace Game.Presentation.Combat
                     }
                 }
 
-                // Swap: sacar del contenedor, poner en slot, depositar lo que había
-                container.ServerUpdateAt(fromIndex, ItemStack.Empty); // quita del contenedor
+                container.ServerUpdateAt(fromIndex, ItemStack.Empty);
                 SetSlot(toZone, toIndex, dragged);
                 if (!existing.IsEmpty)
-                    container.ServerDeposit(existing); // lo que había en el slot vuelve al contenedor
+                    container.ServerDeposit(existing);
 
-                if (toZone == 0) RebuildBackpackCapacity();
+                if (toZone == 0) RebuildAllPocketCapacities();
                 return true;
             }
             else
             {
-                // Inventario propio → contenedor (append, sin slot fijo)
                 ItemStack dragged = GetSlot(fromZone, fromIndex);
                 if (dragged.IsEmpty) return false;
 
                 SetSlot(fromZone, fromIndex, ItemStack.Empty);
                 container.ServerDeposit(dragged);
 
-                if (fromZone == 0) RebuildBackpackCapacity();
+                if (fromZone == 0) RebuildAllPocketCapacities();
                 return true;
             }
         }
-
-
 
         private ItemStack GetSlot(int zone, int index)
         {
             return zone switch
             {
                 0 => (index >= 0 && index < _equipment.Count) ? _equipment[index] : ItemStack.Empty,
-                1 => (index >= 0 && index < _backpack.Count)  ? _backpack[index]  : ItemStack.Empty,
+                1 => (index >= 0 && index < _pocketL.Count) ? _pocketL[index] : ItemStack.Empty,
+                2 => (index >= 0 && index < _pocketR.Count) ? _pocketR[index] : ItemStack.Empty,
                 _ => ItemStack.Empty
             };
         }
@@ -467,17 +499,16 @@ namespace Game.Presentation.Combat
             switch (zone)
             {
                 case 0: if (index >= 0 && index < _equipment.Count) _equipment[index] = stack; break;
-                case 1: if (index >= 0 && index < _backpack.Count)  _backpack[index]  = stack; break;
+                case 1: if (index >= 0 && index < _pocketL.Count) _pocketL[index] = stack; break;
+                case 2: if (index >= 0 && index < _pocketR.Count) _pocketR[index] = stack; break;
             }
         }
-
 
         // ---------- IRunInventory ----------
 
         [Server]
         public void CommitToStash()
         {
-            // Al extraer, el inventario se persiste como inventario propio (volvés al menú con todo intacto).
             var snapshot = TakeSnapshot();
             Game.Presentation.Run.PlayerLoadoutService.Save(snapshot);
         }
@@ -486,7 +517,8 @@ namespace Game.Presentation.Combat
         public void DropAll()
         {
             var loot = new List<ItemStack>();
-            foreach (var s in _backpack) if (!s.IsEmpty) loot.Add(s);
+            foreach (var s in _pocketL) if (!s.IsEmpty) loot.Add(s);
+            foreach (var s in _pocketR) if (!s.IsEmpty) loot.Add(s);
             foreach (var s in _equipment) if (!s.IsEmpty) loot.Add(s);
 
             if (loot.Count > 0 && _lootContainerPrefab != null)
@@ -503,7 +535,7 @@ namespace Game.Presentation.Combat
                     container.ServerFill(loot);
                 }
             }
-            // Al morir, el inventario propio persistente se vacía: volvés "desnudo" al menú.
+
             Game.Presentation.Run.PlayerLoadoutService.Clear();
             ClearAll();
         }
@@ -511,9 +543,10 @@ namespace Game.Presentation.Combat
         [Server]
         private void ClearAll()
         {
-            for (int i = 0; i < _backpack.Count; i++) _backpack[i] = ItemStack.Empty;
+            for (int i = 0; i < _pocketL.Count; i++) _pocketL[i] = ItemStack.Empty;
+            for (int i = 0; i < _pocketR.Count; i++) _pocketR[i] = ItemStack.Empty;
             for (int i = 0; i < _equipment.Count; i++) _equipment[i] = ItemStack.Empty;
-            RebuildBackpackCapacity();
+            RebuildAllPocketCapacities();
         }
 
         // ---------- Debug helper (para InventoryDebugger) ----------
@@ -524,9 +557,12 @@ namespace Game.Presentation.Combat
             for (int i = 0; i < _equipment.Count; i++)
                 if (!_equipment[i].IsEmpty)
                     Debug.Log($"  [Equip {(EquipmentSlot)i}] {_equipment[i].ItemId} (dur {_equipment[i].Durability:0.00})");
-            for (int i = 0; i < _backpack.Count; i++)
-                if (!_backpack[i].IsEmpty)
-                    Debug.Log($"  [Slot {i}] {_backpack[i].ItemId} x{_backpack[i].Quantity}");
+            for (int i = 0; i < _pocketL.Count; i++)
+                if (!_pocketL[i].IsEmpty)
+                    Debug.Log($"  [Pocket L {i}] {_pocketL[i].ItemId} x{_pocketL[i].Quantity}");
+            for (int i = 0; i < _pocketR.Count; i++)
+                if (!_pocketR[i].IsEmpty)
+                    Debug.Log($"  [Pocket R {i}] {_pocketR[i].ItemId} x{_pocketR[i].Quantity}");
         }
     }
 }
