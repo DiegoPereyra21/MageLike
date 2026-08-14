@@ -32,8 +32,8 @@
                 </ui:VisualElement>
 
                 <ui:VisualElement name="container-column" class="column container-column">
-                    <ui:Label text="Loot Container" class="column-title" />
-                    <ui:VisualElement name="container-grid" class="backpack-grid" />
+                    <ui:Label name="container-label" text="Loot Container" class="column-title container-title" />
+                    <ui:VisualElement name="container-grid" class="grid backpack-grid" />
                 </ui:VisualElement>
 
             </ui:VisualElement>

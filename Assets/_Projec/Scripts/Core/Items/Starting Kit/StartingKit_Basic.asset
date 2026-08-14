@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: StartingKit_Basic
   m_EditorClassIdentifier: Assembly-CSharp::Game.Core.Items.StartingKitSO
   _equipment:
-  - Slot: 4
+  - Slot: 3
     Item: {fileID: 11400000, guid: c4ea9ce28285afc4cb3dbe9e8b0de257, type: 2}
   - Slot: 2
     Item: {fileID: 11400000, guid: f351658965e9ec3418d6280c00a81cb0, type: 2}
@@ -24,5 +24,5 @@ MonoBehaviour:
     Quantity: 1
   - Item: {fileID: 11400000, guid: 5f931db816594734aa8f131c2885c692, type: 2}
     Quantity: 1
-  - Item: {fileID: 11400000, guid: 9b48f05b0335ef5449e6e6007245a44f, type: 2}
-    Quantity: 1
+  - Item: {fileID: 11400000, guid: c8c4f03512b230f44886e711043cf735, type: 2}
+    Quantity: 3

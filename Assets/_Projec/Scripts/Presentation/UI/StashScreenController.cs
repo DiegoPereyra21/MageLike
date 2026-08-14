@@ -90,6 +90,7 @@ namespace Game.Presentation.UI
 
         private void Redraw()
         {
+            HideTooltip();
             DrawEquipment();
             DrawPockets();
             DrawStash();
@@ -103,7 +104,6 @@ namespace Game.Presentation.UI
 
             for (int i = 0; i < equip.Count; i++)
             {
-                if ((EquipmentSlot)i == EquipmentSlot.Pants) continue; // oculto (pendiente sacarlo del código)
 
                 int slotIndex = i;
                 var row = new VisualElement();

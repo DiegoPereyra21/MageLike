@@ -19,10 +19,11 @@ MonoBehaviour:
   _description: 
   _isStackable: 0
   _maxStack: 1
-  _slot: 4
+  WorldPrefab: {fileID: 0}
+  _slot: 3
   _modifiers:
   - Stat: 0
     Operation: 0
     Value: 0.2
-  _backpackSlots: 0
+  _pocketSlots: 0
   _catalystType: 2

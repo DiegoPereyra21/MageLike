@@ -269,6 +269,16 @@
     -unity-font-style: bold;
 }
 
+.container-column {
+    border-left-width: 2px;
+    border-left-color: rgba(226, 73, 71, 0.4);
+    padding-left: 24px;
+}
+
+.container-title {
+    color: rgb(240, 90, 88);
+}
+
 .tooltip-stat-positive { color: rgb(80, 210, 100); }
 .tooltip-stat-negative { color: rgb(240, 90, 88); }
 .tooltip-stat-neutral  { color: rgb(210, 211, 219); }

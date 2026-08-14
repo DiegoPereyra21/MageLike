@@ -20,6 +20,6 @@ MonoBehaviour:
   _isStackable: 0
   _maxStack: 1
   WorldPrefab: {fileID: 0}
-  _slot: 5
+  _slot: 4
   _modifiers: []
   _pocketSlots: 6

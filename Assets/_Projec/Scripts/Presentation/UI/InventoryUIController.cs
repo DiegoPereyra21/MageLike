@@ -32,6 +32,7 @@ namespace Game.Presentation.UI
         private VisualElement _usableSlots;
         private VisualElement _containerColumn;
         private VisualElement _containerGrid;
+        private Label _containerLabel;
         private VisualElement _tooltip;
         private Label _tooltipTitle;
         private Label _tooltipType;
@@ -90,7 +91,7 @@ namespace Game.Presentation.UI
             _tooltipType = _root.Q<Label>("tooltip-type");
             _tooltipDescription = _root.Q<Label>("tooltip-description");
             _tooltipStats = _root.Q<VisualElement>("tooltip-stats");
-
+            _containerLabel = _root.Q<Label>("container-label");
             BuildUsableSlots();
 
             _inventory.OnInventoryChanged += Redraw;
@@ -153,6 +154,7 @@ namespace Game.Presentation.UI
         private void Redraw()
         {
             if (!_isOpen) return;
+            HideTooltip();
             DrawEquipment();
             DrawPockets();
             DrawContainer();
@@ -164,7 +166,6 @@ namespace Game.Presentation.UI
             var equip = _inventory.Equipment;
             for (int i = 0; i < equip.Count; i++)
             {
-                if ((EquipmentSlot)i == EquipmentSlot.Pants) continue; // oculto (pendiente sacarlo del código)
 
                 int slotIndex = i;
                 var slot = new VisualElement();
@@ -272,6 +273,10 @@ namespace Game.Presentation.UI
             _containerGrid.Clear();
 
             var contents = _openContainer.Contents;
+            int nonEmptyCount = 0;
+            foreach (var s in contents) if (!s.IsEmpty) nonEmptyCount++;
+            if (_containerLabel != null) _containerLabel.text = $"Loot Container — {nonEmptyCount} Items";
+
             for (int i = 0; i < contents.Count; i++)
             {
                 int idx = i;
