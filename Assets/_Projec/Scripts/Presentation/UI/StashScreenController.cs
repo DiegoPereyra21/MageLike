@@ -10,7 +10,8 @@ namespace Game.Presentation.UI
     /// lado. Trabaja sobre datos planos (snapshot del PlayerLoadoutService + StashData del
     /// StashService), sin red. Clic mueve items; shift+clic equipa; arrastrar mueve entre slots.
     /// Cada pocket siempre muestra 12 casilleros; los que superan la capacidad actual del pocket
-    /// equipado quedan bloqueados (oscuros, sin interacción) hasta equipar uno más grande.
+    /// equipado quedan bloqueados. Si cambiar/sacar un pocket dejaría items sin espacio, el
+    /// sobrante se manda al Stash; si el Stash tampoco tiene lugar, el cambio entero se cancela.
     /// </summary>
     [RequireComponent(typeof(UIDocument))]
     public class StashScreenController : MonoBehaviour
@@ -158,8 +159,8 @@ namespace Game.Presentation.UI
         // ---------- Pockets ----------
         private void DrawPockets()
         {
-            NormalizePocket(Inv.PocketL, PocketCapacity(EquipmentSlot.PocketL));
-            NormalizePocket(Inv.PocketR, PocketCapacity(EquipmentSlot.PocketR));
+            RebuildPocketWithRescue(EquipmentSlot.PocketL);
+            RebuildPocketWithRescue(EquipmentSlot.PocketR);
 
             DrawPocketGrid(_pocketLGrid, _pocketLLabel, "Pocket L", Inv.PocketL, SlotZone.PocketL);
             DrawPocketGrid(_pocketRGrid, _pocketRLabel, "Pocket R", Inv.PocketR, SlotZone.PocketR);
@@ -201,11 +202,54 @@ namespace Game.Presentation.UI
             return DefaultPocketCapacity;
         }
 
-        private void NormalizePocket(System.Collections.Generic.List<ItemStack> list, int cap)
+        /// <summary>
+        /// ¿Cambiar el equipo de `targetEquipSlot` a `newItem` (o a nada, si null) dejaría items
+        /// sin espacio? Si es así, ¿el Stash tiene lugar para ellos? No muta nada — solo informa.
+        /// Chequeo conservador: solo cuenta slots vacíos del Stash (no contempla merges posibles).
+        /// </summary>
+        private bool CanShrinkPocketSafely(EquipmentSlot targetEquipSlot, EquipmentItemSO newItem)
         {
+            if (!targetEquipSlot.IsPocket()) return true;
+
+            var list = targetEquipSlot == EquipmentSlot.PocketL ? Inv.PocketL : Inv.PocketR;
+
+            int newCap = (newItem != null && newItem.Slot.IsPocket())
+                ? Mathf.Clamp(newItem.PocketSlots, 0, MaxPocketSlots)
+                : DefaultPocketCapacity;
+            if (newCap <= 0) newCap = DefaultPocketCapacity;
+
+            int overflowCount = 0;
+            for (int i = newCap; i < list.Count; i++)
+                if (!list[i].IsEmpty) overflowCount++;
+
+            if (overflowCount == 0) return true;
+
+            int freeStashSlots = 0;
+            foreach (var s in Stash.Slots) if (s.IsEmpty) freeStashSlots++;
+            return freeStashSlots >= overflowCount;
+        }
+
+        /// <summary>
+        /// Ajusta la lista de un pocket a su capacidad actual: agrega vacíos si creció, y si
+        /// bajó, manda el sobrante al Stash (ya validado antes por CanShrinkPocketSafely — este
+        /// método asume que va a entrar; si por algún motivo no entrara, se descarta en silencio).
+        /// </summary>
+        private void RebuildPocketWithRescue(EquipmentSlot pocketSlot)
+        {
+            var list = pocketSlot == EquipmentSlot.PocketL ? Inv.PocketL : Inv.PocketR;
+            int cap = PocketCapacity(pocketSlot);
+
             while (list.Count < cap) list.Add(ItemStack.Empty);
-            while (list.Count > cap && list.Count > 0 && list[list.Count - 1].IsEmpty)
-                list.RemoveAt(list.Count - 1);
+
+            while (list.Count > cap)
+            {
+                int last = list.Count - 1;
+                ItemStack orphan = list[last];
+                list.RemoveAt(last);
+
+                if (orphan.IsEmpty) continue;
+                Stash.Add(orphan, id => _database.GetById(id));
+            }
         }
 
         // ---------- Stash ----------
@@ -266,7 +310,6 @@ namespace Game.Presentation.UI
             return slot;
         }
 
-        /// <summary>Acento por slot si es equipo (verde=Boots, cian=Hat, violeta=Robe, dorado=Catalyst/Pocket), rojizo genérico si no.</summary>
         private string GetAccentClass(ItemSO def)
         {
             if (def is EquipmentItemSO equip)
@@ -358,14 +401,34 @@ namespace Game.Presentation.UI
 
             ItemStack existing = GetStack(toZone, toIndex);
 
+            // Pre-chequeo (sin mutar todavía): si el destino es un pocket, ¿el sobrante entra en el Stash?
+            if (toZone == SlotZone.Equipment && ((EquipmentSlot)toIndex).IsPocket())
+            {
+                EquipmentItemSO incoming = _database.GetById(item.ItemId) as EquipmentItemSO;
+                if (!CanShrinkPocketSafely((EquipmentSlot)toIndex, incoming))
+                    return; // bloquear el cambio entero
+            }
+
+            // Pre-chequeo: si el origen es un pocket equipado, ¿lo que queda ahí después alcanza?
+            if (fromZone == SlotZone.Equipment && ((EquipmentSlot)fromIndex).IsPocket())
+            {
+                EquipmentItemSO remaining = (!existing.IsEmpty && _database.GetById(existing.ItemId) is EquipmentItemSO exEq) ? exEq : null;
+                if (!CanShrinkPocketSafely((EquipmentSlot)fromIndex, remaining))
+                    return; // bloquear el cambio entero
+            }
+
             SetStack(toZone, toIndex, new ItemStack(item.ItemId, item.Quantity, item.Durability));
             SetStack(fromZone, fromIndex, ItemStack.Empty);
 
             if (!existing.IsEmpty)
                 SetStack(fromZone, fromIndex, existing);
+
+            if (toZone == SlotZone.Equipment && ((EquipmentSlot)toIndex).IsPocket())
+                RebuildPocketWithRescue((EquipmentSlot)toIndex);
+            if (fromZone == SlotZone.Equipment && ((EquipmentSlot)fromIndex).IsPocket())
+                RebuildPocketWithRescue((EquipmentSlot)fromIndex);
         }
 
-        /// <summary>Pocket-aware: un ítem de pocket entra en cualquiera de las dos posiciones (L o R).</summary>
         private bool ValidEquipTarget(EquipmentItemSO equip, int toIndex)
         {
             if (equip.Slot.IsPocket())
@@ -434,12 +497,19 @@ namespace Game.Presentation.UI
 
             if (slotIndex < 0 || slotIndex >= Inv.Equipment.Count) return false;
 
+            // Pre-chequeo: si reemplazamos un pocket más grande por este, ¿el sobrante entra en el Stash?
+            if (((EquipmentSlot)slotIndex).IsPocket() && !CanShrinkPocketSafely((EquipmentSlot)slotIndex, equip))
+                return false; // bloquear el cambio entero
+
             ItemStack current = Inv.Equipment[slotIndex];
             removeFromSource();
             Inv.Equipment[slotIndex] = new ItemStack(stack.ItemId, 1, stack.Durability);
 
             if (!current.IsEmpty)
                 AddToPockets(current);
+
+            if (((EquipmentSlot)slotIndex).IsPocket())
+                RebuildPocketWithRescue((EquipmentSlot)slotIndex);
 
             return true;
         }
@@ -478,12 +548,21 @@ namespace Game.Presentation.UI
             ItemStack stack = Inv.Equipment[equipSlotIndex];
             if (stack.IsEmpty) return;
 
+            EquipmentSlot slotEnum = (EquipmentSlot)equipSlotIndex;
+
+            // Pre-chequeo: si es un pocket, al sacarlo la capacidad vuelve al default (1) — ¿entra el sobrante en el Stash?
+            if (slotEnum.IsPocket() && !CanShrinkPocketSafely(slotEnum, null))
+                return; // bloquear: no se saca nada
+
             AddToPockets(stack);
             Inv.Equipment[equipSlotIndex] = ItemStack.Empty;
+
+            if (slotEnum.IsPocket())
+                RebuildPocketWithRescue(slotEnum);
+
             Redraw();
         }
 
-        /// <summary>Primer slot libre entre los dos pockets (L primero).</summary>
         private bool AddToPockets(ItemStack stack)
         {
             for (int i = 0; i < Inv.PocketL.Count; i++)
