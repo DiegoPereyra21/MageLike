@@ -83,7 +83,6 @@ namespace Game.Presentation.UI
             _abilities = GetComponent<AbilityController>();
             _interaction = GetComponent<PlayerInteraction>();
             _stats = GetComponent<PlayerStats>();
-            _cam = Camera.main;
         }
 
         public override void OnStartClient()
@@ -97,8 +96,9 @@ namespace Game.Presentation.UI
                 enabled = false;
                 return;
             }
-
+            
             var root = _document.rootVisualElement;
+            _cam = GetComponentInChildren<Camera>();
             _healthFill = root.Q<VisualElement>("health-bar-fill");
             _healthText = root.Q<Label>("health-text");
             _manaFill = root.Q<VisualElement>("mana-bar-fill");
@@ -409,7 +409,6 @@ namespace Game.Presentation.UI
             float pop = Mathf.Clamp01(t * 6f);
             float scale = Mathf.Lerp(1.4f, 1f, pop);
 
-            if (_cam == null) _cam = Camera.main;
             if (_cam == null) return;
 
             Vector3 toInstigator = _damageDirectionWorldPos - _cam.transform.position;
