@@ -16,6 +16,9 @@ namespace Game.Presentation.Combat
         [SerializeField] private float _explosionRadius = 2f;
         [SerializeField] private float _lifetime = 8f;
 
+        [Tooltip("Contra qué colisiona. Debe incluir Hitbox (objetivos) y Ground (paredes/piso). Vacío = se resuelve por nombre.")]
+        [SerializeField] private LayerMask _hitMask;
+
         private Vector3 _velocity;
         private float _gravity;
         private float _damage;
@@ -25,6 +28,16 @@ namespace Game.Presentation.Combat
         private bool _exploded;
 
         private bool _firstFrame;
+
+        // Buffer compartido para el OverlapSphere sin allocations. El proyectil corre en Update
+        // del server (single-thread), así que reutilizarlo secuencialmente es seguro.
+        private static readonly Collider[] _overlapBuffer = new Collider[16];
+
+        private void Awake()
+        {
+            if (_hitMask.value == 0)
+                _hitMask = LayerMask.GetMask("Hitbox", "Ground");
+        }
 
         [Server]
         public void Initialize(Vector3 targetPoint, float arcHeight, float flightTime, float damage, int casterNetworkId)
@@ -41,7 +54,6 @@ namespace Game.Presentation.Combat
 
             _velocity = flatDelta / flightTime + Vector3.up * verticalVelocity;
 
-            // Orient nose toward initial velocity right away so it doesn't render facing identity.
             if (_velocity.sqrMagnitude > 0.0001f)
                 transform.rotation = Quaternion.LookRotation(_velocity.normalized);
 
@@ -54,7 +66,6 @@ namespace Game.Presentation.Combat
             if (!base.IsServerStarted) return;
             if (!_initialized || _exploded) return;
 
-            // Skip the spawn frame: its deltaTime is unreliable and would produce a bad first step.
             if (_firstFrame)
             {
                 _firstFrame = false;
@@ -64,12 +75,24 @@ namespace Game.Presentation.Combat
             _velocity.y += _gravity * Time.deltaTime;
             Vector3 step = _velocity * Time.deltaTime;
 
-            // Collision check along this frame's movement.
-            if (Physics.SphereCast(transform.position, 0.3f, step.normalized, out RaycastHit hit,
-                    step.magnitude, ~0, QueryTriggerInteraction.Ignore))
+            // Caso "el objetivo está pegado al proyectil": SphereCast NO detecta colliders que ya
+            // solapan la esfera de partida. Un OverlapSphere previo cubre ese hueco (mismo parche
+            // que ya tienen el proyectil básico y el orbe cargado).
+            int overlapCount = Physics.OverlapSphereNonAlloc(transform.position, 0.3f, _overlapBuffer, _hitMask, QueryTriggerInteraction.Ignore);
+            for (int i = 0; i < overlapCount; i++)
             {
-                // Ignore the caster (the plant itself).
-                if (!(hit.collider.TryGetComponent(out NetworkObject nob) && nob.ObjectId == _casterNetworkId))
+                NetworkObject overlapNob = _overlapBuffer[i].GetComponentInParent<NetworkObject>();
+                if (overlapNob != null && overlapNob.ObjectId == _casterNetworkId) continue; // el propio guardián
+                Explode(transform.position);
+                return;
+            }
+
+            if (Physics.SphereCast(transform.position, 0.3f, step.normalized, out RaycastHit hit,
+                    step.magnitude, _hitMask, QueryTriggerInteraction.Ignore))
+            {
+                // El collider golpeado es la Hitbox (hija); NetworkObject vive en la raíz.
+                NetworkObject nob = hit.collider.GetComponentInParent<NetworkObject>();
+                if (!(nob != null && nob.ObjectId == _casterNetworkId))
                 {
                     Explode(hit.point);
                     return;
@@ -78,7 +101,6 @@ namespace Game.Presentation.Combat
 
             transform.position += step;
 
-            // Face the movement direction (nose-first arc).
             if (step.sqrMagnitude > 0.0001f)
                 transform.rotation = Quaternion.LookRotation(step.normalized);
 
@@ -91,12 +113,14 @@ namespace Game.Presentation.Combat
         {
             _exploded = true;
 
-            Collider[] hits = Physics.OverlapSphere(point, _explosionRadius);
+            Collider[] hits = Physics.OverlapSphere(point, _explosionRadius, _hitMask, QueryTriggerInteraction.Ignore);
             foreach (Collider hit in hits)
             {
-                if (hit.TryGetComponent(out NetworkObject nob) && nob.ObjectId == _casterNetworkId)
-                    continue;
-                if (hit.TryGetComponent(out IDamageable damageable))
+                NetworkObject nob = hit.GetComponentInParent<NetworkObject>();
+                if (nob == null) continue; // geometría (Ground)
+                if (nob.ObjectId == _casterNetworkId) continue; // no dañar al propio guardián
+
+                if (nob.TryGetComponent(out IDamageable damageable))
                     damageable.ApplyDamage(_damage, _casterNetworkId);
             }
 

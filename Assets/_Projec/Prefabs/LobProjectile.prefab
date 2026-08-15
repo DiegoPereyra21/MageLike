@@ -15033,6 +15033,9 @@ MonoBehaviour:
   _networkObjectCache: {fileID: 0}
   _explosionRadius: 2
   _lifetime: 8
+  _hitMask:
+    serializedVersion: 2
+    m_Bits: 576
 --- !u!135 &95591904544216116
 SphereCollider:
   m_ObjectHideFlags: 0

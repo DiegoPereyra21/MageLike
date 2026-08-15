@@ -219,8 +219,9 @@ namespace Game.Presentation.UI
 
         /// <summary>
         /// ¿Cambiar el equipo de `targetEquipSlot` a `newItem` (o a nada, si null) dejaría items
-        /// sin espacio? Si es así, ¿el Stash tiene lugar para ellos? No muta nada — solo informa.
-        /// Chequeo conservador: solo cuenta slots vacíos del Stash (no contempla merges posibles).
+        /// sin espacio? Si es así, simula si el Stash los absorbería (mergeando en pilas
+        /// existentes primero, después en slots vacíos — mismo algoritmo real de StashData.Add).
+        /// No muta nada — trabaja sobre una copia. Solo informa true/false.
         /// </summary>
         private bool CanShrinkPocketSafely(EquipmentSlot targetEquipSlot, EquipmentItemSO newItem)
         {
@@ -233,15 +234,49 @@ namespace Game.Presentation.UI
                 : DefaultPocketCapacity;
             if (newCap <= 0) newCap = DefaultPocketCapacity;
 
-            int overflowCount = 0;
+            var overflow = new System.Collections.Generic.List<ItemStack>();
             for (int i = newCap; i < list.Count; i++)
-                if (!list[i].IsEmpty) overflowCount++;
+                if (!list[i].IsEmpty) overflow.Add(list[i]);
 
-            if (overflowCount == 0) return true;
+            if (overflow.Count == 0) return true;
 
-            int freeStashSlots = 0;
-            foreach (var s in Stash.Slots) if (s.IsEmpty) freeStashSlots++;
-            return freeStashSlots >= overflowCount;
+            // Copia de trabajo del Stash: acá simulamos, no tocamos el real todavía.
+            var simulatedStash = new System.Collections.Generic.List<ItemStack>(Stash.Slots);
+
+            foreach (var item in overflow)
+            {
+                ItemSO def = _database.GetById(item.ItemId);
+                int remaining = item.Quantity;
+
+                // 1. Igual que StashData.Add: mergear en pilas existentes primero.
+                if (def != null && def.IsStackable)
+                {
+                    for (int i = 0; i < simulatedStash.Count && remaining > 0; i++)
+                    {
+                        ItemStack s = simulatedStash[i];
+                        if (s.IsEmpty || s.ItemId != item.ItemId) continue;
+                        int space = def.MaxStack - s.Quantity;
+                        if (space <= 0) continue;
+                        int add = Mathf.Min(space, remaining);
+                        s.Quantity += add;
+                        simulatedStash[i] = s;
+                        remaining -= add;
+                    }
+                }
+
+                // 2. Lo que no mergeó, necesita slots vacíos.
+                while (remaining > 0)
+                {
+                    int freeIndex = simulatedStash.FindIndex(s => s.IsEmpty);
+                    if (freeIndex < 0) return false; // no entra, ni mergeando ni en vacíos
+
+                    int add = (def != null && def.IsStackable) ? Mathf.Min(def.MaxStack, remaining) : 1;
+                    simulatedStash[freeIndex] = new ItemStack(item.ItemId, add, item.Durability);
+                    remaining -= add;
+                }
+            }
+
+            return true;
         }
 
         /// <summary>
