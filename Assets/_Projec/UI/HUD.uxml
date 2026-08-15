@@ -2,6 +2,8 @@
     <Style src="HUD.uss" />
     <ui:VisualElement name="hud-root" class="hud-root">
         <ui:VisualElement name="danger-frame" class="danger-frame" />
+        <ui:VisualElement name="damage-flash" class="damage-flash" />
+        <ui:VisualElement name="damage-indicator" class="damage-indicator" />
 
         <ui:VisualElement name="run-info" class="run-info">
             <ui:Label name="run-timer" text="02:00" class="run-timer" />

@@ -54,6 +54,26 @@ namespace Game.Presentation.UI
         private bool _hitMarkerActive;
 
 
+        [Header("Damage received")]
+        [SerializeField] private AudioSource _damageAudio;
+        [SerializeField] private AudioClip _damageClip;
+        private const float DamageFlashDuration = 0.4f;
+        private const float DamageDirectionDuration = 0.9f;
+        private const float DamageFlashPeakWidth = 36f;
+        private const float DamageFlashPopPhase = 0.06f;
+        private const float DamageFlashRiseFraction = 0.15f;
+
+        private VisualElement _damageFlash;
+        private bool _damageFlashActive;
+        private float _damageFlashStartTime = -999f;
+
+        private VisualElement _damageIndicator;
+        private bool _damageDirectionActive;
+        private float _damageDirectionStartTime = -999f;
+        private Vector3 _damageDirectionWorldPos;
+        private Camera _cam;
+
+
         private void Awake()
         {
             _document = GetComponent<UIDocument>();
@@ -63,6 +83,7 @@ namespace Game.Presentation.UI
             _abilities = GetComponent<AbilityController>();
             _interaction = GetComponent<PlayerInteraction>();
             _stats = GetComponent<PlayerStats>();
+            _cam = Camera.main;
         }
 
         public override void OnStartClient()
@@ -105,6 +126,14 @@ namespace Game.Presentation.UI
             if (_abilities != null)
                 _abilities.OnHitConfirmed += PlayHitMarker;
 
+            _damageFlash = root.Q<VisualElement>("damage-flash");
+            _damageIndicator = root.Q<VisualElement>("damage-indicator");
+            if (_damageIndicator != null)
+                _damageIndicator.generateVisualContent += DrawDamageIndicator;
+
+            if (_health != null)
+                _health.OnDamagedWithDirection += PlayDamageIndicator;
+
             for (int i = 0; i < _cooldownOverlays.Length; i++)
                 _cooldownOverlays[i] = root.Q<VisualElement>($"slot-{i}-cd");
 
@@ -122,6 +151,9 @@ namespace Game.Presentation.UI
 
             if (_stats != null)
                 _stats.OnStatsChanged -= RefreshStatModifiers;
+
+            if (_health != null)
+                _health.OnDamagedWithDirection -= PlayDamageIndicator;
         }
 
         private void Update()
@@ -245,6 +277,11 @@ namespace Game.Presentation.UI
                     _hitMarkerActive = false;
                 _hitMarker.MarkDirtyRepaint();
             }
+
+            UpdateDamageFlash();
+
+            if (_damageDirectionActive && _damageIndicator != null)
+                _damageIndicator.MarkDirtyRepaint();
         }
 
         private void DrawDashRing(MeshGenerationContext ctx)
@@ -288,6 +325,135 @@ namespace Game.Presentation.UI
                 AudioClip clip = isKill ? _killMarkerClip : _hitMarkerClip;
                 if (clip != null) _hitMarkerAudio.PlayOneShot(clip);
             }
+        }
+
+
+        /// <summary>Owner-only. Se dispara al recibir daño propio, con la posición mundial de quien lo
+        /// causó (si se pudo resolver — ver Health.NotifyDamageDirection). Arranca el flash de pantalla
+        /// y el indicador direccional juntos: son dos lecturas del mismo evento.</summary>
+        private void PlayDamageIndicator(Vector3 instigatorWorldPosition)
+        {
+            _damageFlashActive = true;
+            _damageFlashStartTime = Time.unscaledTime;
+
+            _damageDirectionActive = true;
+            _damageDirectionStartTime = Time.unscaledTime;
+            _damageDirectionWorldPos = instigatorWorldPosition;
+
+            if (_damageAudio != null && _damageClip != null)
+                _damageAudio.PlayOneShot(_damageClip);
+        }
+
+/// <summary>Anima el borde full-screen: blanco caliente al impacto (instante), sangra a rojo
+        /// saturado y decae. Deliberadamente distinto en color/técnica de danger-frame (coral tenue,
+        /// estático) para que no se confundan superpuestos.</summary>
+        private void UpdateDamageFlash()
+        {
+            if (_damageFlash == null) return;
+            if (!_damageFlashActive) return;
+
+            float t = (Time.unscaledTime - _damageFlashStartTime) / DamageFlashDuration;
+            if (t >= 1f)
+            {
+                _damageFlashActive = false;
+                SetFlashBorder(0f, Color.clear);
+                return;
+            }
+
+            float width = t < DamageFlashRiseFraction
+                ? Mathf.Lerp(0f, DamageFlashPeakWidth, t / DamageFlashRiseFraction)
+                : Mathf.Lerp(DamageFlashPeakWidth, 0f, (t - DamageFlashRiseFraction) / (1f - DamageFlashRiseFraction));
+
+            Color color;
+            if (t < DamageFlashPopPhase)
+            {
+                float popT = t / DamageFlashPopPhase;
+                color = Color.Lerp(new Color(1f, 1f, 1f, 0.9f), new Color(1f, 0.08f, 0.05f, 0.8f), popT);
+            }
+            else
+            {
+                float fadeT = (t - DamageFlashPopPhase) / (1f - DamageFlashPopPhase);
+                color = new Color(1f, 0.08f, 0.05f, Mathf.Lerp(0.8f, 0f, fadeT));
+            }
+
+            SetFlashBorder(width, color);
+        }
+
+        private void SetFlashBorder(float width, Color color)
+        {
+            _damageFlash.style.borderLeftWidth = width;
+            _damageFlash.style.borderRightWidth = width;
+            _damageFlash.style.borderTopWidth = width;
+            _damageFlash.style.borderBottomWidth = width;
+            _damageFlash.style.borderLeftColor = color;
+            _damageFlash.style.borderRightColor = color;
+            _damageFlash.style.borderTopColor = color;
+            _damageFlash.style.borderBottomColor = color;
+        }
+
+        /// <summary>Wedge que apunta hacia de dónde vino el golpe. Pop de escala al aparecer, se
+        /// sostiene a pleno la primera mitad de su duración y recién ahí decae; contorno oscuro para
+        /// que se lea encima de cualquier fondo (flash de daño / danger-frame incluidos).</summary>
+        private void DrawDamageIndicator(MeshGenerationContext ctx)
+        {
+            if (!_damageDirectionActive) return;
+
+            float t = Mathf.Clamp01((Time.unscaledTime - _damageDirectionStartTime) / DamageDirectionDuration);
+            if (t >= 1f)
+            {
+                _damageDirectionActive = false;
+                return;
+            }
+
+            float alpha = 1f - Mathf.Clamp01((t - 0.5f) / 0.5f);
+            float pop = Mathf.Clamp01(t * 6f);
+            float scale = Mathf.Lerp(1.4f, 1f, pop);
+
+            if (_cam == null) _cam = Camera.main;
+            if (_cam == null) return;
+
+            Vector3 toInstigator = _damageDirectionWorldPos - _cam.transform.position;
+            toInstigator.y = 0f;
+            if (toInstigator.sqrMagnitude < 0.0001f) return;
+            toInstigator.Normalize();
+
+            Vector3 fwd = _cam.transform.forward; fwd.y = 0f; fwd.Normalize();
+            Vector3 right = _cam.transform.right; right.y = 0f; right.Normalize();
+
+            float bearing = Mathf.Atan2(Vector3.Dot(toInstigator, right), Vector3.Dot(toInstigator, fwd)) * Mathf.Rad2Deg;
+
+            float w = _damageIndicator.resolvedStyle.width;
+            float h = _damageIndicator.resolvedStyle.height;
+            if (w <= 0f || h <= 0f) return;
+
+            Vector2 center = new Vector2(w / 2f, h / 2f);
+            float radius = Mathf.Min(w, h) * 0.38f;
+
+            float rad = bearing * Mathf.Deg2Rad;
+            Vector2 dir = new Vector2(Mathf.Sin(rad), -Mathf.Cos(rad));
+            Vector2 tip = center + dir * radius;
+            Vector2 perp = new Vector2(-dir.y, dir.x) * 16f * scale;
+            Vector2 baseA = tip - dir * 30f * scale + perp;
+            Vector2 baseB = tip - dir * 30f * scale - perp;
+
+            var painter = ctx.painter2D;
+
+            painter.strokeColor = new Color(0f, 0f, 0f, alpha * 0.8f);
+            painter.lineWidth = 4f;
+            painter.BeginPath();
+            painter.MoveTo(tip);
+            painter.LineTo(baseA);
+            painter.LineTo(baseB);
+            painter.ClosePath();
+            painter.Stroke();
+
+            painter.fillColor = new Color(1f, 0.25f, 0.15f, alpha);
+            painter.BeginPath();
+            painter.MoveTo(tip);
+            painter.LineTo(baseA);
+            painter.LineTo(baseB);
+            painter.ClosePath();
+            painter.Fill();
         }
 
         /// <summary>Redibuja la lista de bonus/penalizaciones activas del equipo. Solo corre cuando cambian (evento), no por frame.</summary>

@@ -286,3 +286,20 @@
 .stat-modifier-negative {
     color: rgb(240, 90, 88);
 }
+
+.damage-flash {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    border-width: 0px;
+}
+
+.damage-indicator {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+}

@@ -200,8 +200,10 @@ MonoBehaviour:
   _networkObjectCache: {fileID: 4708353133064893462}
   _hitMarkerAudio: {fileID: 170986303580152875}
   _hitMarkerClip: {fileID: 8300000, guid: 22191b49535ef9a42b08d534cdb0d313, type: 3}
-  _killMarkerClip: {fileID: 8300000, guid: e2b41079a8498f148b39332f0a6496eb, type: 3}
+  _killMarkerClip: {fileID: 8300000, guid: 22191b49535ef9a42b08d534cdb0d313, type: 3}
   _hitMarkerDuration: 0.15
+  _damageAudio: {fileID: 170986303580152875}
+  _damageClip: {fileID: 8300000, guid: b682355d1da598e4d88f89d9b5c33d88, type: 3}
 --- !u!114 &5069673391465223464
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -360,7 +362,6 @@ MonoBehaviour:
   _addedNetworkObject: {fileID: 4708353133064893462}
   _networkObjectCache: {fileID: 4708353133064893462}
   _database: {fileID: 11400000, guid: 102308c18b8226846a202b06693b2687, type: 2}
-  _fallbackBackpackSlots: 8
   _lootContainerPrefab: {fileID: 2764254699792074859, guid: 3d07cbfe898310a45a89d7f2119ba857, type: 3}
   _startingKit: {fileID: 11400000, guid: fdfcad62ad451274c9103cfff992f2c4, type: 2}
   _worldItemPrefab: {fileID: 2132299959280697645, guid: 871392e19bc3d75459b2c32fa36490cf, type: 3}
@@ -6066,7 +6067,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 5723800257238090652}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0.544, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
