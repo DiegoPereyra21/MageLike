@@ -81,6 +81,8 @@ namespace Game.Presentation.Run
         /// <summary>Reintenta persistir el estado actual si el último guardado había fallado (ej. al recuperar conexión).</summary>
         public static Task RetrySyncAsync() => PersistAsync(_snapshot);
 
+        private static bool _retryLoopRunning;
+
         private static async Task PersistAsync(InventorySnapshot snapshot)
         {
             for (int attempt = 1; attempt <= MaxSaveRetries; attempt++)
@@ -96,11 +98,39 @@ namespace Game.Presentation.Run
                     if (attempt == MaxSaveRetries)
                     {
                         _pendingSync = true;
-                        Debug.LogWarning($"[PlayerLoadoutService] No se pudo persistir tras {MaxSaveRetries} intentos (queda en cache local, se reintenta más adelante): {e.Message}");
+                        Debug.LogWarning($"[PlayerLoadoutService] No se pudo persistir tras {MaxSaveRetries} intentos, reintentando en background: {e.Message}");
+                        if (!_retryLoopRunning) _ = BackgroundRetryLoopAsync();
                         return;
                     }
                     await Task.Delay(500 * attempt);
                 }
+            }
+        }
+
+        /// <summary>Mientras quede un guardado pendiente, reintenta cada 5s hasta resincronizar.</summary>
+        private static async Task BackgroundRetryLoopAsync()
+        {
+            _retryLoopRunning = true;
+            try
+            {
+                while (_pendingSync)
+                {
+                    await Task.Delay(5000);
+                    if (!_pendingSync) break;
+                    try
+                    {
+                        await Storage.SaveAsync(_snapshot);
+                        _pendingSync = false;
+                    }
+                    catch
+                    {
+                        // sigue pendiente, el while vuelve a intentar
+                    }
+                }
+            }
+            finally
+            {
+                _retryLoopRunning = false;
             }
         }
 

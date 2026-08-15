@@ -20,13 +20,26 @@ namespace Game.Presentation.Bootstrap
         public static bool IsReady { get; private set; }
         public static event Action OnReady;
 
+        private const int LoginRetryDelaySeconds = 5;
+
         private void Start()
         {
             if (IsReady) return; // ya logueado en este proceso (ej. volviste al MainMenu)
-            _ = LoginAsync();
+            _ = LoginLoopAsync();
         }
 
-        private async Task LoginAsync()
+        /// <summary>Reintenta el login indefinidamente cada LoginRetryDelaySeconds hasta que resuelve.</summary>
+        private async Task LoginLoopAsync()
+        {
+            while (!IsReady)
+            {
+                bool success = await TryLoginOnceAsync();
+                if (success) break;
+                await Task.Delay(LoginRetryDelaySeconds * 1000);
+            }
+        }
+
+        private async Task<bool> TryLoginOnceAsync()
         {
             var tcs = new TaskCompletionSource<LoginResult>();
 
@@ -50,13 +63,12 @@ namespace Game.Presentation.Bootstrap
 
                 IsReady = true;
                 OnReady?.Invoke();
+                return true;
             }
             catch (Exception e)
             {
-                Debug.LogError($"[PlayFabSession] Login falló, se sigue en backend local: {e.Message}");
-                // No seteamos IsReady: los botones de MainMenuController quedan deshabilitados.
-                // No hay reintento automático todavía — si esto molesta en playtesting (ej. sin
-                // internet al abrir), el próximo paso natural es un botón de "Reintentar".
+                Debug.LogWarning($"[PlayFabSession] Login falló, reintento en {LoginRetryDelaySeconds}s: {e.Message}");
+                return false;
             }
         }
     }
