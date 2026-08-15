@@ -1,27 +1,73 @@
+using System;
+using System.Threading.Tasks;
 using Game.Core.Items;
+using Game.Core.Run;
+using UnityEngine;
 
 namespace Game.Presentation.Run
 {
     /// <summary>
-    /// Persiste el inventario propio del jugador (snapshot) entre runs, en memoria por ahora
-    /// (se pierde al cerrar; listo para persistencia real después). Provee el kit inicial la
-    /// primera vez.
+    /// Persiste el inventario propio del jugador (snapshot) entre runs. Current es una cache en
+    /// memoria de lectura instantánea; el guardado real se delega a IPlayerLoadoutStorage (local
+    /// por defecto, PlayFab más adelante — cambiar de backend es reasignar Storage, nada más se
+    /// entera). Provee el kit inicial la primera vez que no hay nada guardado.
     /// </summary>
     public static class PlayerLoadoutService
     {
+        private const int MaxSaveRetries = 3;
+
+        /// <summary>Backend activo. Cambiar esto es todo lo que hace falta para migrar de storage.</summary>
+        public static IPlayerLoadoutStorage Storage { get; set; } = new LocalPlayerLoadoutStorage();
+
         private static InventorySnapshot _snapshot;
         private static bool _initialized;
+        private static bool _pendingSync;
 
-        /// <summary>El inventario propio persistente actual. Null si nunca se inicializó.</summary>
+        /// <summary>El inventario propio persistente actual (cache en memoria). Null si nunca se inicializó.</summary>
         public static InventorySnapshot Current => _snapshot;
 
         public static bool HasSnapshot => _initialized && _snapshot != null;
 
-        /// <summary>Guarda una foto nueva (al extraer / al gestionar en el menú).</summary>
+        /// <summary>True si el último guardado falló tras agotar reintentos y todavía no se resincronizó.</summary>
+        public static bool PendingSync => _pendingSync;
+
+        /// <summary>
+        /// Carga desde el storage si nunca se inicializó en este proceso; si no hay nada guardado
+        /// (jugador nuevo), arma el kit inicial y lo persiste. Llamar una vez, del lado cliente,
+        /// antes de necesitar Current (menú / al conectar a una run).
+        /// </summary>
+        public static async Task EnsureInitializedAsync(StartingKitSO kit)
+        {
+            if (_initialized) return;
+
+            InventorySnapshot loaded = null;
+            try
+            {
+                loaded = await Storage.LoadAsync();
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning($"[PlayerLoadoutService] Falló la carga inicial, arranco con kit por defecto: {e.Message}");
+            }
+
+            if (loaded != null)
+            {
+                _snapshot = loaded;
+                _initialized = true;
+                return;
+            }
+
+            _snapshot = BuildSnapshotWithKit(kit);
+            _initialized = true;
+            await PersistAsync(_snapshot); // primera vez: persistir el kit recién otorgado
+        }
+
+        /// <summary>Guarda una foto nueva (al extraer / al gestionar en el menú). Cache instantáneo + persistencia en background.</summary>
         public static void Save(InventorySnapshot snapshot)
         {
             _snapshot = snapshot;
             _initialized = true;
+            _ = PersistAsync(snapshot);
         }
 
         /// <summary>Vacía el inventario propio (al morir: volvés desnudo, pero con los slots de equipo visibles).</summary>
@@ -29,13 +75,37 @@ namespace Game.Presentation.Run
         {
             _snapshot = BuildEmptySnapshot();
             _initialized = true;
+            _ = PersistAsync(_snapshot);
         }
 
-        /// <summary>Inicializa con el kit de principiante si nunca hubo inventario.</summary>
-        public static void EnsureInitialized(StartingKitSO kit)
-        {
-            if (_initialized) return;
+        /// <summary>Reintenta persistir el estado actual si el último guardado había fallado (ej. al recuperar conexión).</summary>
+        public static Task RetrySyncAsync() => PersistAsync(_snapshot);
 
+        private static async Task PersistAsync(InventorySnapshot snapshot)
+        {
+            for (int attempt = 1; attempt <= MaxSaveRetries; attempt++)
+            {
+                try
+                {
+                    await Storage.SaveAsync(snapshot);
+                    _pendingSync = false;
+                    return;
+                }
+                catch (Exception e)
+                {
+                    if (attempt == MaxSaveRetries)
+                    {
+                        _pendingSync = true;
+                        Debug.LogWarning($"[PlayerLoadoutService] No se pudo persistir tras {MaxSaveRetries} intentos (queda en cache local, se reintenta más adelante): {e.Message}");
+                        return;
+                    }
+                    await Task.Delay(500 * attempt);
+                }
+            }
+        }
+
+        private static InventorySnapshot BuildSnapshotWithKit(StartingKitSO kit)
+        {
             var snap = BuildEmptySnapshot();
 
             if (kit != null)
@@ -57,11 +127,10 @@ namespace Game.Presentation.Run
                         snap.PocketL.Add(new ItemStack(b.Item.ItemId, b.Quantity, 1f));
             }
 
-            _snapshot = snap;
-            _initialized = true;
+            return snap;
         }
 
-        /// <summary>Snapshot con un slot vacío por cada EquipmentSlot (sin items). Base común de Clear/EnsureInitialized.</summary>
+        /// <summary>Snapshot con un slot vacío por cada EquipmentSlot (sin items). Base común de Clear/BuildSnapshotWithKit.</summary>
         private static InventorySnapshot BuildEmptySnapshot()
         {
             var snap = new InventorySnapshot();

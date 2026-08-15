@@ -76,9 +76,10 @@ namespace Game.Presentation.UI
             _root.RegisterCallback<PointerUpEvent>(_ => { if (_isDragging) CancelDrag(); });
         }
 
-        public void Show()
+        public async void Show()
         {
-            PlayerLoadoutService.EnsureInitialized(_startingKit);
+            await PlayerLoadoutService.EnsureInitializedAsync(_startingKit);
+            await StashService.EnsureInitializedAsync();
             _root.style.display = DisplayStyle.Flex;
             Redraw();
         }
@@ -88,6 +89,15 @@ namespace Game.Presentation.UI
         private InventorySnapshot Inv => PlayerLoadoutService.Current;
         private StashData Stash => StashService.Stash;
 
+        /// <summary>Persiste el inventario propio y el stash (cache instantánea + guardado en
+        /// background vía PlayerLoadoutService/StashService) y refresca la UI. Llamar después de
+        /// cualquier mutación de Inv o Stash hecha desde esta pantalla.</summary>
+        private void PersistAndRedraw()
+        {
+            PlayerLoadoutService.Save(Inv);
+            StashService.Save(Stash);
+            Redraw();
+        }
         private void Redraw()
         {
             HideTooltip();
@@ -474,7 +484,7 @@ namespace Game.Presentation.UI
             if (!moved) return;
 
             MoveItem(from.Zone, from.Index, destZone, destIndex);
-            Redraw();
+            PersistAndRedraw();
         }
 
         private void CancelDrag() => EndDrag();
@@ -566,14 +576,14 @@ namespace Game.Presentation.UI
             if (index < 0 || index >= list.Count) return;
             ItemStack stack = list[index];
             TryEquip(stack, () => list[index] = ItemStack.Empty);
-            Redraw();
+            PersistAndRedraw();
         }
 
         private void EquipFromStash(int stashIndex)
         {
             ItemStack stack = Stash.Slots[stashIndex];
             TryEquip(stack, () => Stash.TakeAt(stashIndex));
-            Redraw();
+            PersistAndRedraw();
         }
 
         private bool TryEquip(ItemStack stack, System.Action removeFromSource)
@@ -629,7 +639,7 @@ namespace Game.Presentation.UI
             {
                 var s = stack; s.Quantity = notAdded; list[index] = s;
             }
-            Redraw();
+            PersistAndRedraw();
         }
 
         private void MoveStashToInventory(int stashIndex)
@@ -639,7 +649,7 @@ namespace Game.Presentation.UI
 
             AddToPockets(stack);
             Stash.TakeAt(stashIndex);
-            Redraw();
+            PersistAndRedraw();
         }
 
         private void UnequipToPocket(int equipSlotIndex)
@@ -660,7 +670,7 @@ namespace Game.Presentation.UI
             if (slotEnum.IsPocket())
                 RebuildPocketWithRescue(slotEnum);
 
-            Redraw();
+            PersistAndRedraw();
         }
 
         private bool AddToPockets(ItemStack stack)

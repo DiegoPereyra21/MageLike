@@ -42,10 +42,6 @@ namespace Game.Presentation.Combat
                 _equipment.Add(ItemStack.Empty);
 
             RebuildAllPocketCapacities();
-
-            // Cargar el inventario propio persistente (o el kit inicial la primera vez).
-            Game.Presentation.Run.PlayerLoadoutService.EnsureInitialized(_startingKit);
-            ApplySnapshot(Game.Presentation.Run.PlayerLoadoutService.Current);
         }
 
         public override void OnStartClient()
@@ -53,6 +49,22 @@ namespace Game.Presentation.Combat
             _pocketL.OnChange += (op, index, oldItem, newItem, asServer) => OnInventoryChanged?.Invoke();
             _pocketR.OnChange += (op, index, oldItem, newItem, asServer) => OnInventoryChanged?.Invoke();
             _equipment.OnChange += (op, index, oldItem, newItem, asServer) => OnInventoryChanged?.Invoke();
+            if (base.IsOwner)
+                _ = ClientPushLoadoutAsync();
+        }
+
+        /// <summary>Client-only (dueño). Asegura el loadout persistente cargado (PlayFab/local)
+        /// y se lo empuja al servidor para que arme el inventario de esta run.</summary>
+        private async System.Threading.Tasks.Task ClientPushLoadoutAsync()
+        {
+            await Game.Presentation.Run.PlayerLoadoutService.EnsureInitializedAsync(_startingKit);
+            SubmitLoadoutServerRpc(Game.Presentation.Run.PlayerLoadoutService.Current);
+        }
+
+        [ServerRpc]
+        private void SubmitLoadoutServerRpc(Game.Core.Items.InventorySnapshot snapshot)
+        {
+            ApplySnapshot(snapshot);
         }
 
         // ---------- Capacidad de pockets ----------
@@ -508,6 +520,12 @@ namespace Game.Presentation.Combat
         public void CommitToStash()
         {
             var snapshot = TakeSnapshot();
+            SaveLoadoutTargetRpc(base.Owner, snapshot);
+        }
+
+        [TargetRpc]
+        private void SaveLoadoutTargetRpc(FishNet.Connection.NetworkConnection conn, Game.Core.Items.InventorySnapshot snapshot)
+        {
             Game.Presentation.Run.PlayerLoadoutService.Save(snapshot);
         }
 
@@ -534,8 +552,15 @@ namespace Game.Presentation.Combat
                 }
             }
 
-            Game.Presentation.Run.PlayerLoadoutService.Clear();
+            ClearLoadoutTargetRpc(base.Owner);
             ClearAll();
+        }
+
+
+        [TargetRpc]
+        private void ClearLoadoutTargetRpc(FishNet.Connection.NetworkConnection conn)
+        {
+            Game.Presentation.Run.PlayerLoadoutService.Clear();
         }
 
         [Server]

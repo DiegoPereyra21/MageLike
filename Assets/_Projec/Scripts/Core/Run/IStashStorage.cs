@@ -1,15 +1,18 @@
-using System.Collections.Generic;
+using System.Threading.Tasks;
 using Game.Core.Items;
 
 namespace Game.Core.Run
 {
     /// <summary>
-    /// Almacén persistente del jugador (fuera de la run). Contrato: la implementación real
-    /// (memoria ahora, UGS Cloud Save después) se enchufa sin tocar el resto.
+    /// Almacén persistente del stash del jugador (fuera de la run). Contrato: la implementación
+    /// real (local ahora, PlayFab después) se enchufa sin tocar a quien lo consume.
     /// </summary>
     public interface IStashStorage
     {
-        void Deposit(IEnumerable<ItemStack> items);
-        IReadOnlyList<ItemStack> GetAll();
+        /// <summary>Carga el stash persistido. Null si nunca se guardó (primera vez).</summary>
+        Task<StashData> LoadAsync();
+
+        /// <summary>Persiste el estado completo del stash.</summary>
+        Task SaveAsync(StashData stash);
     }
 }

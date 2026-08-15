@@ -44,6 +44,26 @@ namespace Game.Presentation.UI
             _lobbyCreated   = CallResult<LobbyCreated_t>.Create(OnLobbyCreated);
             _lobbyMatchList = CallResult<LobbyMatchList_t>.Create(OnLobbyMatchList);
             _lobbyEnter     = Callback<LobbyEnter_t>.Create(OnLobbyEnter);
+
+            // Host/Join/Stash dependen del loadout persistente listo (login a PlayFab resuelto)
+            // — entrar antes jugaría contra el backend local descartable sin que se note.
+            SetGameplayButtonsEnabled(PlayFabSession.IsReady);
+            PlayFabSession.OnReady += HandleSessionReady;
+        }
+
+        private void OnDisable()
+        {
+            PlayFabSession.OnReady -= HandleSessionReady;
+        }
+
+        private void HandleSessionReady() => SetGameplayButtonsEnabled(true);
+
+        private void SetGameplayButtonsEnabled(bool enabled)
+        {
+            var root = _document.rootVisualElement;
+            root.Q<Button>("host-button").SetEnabled(enabled);
+            root.Q<Button>("join-button").SetEnabled(enabled);
+            root.Q<Button>("stash-button").SetEnabled(enabled);
         }
 
         // ---------- Host ----------
