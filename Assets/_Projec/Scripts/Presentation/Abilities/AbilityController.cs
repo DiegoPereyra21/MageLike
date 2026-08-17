@@ -246,14 +246,14 @@ namespace Game.Presentation.Abilities
             // Validar cooldown autoritativo (de un cast anterior).
             if (Time.time < _serverCooldownEndTime[slot])
             {
-                RejectCastTargetRpc(base.Owner, slot, _serverCooldownEndTime[slot]);
+                RejectCastTargetRpc(base.Owner, slot, _serverCooldownEndTime[slot] - Time.time);
                 return;
             }
 
             // Validar y descontar maná autoritativo (se cobra al EMPEZAR a cargar).
             if (_mana != null && !_mana.TrySpend(ability.ResourceCost))
             {
-                RejectCastTargetRpc(base.Owner, slot, _serverCooldownEndTime[slot]);
+                RejectCastTargetRpc(base.Owner, slot, _serverCooldownEndTime[slot] - Time.time);
                 return;
             }
 
@@ -372,13 +372,13 @@ namespace Game.Presentation.Abilities
 
             if (Time.time < _serverCooldownEndTime[slot])
             {
-                RejectCastTargetRpc(base.Owner, slot, _serverCooldownEndTime[slot]);
+                RejectCastTargetRpc(base.Owner, slot, _serverCooldownEndTime[slot] - Time.time);
                 return;
             }
 
             if (_mana != null && !_mana.TrySpend(ability.ResourceCost))
             {
-                RejectCastTargetRpc(base.Owner, slot, _serverCooldownEndTime[slot]);
+                RejectCastTargetRpc(base.Owner, slot, _serverCooldownEndTime[slot] - Time.time);
                 return;
             }
 
@@ -448,10 +448,11 @@ namespace Game.Presentation.Abilities
         }
 
         [TargetRpc]
-        private void RejectCastTargetRpc(FishNet.Connection.NetworkConnection conn, int slot, float serverCooldownEnd)
+        private void RejectCastTargetRpc(FishNet.Connection.NetworkConnection conn, int slot, float cooldownRemaining)
         {
-            float remaining = serverCooldownEnd - Time.time;
-            _localCooldownEndTime[slot] = remaining > 0f ? serverCooldownEnd : 0f;
+            // Llega el tiempo RESTANTE, no un timestamp del servidor: Time.time cuenta desde el
+            // arranque de cada proceso, así que un absoluto del servidor no significa nada acá.
+            _localCooldownEndTime[slot] = cooldownRemaining > 0f ? Time.time + cooldownRemaining : 0f;
             if (_localCharging[slot])
             {
                 _localCharging[slot] = false;
