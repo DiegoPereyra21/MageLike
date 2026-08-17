@@ -24,6 +24,10 @@ namespace Game.Presentation.Bootstrap
 
         private void Start()
         {
+            // Un server dedicado no persiste inventarios de nadie: cada cliente habla con PlayFab
+            // por su cuenta. Loguear acá sería una cuenta fantasma sin uso.
+            if (LaunchArgs.IsDedicatedServer) return;
+
             if (IsReady) return; // ya logueado en este proceso (ej. volviste al MainMenu)
             _ = LoginLoopAsync();
         }
@@ -43,12 +47,19 @@ namespace Game.Presentation.Bootstrap
         {
             var tcs = new TaskCompletionSource<LoginResult>();
 
+
+            // -playerid permite simular jugadores distintos en la misma máquina (ver LaunchArgs).
+            string customId = string.IsNullOrEmpty(LaunchArgs.PlayerId)
+                ? SystemInfo.deviceUniqueIdentifier
+                : LaunchArgs.PlayerId;
+
             var request = new LoginWithCustomIDRequest
             {
-                CustomId = SystemInfo.deviceUniqueIdentifier,
+                CustomId = customId,
                 CreateAccount = true
             };
 
+            
             PlayFabClientAPI.LoginWithCustomID(request,
                 result => tcs.SetResult(result),
                 error => tcs.SetException(new Exception(error.GenerateErrorReport())));
