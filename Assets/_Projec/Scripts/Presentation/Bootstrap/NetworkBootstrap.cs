@@ -1,16 +1,31 @@
+using System;
 using System.Collections;
+using System.IO;
+using System.Linq;
 using FishNet;
 using FishNet.Managing.Scened;
+using FishNet.Transporting;
 using FishNet.Transporting.Tugboat;
 using UnityEngine;
+#if ENABLE_PLAYFABSERVER_API
+using PlayFab;
+#endif
 
 namespace Game.Presentation.Bootstrap
 {
     /// <summary>
     /// Arranca la red según el rol del proceso, usando Tugboat (IP directa, sin Steam).
-    /// En build el rol viene por línea de comandos (-server / -client / -host, ver LaunchArgs);
-    /// en el editor lo define _editorRole, que solo se usa cuando no hay argumentos.
-    /// El server dedicado carga la escena de run por su cuenta: no depende de ningún menú.
+    ///
+    /// Tres caminos posibles:
+    /// - Build de servidor dedicado bajo PlayFab MPS: el puerto y el ciclo de vida los manda el
+    ///   GSDK (ver StartServerWithGsdk). El puerto NUNCA se hardcodea, lo asigna la plataforma.
+    /// - Build de servidor dedicado suelto (sin GSDK): usa el puerto de línea de comandos. Sirve
+    ///   para probar el .exe de server a mano, sin Docker.
+    /// - Cliente / host: rol por línea de comandos (-client / -host) o por _editorRole en el editor.
+    ///
+    /// IMPORTANTE: requiere "Start On Headless" DESACTIVADO en el ServerManager. Si queda activo,
+    /// FishNet arranca el servidor solo con el puerto por defecto de Tugboat antes de que podamos
+    /// leer el que asigna PlayFab.
     /// </summary>
     public class NetworkBootstrap : MonoBehaviour
     {
@@ -21,6 +36,12 @@ namespace Game.Presentation.Bootstrap
         [SerializeField] private NetworkRole _editorRole = NetworkRole.None;
         [SerializeField] private string _editorAddress = "127.0.0.1";
         [SerializeField] private ushort _editorPort = 7770;
+
+        [Header("PlayFab MPS")]
+        [Tooltip("Nombre del puerto declarado en la configuración del Build de PlayFab. Debe coincidir exactamente.")]
+        [SerializeField] private string _gamePortName = "game_port";
+
+        private const string GsdkConfigEnvVar = "GSDK_CONFIG_FILE";
 
         private void Start()
         {
@@ -36,22 +57,48 @@ namespace Game.Presentation.Bootstrap
                 port = _editorPort;
             }
 
+#if UNITY_SERVER
+            // Un build de servidor dedicado no puede ser otra cosa, con o sin argumentos.
+            role = NetworkRole.Server;
+#endif
+
             if (role == NetworkRole.None)
                 return; // arranque normal por menú, la red la levanta otra cosa
+
+#if ENABLE_PLAYFABSERVER_API
+            if (role == NetworkRole.Server && IsGsdkAvailable())
+            {
+                StartCoroutine(StartServerWithGsdk());
+                return;
+            }
+#endif
 
             ConfigureTransport(address, port);
             StartRole(role);
         }
 
-        /// <summary>Aplica dirección y puerto al transporte activo antes de conectar.</summary>
-        private void ConfigureTransport(string address, ushort port)
+        /// <summary>El GSDK solo sirve si la plataforma nos dejó su archivo de configuración. Hay
+        /// que chequearlo antes de llamar a Start(): si falta, el GSDK cierra el proceso.</summary>
+        private static bool IsGsdkAvailable()
+        {
+            string configPath = Environment.GetEnvironmentVariable(GsdkConfigEnvVar);
+            return !string.IsNullOrEmpty(configPath) && File.Exists(configPath);
+        }
+
+        /// <summary>Devuelve el transporte activo, o null si no es Tugboat.</summary>
+        private static Tugboat GetTugboat()
         {
             var tugboat = InstanceFinder.TransportManager.GetTransport<Tugboat>();
             if (tugboat == null)
-            {
                 Debug.LogError("[NetworkBootstrap] No se encontró el transporte Tugboat en el NetworkManager.");
-                return;
-            }
+            return tugboat;
+        }
+
+        /// <summary>Aplica dirección y puerto al transporte activo antes de conectar.</summary>
+        private void ConfigureTransport(string address, ushort port)
+        {
+            var tugboat = GetTugboat();
+            if (tugboat == null) return;
 
             tugboat.SetPort(port);
             tugboat.SetClientAddress(address);
@@ -89,5 +136,91 @@ namespace Game.Presentation.Bootstrap
             sld.ReplaceScenes = ReplaceOption.All;
             InstanceFinder.SceneManager.LoadGlobalScenes(sld);
         }
+
+#if ENABLE_PLAYFABSERVER_API
+        /// <summary>
+        /// Arranque bajo PlayFab MPS. El orden importa: primero avisamos que estamos inicializando
+        /// (Start), después levantamos el servidor en el puerto que nos asignaron, y recién cuando
+        /// la escena está cargada avisamos que puede entrar gente (ReadyForPlayers). Anunciar
+        /// disponibilidad antes de tiempo haría que lleguen jugadores a un servidor a medio armar.
+        /// </summary>
+        private IEnumerator StartServerWithGsdk()
+        {
+            PlayFabMultiplayerAgentAPI.Start();
+            PlayFabMultiplayerAgentAPI.OnShutDownCallback += OnGsdkShutdown;
+            PlayFabMultiplayerAgentAPI.OnServerActiveCallback += OnGsdkServerActive;
+            PlayFabMultiplayerAgentAPI.OnAgentErrorCallback += OnGsdkAgentError;
+
+            // Un frame para que el GSDK termine de armar su agente en escena.
+            yield return null;
+
+            if (!TryGetGsdkPort(out ushort listeningPort))
+            {
+                Debug.LogError($"[NetworkBootstrap] No se encontró el puerto '{_gamePortName}' en la configuración del GSDK. Revisar que el nombre coincida con el del Build en PlayFab / MultiplayerSettings.json.");
+                Application.Quit(1);
+                yield break;
+            }
+
+            var tugboat = GetTugboat();
+            if (tugboat == null) yield break;
+
+            tugboat.SetPort(listeningPort);
+            // Dentro del container hay que escuchar en todas las interfaces, no en localhost.
+            tugboat.SetServerBindAddress("0.0.0.0", IPAddressType.IPv4);
+
+            Debug.Log($"[NetworkBootstrap] GSDK OK. Escuchando en el puerto {listeningPort}.");
+
+            InstanceFinder.ServerManager.StartConnection();
+
+            yield return LoadRunWhenServerReady();
+
+            PlayFabMultiplayerAgentAPI.ReadyForPlayers();
+            Debug.Log("[NetworkBootstrap] ReadyForPlayers enviado: el servidor queda en StandingBy.");
+        }
+
+        /// <summary>Busca el puerto de juego por nombre en la config que mandó la plataforma.</summary>
+        private bool TryGetGsdkPort(out ushort listeningPort)
+        {
+            listeningPort = 0;
+
+            var connectionInfo = PlayFabMultiplayerAgentAPI.GetGameServerConnectionInfo();
+            if (connectionInfo?.GamePortsConfiguration == null) return false;
+
+            var gamePort = connectionInfo.GamePortsConfiguration
+                .FirstOrDefault(p => string.Equals(p.Name, _gamePortName, StringComparison.OrdinalIgnoreCase));
+
+            if (gamePort == null) return false;
+
+            listeningPort = (ushort)gamePort.ServerListeningPort;
+            return true;
+        }
+
+        /// <summary>PlayFab pasó el servidor a Active: ya hay jugadores asignados en camino.</summary>
+        private void OnGsdkServerActive()
+        {
+            Debug.Log("[NetworkBootstrap] Servidor Active: aceptando jugadores.");
+        }
+
+        /// <summary>PlayFab pide terminar. Hay que cerrar el proceso o la plataforma lo marca como
+        /// cierre sucio.</summary>
+        private void OnGsdkShutdown()
+        {
+            Debug.Log("[NetworkBootstrap] Shutdown pedido por PlayFab, cerrando.");
+            InstanceFinder.ServerManager.StopConnection(true);
+            Application.Quit();
+        }
+
+        private void OnGsdkAgentError(string error)
+        {
+            Debug.LogError($"[NetworkBootstrap] Error de comunicación con el agente de PlayFab: {error}");
+        }
+
+        private void OnDestroy()
+        {
+            PlayFabMultiplayerAgentAPI.OnShutDownCallback -= OnGsdkShutdown;
+            PlayFabMultiplayerAgentAPI.OnServerActiveCallback -= OnGsdkServerActive;
+            PlayFabMultiplayerAgentAPI.OnAgentErrorCallback -= OnGsdkAgentError;
+        }
+#endif
     }
 }

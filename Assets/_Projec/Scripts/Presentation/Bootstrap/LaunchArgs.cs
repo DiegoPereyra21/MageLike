@@ -38,9 +38,20 @@ namespace Game.Presentation.Bootstrap
         /// <summary>Puerto de escucha (server) o de conexión (cliente) (-port).</summary>
         public static ushort Port { get { EnsureParsed(); return _port; } }
 
-        /// <summary>True solo en un proceso arrancado explícitamente como server dedicado.
-        /// Sirve para saltear todo lo que es exclusivo de cliente (login a PlayFab, UI, etc.).</summary>
-        public static bool IsDedicatedServer => Role == NetworkRole.Server;
+        /// <summary>True en cualquier proceso que sea un servidor dedicado: un build hecho con el
+        /// target Dedicated Server siempre lo es, con o sin argumentos. Sirve para saltear todo lo
+        /// que es exclusivo de cliente (login a PlayFab, UI, etc.).</summary>
+        public static bool IsDedicatedServer
+        {
+            get
+            {
+#if UNITY_SERVER
+                return true;
+#else
+                return Role == NetworkRole.Server;
+#endif
+            }
+        }
 
         /// <summary>Identidad de PlayFab forzada por línea de comandos (-playerid). TEMPORAL: sirve
         /// para levantar varias instancias en la misma máquina con cuentas distintas, ya que
