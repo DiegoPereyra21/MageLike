@@ -18,6 +18,13 @@ namespace Game.Presentation.Bootstrap
     public class PlayFabSession : MonoBehaviour
     {
         public static bool IsReady { get; private set; }
+
+        /// <summary>Entity Key del jugador logueado (lo que usan las APIs de matchmaking, distinto
+        /// del PlayFabId). Vacío hasta que IsReady sea true.</summary>
+        public static string EntityId { get; private set; }
+        public static string EntityType { get; private set; }
+
+
         public static event Action OnReady;
 
         private const int LoginRetryDelaySeconds = 5;
@@ -68,7 +75,8 @@ namespace Game.Presentation.Bootstrap
             {
                 var result = await tcs.Task;
                 Debug.Log($"[PlayFabSession] Login OK. PlayFabId: {result.PlayFabId}");
-
+                EntityId = result.EntityToken?.Entity?.Id;
+                EntityType = result.EntityToken?.Entity?.Type;
                 Game.Presentation.Run.PlayerLoadoutService.Storage = new Game.Presentation.Run.PlayFabPlayerLoadoutStorage();
                 Game.Presentation.Run.StashService.Storage = new Game.Presentation.Run.PlayFabStashStorage();
 

@@ -125,28 +125,22 @@
     -unity-text-align: upper-center;
 }
 
-.lobby-list {
-    min-height: 220px;
-    max-height: 340px;
-    margin-bottom: 16px;
-}
-
-.lobby-entry {
-    background-color: rgba(29, 30, 41, 0.5);
-    border-radius: 7px;
-    padding: 13px;
-    margin-bottom: 8px;
-    color: rgb(220, 221, 229);
-    font-size: 15px;
-}
-
 .lobby-entry:hover {
     background-color: rgba(48, 49, 66, 0.6);
 }
 
-.lobby-empty {
-    color: rgb(111, 113, 125);
-    padding: 13px;
-    font-size: 14px;
+.search-status {
+    -unity-font-definition: url("/Assets/_Projec/Fonts/Manrope-Bold.ttf");
+    font-size: 15px;
+    color: rgb(220, 221, 229);
     -unity-text-align: upper-center;
+    margin-bottom: 8px;
+}
+
+.search-timer {
+    -unity-font-definition: url("/Assets/_Projec/Fonts/Cinzel-Medium.ttf");
+    font-size: 28px;
+    color: rgb(186, 146, 253);
+    -unity-text-align: upper-center;
+    margin-bottom: 20px;
 }

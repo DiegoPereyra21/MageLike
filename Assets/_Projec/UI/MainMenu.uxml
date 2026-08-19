@@ -10,8 +10,7 @@
             </ui:VisualElement>
             <ui:Label text="EXTRACTION SPELLCRAFT" class="game-subtitle" />
             <ui:VisualElement class="menu-buttons">
-                <ui:Button name="host-button" text="Host Run" class="menu-button primary" />
-                <ui:Button name="join-button" text="Join Run" class="menu-button" />
+                <ui:Button name="find-match-button" text="Find Run" class="menu-button primary" />
                 <ui:Button name="stash-button" text="Stash" class="menu-button" />
                 <ui:Button name="quit-button" text="Exit" class="menu-button quit" />
             </ui:VisualElement>
@@ -19,11 +18,12 @@
 
         <ui:Label text="v0.4.2 · Vertical Slice" class="version-tag" />
 
-        <!-- Panel de lobbies (oculto por defecto) -->
-        <ui:VisualElement name="lobby-panel" class="lobby-panel">
-            <ui:Label text="Available Runs" class="lobby-title" />
-            <ui:ScrollView name="lobby-list" class="lobby-list" />
-            <ui:Button name="lobby-cancel" text="Cancel" class="menu-button quit" />
+        <!-- Panel de búsqueda de partida (oculto por defecto) -->
+        <ui:VisualElement name="search-panel" class="lobby-panel">
+            <ui:Label text="Searching for a Run" class="lobby-title" />
+            <ui:Label name="search-status" text="Entering the queue..." class="search-status" />
+            <ui:Label name="search-timer" text="0:00" class="search-timer" />
+            <ui:Button name="search-cancel" text="Cancel" class="menu-button quit" />
         </ui:VisualElement>
     </ui:VisualElement>
 </ui:UXML>

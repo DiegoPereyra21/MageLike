@@ -413,8 +413,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 299d57060f71fb1478d8ecd634d5e04d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MainMenuController
-  _runSceneName: Run
   _stashScreen: {fileID: 1396314635}
+  _matchmaking: {fileID: 1554046102}
+  _fallbackServerAddress: 127.0.0.1
+  _fallbackServerPort: 56100
 --- !u!114 &1302570103
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -533,6 +535,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1554046100}
   - component: {fileID: 1554046099}
+  - component: {fileID: 1554046102}
   m_Layer: 0
   m_Name: PlayFabSession
   m_TagString: Untagged
@@ -567,6 +570,21 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1554046102
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1554046098}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4021f29a3b0e5764dacaf87a864ce76d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Presentation.Bootstrap.MatchmakingService
+  _queueName: SpellHaulRaid
+  _giveUpAfterSeconds: 120
+  _pollIntervalSeconds: 6
 --- !u!1 &2001619984
 GameObject:
   m_ObjectHideFlags: 0
@@ -587,6 +605,7 @@ GameObject:
   - component: {fileID: 2001619995}
   - component: {fileID: 2001619998}
   - component: {fileID: 2001619997}
+  - component: {fileID: 2001619999}
   m_Layer: 0
   m_Name: NetworkManager
   m_TagString: Untagged
@@ -808,6 +827,19 @@ MonoBehaviour:
   _frameRate: 500
   _shareIds: 1
   _startOnHeadless: 0
+--- !u!114 &2001619999
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2001619984}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f99ed6c36176fd44cb59450ae71099e0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Presentation.Bootstrap.NetworkDisconnectHandler
+  _menuSceneName: MainMenu
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

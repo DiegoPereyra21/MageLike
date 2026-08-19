@@ -1,8 +1,8 @@
 using FishNet;
 using FishNet.Managing.Scened;
+using Game.Presentation.Bootstrap;
 using UnityEngine;
 using UnityEngine.UIElements;
-using Game.Presentation.Bootstrap;
 
 namespace Game.Presentation.UI
 {
@@ -57,13 +57,10 @@ namespace Game.Presentation.UI
             UnityEngine.Cursor.visible = true;
         }
 
-        private void OnReturnClicked()
+            private void OnReturnClicked()
         {
-            // Abandonar el lobby de Steam si estamos en uno.
-            var lobbyId = LobbySession.Current;
-            if (LobbySession.IsValid())
-                Steamworks.SteamMatchmaking.LeaveLobby(lobbyId);
-            LobbySession.Clear();
+            // Salida voluntaria: que el handler de desconexión no la trate como caída.
+            NetworkDisconnectHandler.NotifyIntentionalDisconnect();
 
             if (InstanceFinder.IsServerStarted) InstanceFinder.ServerManager.StopConnection(true);
             if (InstanceFinder.IsClientStarted) InstanceFinder.ClientManager.StopConnection();

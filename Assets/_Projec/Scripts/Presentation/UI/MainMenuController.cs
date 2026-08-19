@@ -1,59 +1,88 @@
-using System.Collections;
-using System.Collections.Generic;
 using FishNet;
-using FishNet.Managing.Scened;
-using Steamworks;
+using FishNet.Transporting.Tugboat;
+using Game.Presentation.Bootstrap;
 using UnityEngine;
 using UnityEngine.UIElements;
-using Game.Presentation.Bootstrap;
 
 namespace Game.Presentation.UI
 {
+    /// <summary>
+    /// Menú principal. "Find Run" mete al jugador en la cola de matchmaking de PlayFab; cuando
+    /// hay match, conecta al servidor dedicado. Ya no existe el modo host: nadie expone su PC.
+    /// </summary>
     [RequireComponent(typeof(UIDocument))]
     public class MainMenuController : MonoBehaviour
     {
-        [SerializeField] private string _runSceneName = "Run";
         [SerializeField] private StashScreenController _stashScreen;
+        [SerializeField] private MatchmakingService _matchmaking;
+
+        [Header("Servidor (temporal)")]
+        [Tooltip("Mientras la queue no tenga server allocation, el match se juega contra esta dirección. Apuntar al LocalMultiplayerAgent para probar.")]
+        [SerializeField] private string _fallbackServerAddress = "127.0.0.1";
+        [SerializeField] private ushort _fallbackServerPort = 56100;
 
         private UIDocument _document;
-        private VisualElement _lobbyPanel;
-        private ScrollView _lobbyList;
-
-        // Callbacks de Steam (hay que guardar referencia para que no sean GC'd)
-        private CallResult<LobbyCreated_t> _lobbyCreated;
-        private CallResult<LobbyMatchList_t> _lobbyMatchList;
-        private Callback<LobbyEnter_t> _lobbyEnter;
-
-        private CSteamID _joinedLobby;
+        private VisualElement _searchPanel;
+        private Label _searchStatus;
+        private Label _searchTimer;
+        private float _searchStartTime;
+        private bool _searching;
 
         private void OnEnable()
         {
             _document = GetComponent<UIDocument>();
             var root = _document.rootVisualElement;
 
-            root.Q<Button>("host-button").clicked  += OnHostClicked;
-            root.Q<Button>("join-button").clicked  += OnJoinClicked;
+            root.Q<Button>("find-match-button").clicked += OnFindMatchClicked;
             root.Q<Button>("stash-button").clicked += () => { if (_stashScreen != null) _stashScreen.Show(); };
-            root.Q<Button>("quit-button").clicked  += () => Application.Quit();
-            root.Q<Button>("lobby-cancel").clicked += () => SetLobbyPanel(false);
+            root.Q<Button>("quit-button").clicked += () => Application.Quit();
+            root.Q<Button>("search-cancel").clicked += OnCancelSearchClicked;
 
-            _lobbyPanel = root.Q<VisualElement>("lobby-panel");
-            _lobbyList  = root.Q<ScrollView>("lobby-list");
+            _searchPanel = root.Q<VisualElement>("search-panel");
+            _searchStatus = root.Q<Label>("search-status");
+            _searchTimer = root.Q<Label>("search-timer");
 
-            // Registrar callbacks de Steam.
-            _lobbyCreated   = CallResult<LobbyCreated_t>.Create(OnLobbyCreated);
-            _lobbyMatchList = CallResult<LobbyMatchList_t>.Create(OnLobbyMatchList);
-            _lobbyEnter     = Callback<LobbyEnter_t>.Create(OnLobbyEnter);
-
-            // Host/Join/Stash dependen del loadout persistente listo (login a PlayFab resuelto)
-            // — entrar antes jugaría contra el backend local descartable sin que se note.
+            // Jugar y tocar el stash dependen del loadout persistente listo (login a PlayFab
+            // resuelto) — entrar antes jugaría contra el backend local descartable.
             SetGameplayButtonsEnabled(PlayFabSession.IsReady);
             PlayFabSession.OnReady += HandleSessionReady;
+
+            if (_matchmaking != null)
+            {
+                _matchmaking.OnStateChanged += HandleMatchmakingState;
+                _matchmaking.OnFailed += HandleMatchmakingFailed;
+            }
+
+            NetworkDisconnectHandler.OnUnexpectedDisconnect += HandleUnexpectedDisconnect;
+
+            // Si volvimos acá por una caída de conexión, mostrarlo apenas se abre el menú.
+            string disconnectMessage = NetworkDisconnectHandler.LastDisconnectMessage;
+            if (!string.IsNullOrEmpty(disconnectMessage))
+            {
+                NetworkDisconnectHandler.ConsumeDisconnectMessage();
+                ShowNotice(disconnectMessage);
+            }
         }
 
         private void OnDisable()
         {
             PlayFabSession.OnReady -= HandleSessionReady;
+
+            if (_matchmaking != null)
+            {
+                _matchmaking.OnStateChanged -= HandleMatchmakingState;
+                _matchmaking.OnFailed -= HandleMatchmakingFailed;
+            }
+
+            NetworkDisconnectHandler.OnUnexpectedDisconnect -= HandleUnexpectedDisconnect;
+        }
+
+        private void Update()
+        {
+            if (!_searching) return;
+
+            float elapsed = Time.time - _searchStartTime;
+            _searchTimer.text = $"{(int)(elapsed / 60f)}:{(int)(elapsed % 60f):00}";
         }
 
         private void HandleSessionReady() => SetGameplayButtonsEnabled(true);
@@ -61,129 +90,115 @@ namespace Game.Presentation.UI
         private void SetGameplayButtonsEnabled(bool enabled)
         {
             var root = _document.rootVisualElement;
-            root.Q<Button>("host-button").SetEnabled(enabled);
-            root.Q<Button>("join-button").SetEnabled(enabled);
+            root.Q<Button>("find-match-button").SetEnabled(enabled);
             root.Q<Button>("stash-button").SetEnabled(enabled);
         }
 
-        // ---------- Host ----------
+        // ---------- Matchmaking ----------
 
-        private void OnHostClicked()
+        private void OnFindMatchClicked()
         {
-            // Crear lobby público con máximo 6 jugadores.
-            var handle = SteamMatchmaking.CreateLobby(ELobbyType.k_ELobbyTypePublic, 6);
-            _lobbyCreated.Set(handle);
-        }
-
-        private void OnLobbyCreated(LobbyCreated_t result, bool failure)
-        {
-            if (failure || result.m_eResult != EResult.k_EResultOK)
+            if (_matchmaking == null)
             {
-                Debug.LogError("[Steam] Error al crear el lobby.");
+                Debug.LogError("[MainMenu] Falta asignar el MatchmakingService en el inspector.");
                 return;
             }
 
-            CSteamID lobbyId = new CSteamID(result.m_ulSteamIDLobby);
+            _searchStartTime = Time.time;
+            _searching = true;
+            _searchStatus.text = "Entering the queue...";
+            _searchTimer.text = "0:00";
+            SetSearchPanel(true);
 
-            // Guardar el SteamID del host en los metadatos del lobby para que los clientes puedan conectarse.
-            SteamMatchmaking.SetLobbyData(lobbyId, "hostSteamId",
-                SteamUser.GetSteamID().ToString());
-            SteamMatchmaking.SetLobbyData(lobbyId, "gameName", "MageLike");
+            _matchmaking.StartSearch();
+        }
 
-            Debug.Log($"[Steam] Lobby creado: {lobbyId}");
-            LobbySession.Set(lobbyId);
+        private void OnCancelSearchClicked()
+        {
+            _matchmaking?.CancelSearch();
+            _searching = false;
+            SetSearchPanel(false);
+        }
 
-            // Arrancar server+client y cargar la run.
-            InstanceFinder.ServerManager.StartConnection();
+        private void HandleMatchmakingState(MatchmakingService.State state)
+        {
+            switch (state)
+            {
+                case MatchmakingService.State.Searching:
+                    _searchStatus.text = "Looking for other mages...";
+                    break;
+
+                case MatchmakingService.State.Matched:
+                    _searching = false;
+                    _searchStatus.text = "Run found. Connecting...";
+                    ConnectToMatchServer();
+                    break;
+
+                case MatchmakingService.State.Idle:
+                    _searching = false;
+                    SetSearchPanel(false);
+                    break;
+            }
+        }
+
+        private void HandleMatchmakingFailed(string reason)
+        {
+            _searching = false;
+            _searchStatus.text = reason;
+            // Se deja el panel abierto con el motivo: el jugador cierra con Cancel cuando lo leyó.
+        }
+
+
+                private void HandleUnexpectedDisconnect(string reason)
+        {
+            NetworkDisconnectHandler.ConsumeDisconnectMessage();
+            _matchmaking?.CancelSearch();
+            ShowNotice(reason);
+        }
+
+        /// <summary>Reusa el panel de búsqueda como cartel de aviso: el jugador lo cierra con Cancel.</summary>
+        private void ShowNotice(string message)
+        {
+            _searching = false;
+            _searchStatus.text = message;
+            _searchTimer.text = string.Empty;
+            SetSearchPanel(true);
+        }
+
+        /// <summary>
+        /// Conecta al servidor de la partida. Mientras la queue no tenga server allocation
+        /// (requiere el Build desplegado en MPS), se usa la dirección de fallback del inspector.
+        /// Cuando eso exista, ServerDetails trae IP y puerto reales y esto es lo único que cambia.
+        /// </summary>
+        private void ConnectToMatchServer()
+        {
+            string address = _fallbackServerAddress;
+            ushort port = _fallbackServerPort;
+
+            var details = _matchmaking.ServerDetails;
+            if (details != null && !string.IsNullOrEmpty(details.IPV4Address))
+            {
+                address = details.IPV4Address;
+                if (details.Ports != null && details.Ports.Count > 0)
+                    port = (ushort)details.Ports[0].Num;
+            }
+
+            var tugboat = InstanceFinder.TransportManager.GetTransport<Tugboat>();
+            if (tugboat == null)
+            {
+                Debug.LogError("[MainMenu] No se encontró el transporte Tugboat.");
+                return;
+            }
+
+            tugboat.SetClientAddress(address);
+            tugboat.SetPort(port);
+
+            Debug.Log($"[MainMenu] Conectando a {address}:{port}");
             InstanceFinder.ClientManager.StartConnection();
-            StartCoroutine(LoadRunWhenReady());
+            // La escena de run la carga el servidor: llega como escena global al conectar.
         }
 
-        // ---------- Join ----------
-
-        private void OnJoinClicked()
-        {
-            SetLobbyPanel(true);
-            _lobbyList.Clear();
-
-            // Filtrar lobbies de MageLike y pedirla lista.
-            SteamMatchmaking.AddRequestLobbyListStringFilter("gameName", "MageLike",
-                ELobbyComparison.k_ELobbyComparisonEqual);
-            var handle = SteamMatchmaking.RequestLobbyList();
-            _lobbyMatchList.Set(handle);
-        }
-
-        private void OnLobbyMatchList(LobbyMatchList_t result, bool failure)
-        {
-            if (failure) { Debug.LogError("[Steam] Error al buscar lobbies."); return; }
-
-            if (result.m_nLobbiesMatching == 0)
-            {
-                var empty = new Label("No runs available.");
-                empty.AddToClassList("lobby-empty");
-                _lobbyList.Add(empty);
-                return;
-            }
-
-            for (int i = 0; i < result.m_nLobbiesMatching; i++)
-            {
-                CSteamID lobbyId = SteamMatchmaking.GetLobbyByIndex(i);
-                string hostId    = SteamMatchmaking.GetLobbyData(lobbyId, "hostSteamId");
-                int members      = SteamMatchmaking.GetNumLobbyMembers(lobbyId);
-                int maxMembers   = SteamMatchmaking.GetLobbyMemberLimit(lobbyId);
-
-                var entry = new Label($"Run  {members}/{maxMembers} players");
-                entry.AddToClassList("lobby-entry");
-
-                CSteamID capturedLobby = lobbyId;
-                entry.RegisterCallback<ClickEvent>(_ => JoinLobby(capturedLobby, hostId));
-                _lobbyList.Add(entry);
-            }
-        }
-
-        private void JoinLobby(CSteamID lobbyId, string hostSteamId)
-        {
-            _joinedLobby = lobbyId;
-            SteamMatchmaking.JoinLobby(lobbyId);
-            // OnLobbyEnter se dispara cuando Steam confirma la entrada.
-        }
-
-        private void OnLobbyEnter(LobbyEnter_t result)
-        {
-            if (result.m_EChatRoomEnterResponse != (uint)EChatRoomEnterResponse.k_EChatRoomEnterResponseSuccess)
-            {
-                Debug.LogError("[Steam] No se pudo entrar al lobby.");
-                return;
-            }
-
-            CSteamID lobbyId  = new CSteamID(result.m_ulSteamIDLobby);
-            LobbySession.Set(lobbyId);
-            string hostSteamId = SteamMatchmaking.GetLobbyData(lobbyId, "hostSteamId");
-
-            if (string.IsNullOrEmpty(hostSteamId))
-            {
-                Debug.LogError("[Steam] No se encontró el SteamID del host.");
-                return;
-            }
-
-            SetLobbyPanel(false);
-
-            // Conectarse al host por Steam P2P Relay.
-            InstanceFinder.ClientManager.StartConnection(hostSteamId);
-        }
-
-        // ---------- Helpers ----------
-
-        private void SetLobbyPanel(bool visible)
-            => _lobbyPanel.style.display = visible ? DisplayStyle.Flex : DisplayStyle.None;
-
-        private IEnumerator LoadRunWhenReady()
-        {
-            while (!InstanceFinder.IsServerStarted) yield return null;
-
-            SceneLoadData sld = new SceneLoadData(_runSceneName);
-            sld.ReplaceScenes = ReplaceOption.All;
-            InstanceFinder.SceneManager.LoadGlobalScenes(sld);
-        }
+        private void SetSearchPanel(bool visible)
+            => _searchPanel.style.display = visible ? DisplayStyle.Flex : DisplayStyle.None;
     }
 }
