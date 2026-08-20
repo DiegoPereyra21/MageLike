@@ -18,6 +18,14 @@ namespace Game.Presentation.Combat
         [SerializeField] private float _loseRadius = 16f;      // un poco mayor: histéresis para no titilar
         [SerializeField] private float _moveSpeed = 3.5f;
         [SerializeField] private float _repathInterval = 0.2f; // cada cuánto recalcula el destino
+        [Header("Patrullaje")]
+        [SerializeField] private float _patrolRadius = 6f;
+        [SerializeField] private float _patrolSpeed = 1.8f;
+        [SerializeField] private float _patrolWaitMin = 2f;
+        [SerializeField] private float _patrolWaitMax = 5f;
+        [Header("Visión")]
+        [SerializeField] private LayerMask _visionBlockMask;   // qué bloquea la línea de visión (default: Ground)
+        [SerializeField] private float _eyeHeight = 1.6f;
         [Header("Attack")]
         [SerializeField] private float _attackRange = 2f;
         [SerializeField] private float _attackWindup = 0.4f;   // telegrafía antes del golpe
@@ -33,14 +41,19 @@ namespace Game.Presentation.Combat
         private float _windupTimer;   // cuenta regresiva del windup
         private bool _winding;        // está preparando un golpe
 
+        private Vector3 _spawnPosition;
+        private bool _hasPatrolTarget;
+        private float _patrolWaitTimer;
         private void Awake()
         {
             _agent = GetComponent<NavMeshAgent>();
             _health = GetComponent<Health>();
+            if (_visionBlockMask == 0) _visionBlockMask = LayerMask.GetMask("Ground");
         }
 
         public override void OnStartServer()
         {
+            _spawnPosition = transform.position;
             _agent.speed = _moveSpeed;
             _agent.enabled = true; // el agent solo vive en el servidor
             _health.OnDied += HandleDied;
@@ -85,6 +98,37 @@ namespace Game.Presentation.Combat
             {
                 _target = nearest;
                 _state = State.Chase;
+                _agent.speed = _moveSpeed;
+                return;
+            }
+
+            TickPatrol();
+        }
+
+        /// <summary>Deambula cerca del punto de spawn mientras no hay objetivo: camina a un punto
+        /// aleatorio dentro de _patrolRadius, espera un rato, repite.</summary>
+        private void TickPatrol()
+        {
+            _agent.speed = _patrolSpeed;
+
+            if (_hasPatrolTarget)
+            {
+                if (!_agent.pathPending && _agent.remainingDistance <= _agent.stoppingDistance)
+                {
+                    _hasPatrolTarget = false;
+                    _patrolWaitTimer = Random.Range(_patrolWaitMin, _patrolWaitMax);
+                }
+                return;
+            }
+
+            _patrolWaitTimer -= Time.deltaTime;
+            if (_patrolWaitTimer > 0f) return;
+
+            Vector3 randomPoint = _spawnPosition + Random.insideUnitSphere * _patrolRadius;
+            if (_agent.isOnNavMesh && NavMesh.SamplePosition(randomPoint, out NavMeshHit hit, _patrolRadius, NavMesh.AllAreas))
+            {
+                _agent.SetDestination(hit.position);
+                _hasPatrolTarget = true;
             }
         }
 
@@ -167,13 +211,26 @@ namespace Game.Presentation.Combat
                 if (p.TryGetComponent(out Game.Presentation.Combat.PlayerExtractionState ext) && ext.IsExtracted) continue;
 
                 float d = Vector3.Distance(transform.position, p.transform.position);
-                if (d <= best)
-                {
-                    best = d;
-                    nearest = p.transform;
-                }
+                if (d > best) continue;
+                if (!HasLineOfSight(p.transform)) continue;
+
+                best = d;
+                nearest = p.transform;
             }
             return nearest;
+        }
+
+        /// <summary>Raycast entre los "ojos" de este enemigo y los del objetivo. True si no hay
+        /// nada de por medio (Ground: paredes, cajas, piso).</summary>
+        private bool HasLineOfSight(Transform target)
+        {
+            Vector3 origin = transform.position + Vector3.up * _eyeHeight;
+            Vector3 targetPoint = target.position + Vector3.up * _eyeHeight;
+            Vector3 offset = targetPoint - origin;
+            float distance = offset.magnitude;
+            if (distance < 0.01f) return true;
+
+            return !Physics.Raycast(origin, offset / distance, distance, _visionBlockMask, QueryTriggerInteraction.Ignore);
         }
 
         private bool TargetIsValid()

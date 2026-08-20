@@ -14,6 +14,8 @@ namespace Game.Presentation.Combat
     {
         [Header("Detección")]
         [SerializeField] private float _detectionRadius = 15f;
+        [SerializeField] private LayerMask _visionBlockMask;   // qué bloquea la línea de visión (default: Ground)
+        [SerializeField] private float _eyeHeight = 1.4f;
 
         [Header("Disparo")]
         [SerializeField] private GameObject _projectilePrefab;
@@ -29,6 +31,7 @@ namespace Game.Presentation.Combat
         private void Awake()
         {
             _health = GetComponent<Health>();
+            if (_visionBlockMask == 0) _visionBlockMask = LayerMask.GetMask("Ground");
         }
 
         public override void OnStartServer()
@@ -93,7 +96,10 @@ namespace Game.Presentation.Combat
                 if (p.TryGetComponent(out Health h) && h.IsDead) continue;
                 if (p.TryGetComponent(out PlayerExtractionState ext) && ext.IsExtracted) continue;
                 float d = Vector3.Distance(transform.position, p.transform.position);
-                if (d <= best) { best = d; nearest = p.transform; }
+                if (d > best) continue;
+                if (!HasLineOfSight(p.transform)) continue;
+                best = d;
+                nearest = p.transform;
             }
             return nearest;
         }
@@ -104,7 +110,21 @@ namespace Game.Presentation.Combat
             if (_target.TryGetComponent(out Health h) && h.IsDead) return false;
             if (_target.TryGetComponent(out PlayerExtractionState ext) && ext.IsExtracted) return false;
             if (Vector3.Distance(transform.position, _target.position) > _detectionRadius) return false;
+            if (!HasLineOfSight(_target)) return false;
             return true;
+        }
+        
+        /// <summary>Raycast entre los "ojos" de este enemigo y los del objetivo. True si no hay
+        /// nada de por medio (Ground: paredes, cajas, piso).</summary>
+        private bool HasLineOfSight(Transform target)
+        {
+            Vector3 origin = transform.position + Vector3.up * _eyeHeight;
+            Vector3 targetPoint = target.position + Vector3.up * _eyeHeight;
+            Vector3 offset = targetPoint - origin;
+            float distance = offset.magnitude;
+            if (distance < 0.01f) return true;
+
+            return !Physics.Raycast(origin, offset / distance, distance, _visionBlockMask, QueryTriggerInteraction.Ignore);
         }
     }
 }

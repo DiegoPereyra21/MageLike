@@ -26,10 +26,10 @@ namespace Game.Presentation.Run
         private readonly SyncVar<int> _extractedCount = new SyncVar<int>();
         private readonly SyncVar<int> _deadCount = new SyncVar<int>();
         private readonly SyncVar<RunPhase> _phase = new SyncVar<RunPhase>(RunPhase.InProgress);
-        [SerializeField] private float _runDuration = 12f; // duración antes de la fase de peligro
+        [SerializeField] private float _runDuration = 60f; // duración antes de la fase de peligro
         [Header("Fase de peligro")]
         [Tooltip("Daño aplicado a cada jugador vivo por cada tick, mientras dure la fase de peligro.")]
-        [SerializeField] private float _dangerPhaseDamagePerTick = 7f;
+        [SerializeField] private float _dangerPhaseDamagePerTick = 12f;
         [Tooltip("Segundos entre cada tick de daño de la fase de peligro.")]
         [SerializeField] private float _dangerPhaseTickInterval = 1f;
 
