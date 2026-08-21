@@ -26,6 +26,12 @@ namespace Game.Presentation.Combat
         {
             TryRegisterInRunManager();
         }
+        public override void OnStopServer()
+        {
+            // Se fue sin morir ni extraer (desconexión): que no quede contado como vivo.
+            if (Game.Presentation.Run.RunManager.Instance != null)
+                Game.Presentation.Run.RunManager.Instance.UnregisterPlayer(base.ObjectId);
+        }
 
         private void TryRegisterInRunManager()
         {

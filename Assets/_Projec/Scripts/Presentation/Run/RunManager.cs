@@ -35,6 +35,12 @@ namespace Game.Presentation.Run
 
         private float _dangerPhaseTickTimer;
 
+        /// <summary>El timer de la run no corre hasta que entra el primer jugador. Bajo MPS el
+        /// proceso arranca mucho antes de que el matchmaking le asigne gente (queda en StandingBy
+        /// un rato indeterminado): si el reloj corriera desde el boot, los jugadores entrarían a
+        /// una run ya vencida.</summary>
+        private bool _runStarted;
+
         private readonly SyncVar<float> _timeRemaining = new SyncVar<float>();
         public float TimeRemaining => _timeRemaining.Value;
         /// <summary>Solo servidor. Se dispara al entrar en la fase de peligro (timer a 0).</summary>
@@ -64,6 +70,7 @@ namespace Game.Presentation.Run
             _statuses.Clear();
             _timeRemaining.Value = _runDuration;
             _phase.Value = RunPhase.InProgress;
+            _runStarted = false;
             _aliveCount.Value = 0;
             _extractedCount.Value = 0;
             _deadCount.Value = 0;
@@ -78,6 +85,7 @@ namespace Game.Presentation.Run
         private void Update()
         {
             if (!base.IsServerInitialized) return;
+            if (!_runStarted) return; // esperando al primer jugador
 
             if (_phase.Value == RunPhase.InProgress)
             {
@@ -136,13 +144,34 @@ namespace Game.Presentation.Run
             //       (que se queda como piso mínimo de presión, no se reemplaza).
         }
         /// <summary>Server-only. Registra un jugador como vivo al entrar a la run.</summary>
+        /// <summary>Server-only. Registra un jugador como vivo al entrar a la run.</summary>
         public void RegisterPlayer(int playerObjectId)
         {
             if (!base.IsServerInitialized) return;
             if (_statuses.ContainsKey(playerObjectId)) return;
 
             _statuses[playerObjectId] = PlayerRunStatus.Alive;
+
+            if (!_runStarted)
+            {
+                _runStarted = true;
+                _timeRemaining.Value = _runDuration;
+                Debug.Log("[RunManager] Primer jugador en la run: arranca el timer.");
+            }
+
             RecountAndSync();
+        }
+
+        /// <summary>Server-only. Saca a un jugador que se fue sin morir ni extraer (desconexión,
+        /// cierre del juego). Sin esto queda contado como vivo para siempre y la run nunca
+        /// termina, con lo cual el proceso del servidor tampoco se cierra.</summary>
+        public void UnregisterPlayer(int playerObjectId)
+        {
+            if (!base.IsServerInitialized) return;
+            if (!_statuses.Remove(playerObjectId)) return;
+
+            RecountAndSync();
+            CheckRunEnd();
         }
 
         /// <summary>Server-only. Marca a un jugador como extraído.</summary>
@@ -198,9 +227,10 @@ namespace Game.Presentation.Run
         private void CheckRunEnd()
         {
             if (_phase.Value == RunPhase.Ended) return; // solo evita re-terminar
-            if (_statuses.Count == 0) return;
+            if (!_runStarted) return;                   // nunca entró nadie: no hay run que terminar
 
-            if (_aliveCount.Value <= 0)
+            // Si ya no queda nadie registrado (todos se desconectaron), la run también terminó.
+            if (_statuses.Count == 0 || _aliveCount.Value <= 0)
             {
                 _phase.Value = RunPhase.Ended;
                 OnRunEnded?.Invoke();

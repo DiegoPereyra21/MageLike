@@ -15,12 +15,14 @@ namespace Game.Presentation.Player
         [SerializeField] private MonoBehaviour[] _extraToDisable; // cámara, etc.
         [SerializeField] private Collider _bodyCollider;
         [SerializeField] private Game.Presentation.UI.InventoryUIController _inventoryUI;
+        [Tooltip("Raíz del modelo visible. Si queda vacío se usa este mismo objeto. Al morir o extraer se ocultan sus renderers: el avatar ya no está en la run, dejar el cuerpo parado confunde (el loot cae aparte, en su propio LootContainer).")]
+        [SerializeField] private Transform _modelRoot;
 
         private bool _controlDisabled;
 
         /// <summary>
-        /// Desactiva todo el control del avatar. Idempotente (llamar dos veces no hace daño).
-        /// Corre en todas las instancias (via el RPC del handler que lo llame).
+        /// Desactiva todo el control del avatar y lo oculta. Idempotente (llamar dos veces no
+        /// hace daño). Corre en todas las instancias (via el RPC del handler que lo llame).
         /// </summary>
         public void DisableControl()
         {
@@ -38,6 +40,19 @@ namespace Game.Presentation.Player
 
             if (_inventoryUI != null)
                 _inventoryUI.DisableInventory();
+
+            HideModel();
+        }
+
+        /// <summary>Apaga los renderers en vez del GameObject entero: desactivar el objeto se
+        /// llevaría puesta la cámara y demás componentes hijos que el dueño todavía necesita
+        /// para ver la pantalla de resultados.</summary>
+        private void HideModel()
+        {
+            Transform root = _modelRoot != null ? _modelRoot : transform;
+            var renderers = root.GetComponentsInChildren<Renderer>(true);
+            foreach (var r in renderers)
+                if (r != null) r.enabled = false;
         }
     }
 }

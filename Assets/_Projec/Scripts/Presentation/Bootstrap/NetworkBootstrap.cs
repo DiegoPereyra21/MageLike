@@ -174,8 +174,25 @@ namespace Game.Presentation.Bootstrap
 
             yield return LoadRunWhenServerReady();
 
+            // LoadGlobalScenes es asíncrono: la escena (y con ella el RunManager) todavía no
+            // existe cuando la corrutina anterior termina. Sin esta espera, la suscripción se
+            // pierde en silencio y el servidor nunca se entera de que la run terminó.
+            float runManagerTimeout = 30f;
+            while (Game.Presentation.Run.RunManager.Instance == null && runManagerTimeout > 0f)
+            {
+                runManagerTimeout -= Time.deltaTime;
+                yield return null;
+            }
+
             if (Game.Presentation.Run.RunManager.Instance != null)
+            {
                 Game.Presentation.Run.RunManager.Instance.OnRunEnded += HandleRunEndedOnDedicatedServer;
+                Debug.Log("[NetworkBootstrap] Suscripto a OnRunEnded: el proceso se cerrará al terminar la run.");
+            }
+            else
+            {
+                Debug.LogError("[NetworkBootstrap] El RunManager nunca apareció. El servidor NO se auto-cerrará al terminar la run.");
+            }
 
             PlayFabMultiplayerAgentAPI.ReadyForPlayers();
             Debug.Log("[NetworkBootstrap] ReadyForPlayers enviado: el servidor queda en StandingBy.");
