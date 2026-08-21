@@ -174,6 +174,9 @@ namespace Game.Presentation.Bootstrap
 
             yield return LoadRunWhenServerReady();
 
+            if (Game.Presentation.Run.RunManager.Instance != null)
+                Game.Presentation.Run.RunManager.Instance.OnRunEnded += HandleRunEndedOnDedicatedServer;
+
             PlayFabMultiplayerAgentAPI.ReadyForPlayers();
             Debug.Log("[NetworkBootstrap] ReadyForPlayers enviado: el servidor queda en StandingBy.");
         }
@@ -206,6 +209,23 @@ namespace Game.Presentation.Bootstrap
         private void OnGsdkShutdown()
         {
             Debug.Log("[NetworkBootstrap] Shutdown pedido por PlayFab, cerrando.");
+            InstanceFinder.ServerManager.StopConnection(true);
+            Application.Quit();
+        }
+
+        /// <summary>La run terminó (todos extrajeron o murieron). Bajo MPS, este proceso solo
+        /// sirve para UNA partida — hay que cerrarlo para que PlayFab libere el cupo y arranque
+        /// uno genuinamente nuevo para la próxima. Un margen antes de cerrar para que los
+        /// clientes terminen de ver la pantalla de resultados y desconecten en paz.</summary>
+        private void HandleRunEndedOnDedicatedServer()
+        {
+            Debug.Log("[NetworkBootstrap] Run terminada. Cerrando el proceso en unos segundos para liberar la instancia.");
+            StartCoroutine(ShutdownAfterRunEnded());
+        }
+
+        private IEnumerator ShutdownAfterRunEnded()
+        {
+            yield return new WaitForSeconds(8f);
             InstanceFinder.ServerManager.StopConnection(true);
             Application.Quit();
         }
