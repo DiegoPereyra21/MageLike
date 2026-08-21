@@ -27,6 +27,10 @@ namespace Game.Presentation.Bootstrap
         [Tooltip("PlayFab permite hasta 10 consultas por minuto: no bajar de 6 segundos.")]
         [SerializeField] private float _pollIntervalSeconds = 6f;
 
+    
+        [Tooltip("Latencia estimada (ms) hacia la única región desplegada hoy (East US). Placeholder hasta medir con QoS beacons reales.")]
+        [SerializeField] private int _estimatedLatencyMs = 150;
+
         public State CurrentState { get; private set; } = State.Idle;
 
         /// <summary>Id del match encontrado. Solo válido en estado Matched.</summary>
@@ -43,6 +47,7 @@ namespace Game.Presentation.Bootstrap
 
         private string _ticketId;
         private Coroutine _pollRoutine;
+        private bool _recoveringFromStaleTicket;
 
         /// <summary>Entra en la cola. No hace nada si ya está buscando.</summary>
         public void StartSearch()
@@ -62,22 +67,70 @@ namespace Game.Presentation.Bootstrap
 
             var request = new CreateMatchmakingTicketRequest
             {
-                    Creator = new MatchmakingPlayer
+                Creator = new MatchmakingPlayer
                 {
                     Entity = new EntityKey
                     {
                         Id = PlayFabSession.EntityId,
                         Type = PlayFabSession.EntityType,
                     },
-                    // Sin atributos: la queue no tiene reglas. Cuando se agreguen (skill, región),
-                    // hay que mandar Attributes con DataObject — nunca un objeto vacío, PlayFab
-                    // lo rechaza porque exige DataObject o EscapedDataObject, uno de los dos.
+                    // La región selection rule de la queue exige esto. Latencia fija estimada
+                    // hasta integrar QoS beacons reales (solo hay una región desplegada por
+                    // ahora, así que no cambia nada medir de verdad todavía).
+                    Attributes = new MatchmakingPlayerAttributes
+                    {
+                        DataObject = new
+                        {
+                            Latencies = new object[]
+                            {
+                                new { region = "EastUs", latency = _estimatedLatencyMs }
+                            }
+                        }
+                    },
                 },
                 GiveUpAfterSeconds = _giveUpAfterSeconds,
                 QueueName = _queueName,
             };
 
-            PlayFabMultiplayerAPI.CreateMatchmakingTicket(request, OnTicketCreated, OnApiError);
+            PlayFabMultiplayerAPI.CreateMatchmakingTicket(request, OnTicketCreated, OnCreateTicketError);
+        }
+
+        /// <summary>
+        /// Si el error es "ya sos miembro de otro ticket" (ej. un cancel anterior que no llegó a
+        /// completarse del lado del servidor), la recuperación documentada por PlayFab es cancelar
+        /// TODOS los tickets del jugador y reintentar. Solo se reintenta una vez, para no entrar
+        /// en loop si el problema fuera otro.
+        /// </summary>
+        private void OnCreateTicketError(PlayFabError error)
+        {
+            bool isStaleTicket = error.Error == PlayFabErrorCode.MatchmakingTicketMembershipLimitExceeded;
+
+            if (isStaleTicket && !_recoveringFromStaleTicket)
+            {
+                _recoveringFromStaleTicket = true;
+                Debug.LogWarning("[Matchmaking] Ticket perdido de un intento anterior, limpiando y reintentando...");
+
+                PlayFabMultiplayerAPI.CancelAllMatchmakingTicketsForPlayer(
+                    new CancelAllMatchmakingTicketsForPlayerRequest
+                    {
+                        Entity = new EntityKey { Id = PlayFabSession.EntityId, Type = PlayFabSession.EntityType },
+                        QueueName = _queueName,
+                    },
+                    _ =>
+                    {
+                        _recoveringFromStaleTicket = false;
+                        StartSearch();
+                    },
+                    cancelError =>
+                    {
+                        _recoveringFromStaleTicket = false;
+                        OnApiError(cancelError);
+                    });
+                return;
+            }
+
+            _recoveringFromStaleTicket = false;
+            OnApiError(error);
         }
 
         /// <summary>Sale de la cola. Cancela el ticket en PlayFab si había uno emitido.</summary>

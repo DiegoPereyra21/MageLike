@@ -29,7 +29,7 @@ namespace Game.Presentation.Run
         [SerializeField] private float _runDuration = 60f; // duración antes de la fase de peligro
         [Header("Fase de peligro")]
         [Tooltip("Daño aplicado a cada jugador vivo por cada tick, mientras dure la fase de peligro.")]
-        [SerializeField] private float _dangerPhaseDamagePerTick = 12f;
+        [SerializeField] private float _dangerPhaseDamagePerTick = 120f;
         [Tooltip("Segundos entre cada tick de daño de la fase de peligro.")]
         [SerializeField] private float _dangerPhaseTickInterval = 1f;
 
@@ -75,7 +75,7 @@ namespace Game.Presentation.Run
         }
 
 
-                private void Update()
+        private void Update()
         {
             if (!base.IsServerInitialized) return;
 
@@ -98,7 +98,7 @@ namespace Game.Presentation.Run
         /// <summary>Server-only. Daño ambiental parejo a todo jugador vivo, cada
         /// _dangerPhaseTickInterval segundos. Versión simplificada de la fase de peligro hasta que
         /// haya enemigos (hunters) para spawnear — ver el TODO de EnterDangerPhase.</summary>
-                private void TickDangerPhaseDamage()
+        private void TickDangerPhaseDamage()
         {
             _dangerPhaseTickTimer += Time.deltaTime;
             if (_dangerPhaseTickTimer < _dangerPhaseTickInterval) return;
