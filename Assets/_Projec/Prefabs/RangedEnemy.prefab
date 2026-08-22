@@ -212,6 +212,10 @@ MonoBehaviour:
   _addedNetworkObject: {fileID: 5032515547589133333}
   _networkObjectCache: {fileID: 5032515547589133333}
   _detectionRadius: 15
+  _visionBlockMask:
+    serializedVersion: 2
+    m_Bits: 0
+  _eyeHeight: 1.4
   _projectilePrefab: {fileID: 9077845970666463845, guid: 007947feaa3cedf4b975548e3fa50a77, type: 3}
   _fireRate: 2
   _projectileSpeed: 25
@@ -246,7 +250,7 @@ MonoBehaviour:
   _clientAuthoritative: 0
   _sendToOwner: 1
   _interval: 1
-  _synchronizePosition: 1
+  _synchronizePosition: 0
   _positionSensitivity: 0.001
   _positionSnapping:
     X: 0

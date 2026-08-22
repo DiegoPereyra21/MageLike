@@ -126,6 +126,15 @@ namespace Game.Presentation.Player
             _sprintAction.Disable();
             _lookAction.Disable();
         }
+        public override void OnStartServer()
+        {
+            PlayerRegistry.Register(this);
+        }
+
+        public override void OnStopServer()
+        {
+            PlayerRegistry.Unregister(this);
+        }
 
         public override void OnStartNetwork()
         {

@@ -26,9 +26,11 @@ namespace Game.Presentation.Abilities
         [SerializeField] private TrajectoryPreviewController _trajectoryPreview;
         [SerializeField] private ChargeVFXController _chargeVfx;
 
-        private readonly float[] _localCooldownEndTime = new float[5];
-        // Cooldowns autoritativos del servidor (Time.time del servidor en que cada slot vuelve a estar listo).
-        private readonly float[] _serverCooldownEndTime = new float[5];
+        // Cooldowns en ticks de red (TimeManager.Tick), no Time.time: evita el degrade de
+        // precisión de un float acumulando desde el boot del proceso, y usa el mismo reloj
+        // que ya gobierna prediction/lag-comp en vez de uno paralelo.
+        private readonly uint[] _localCooldownEndTick = new uint[5];
+        private readonly uint[] _serverCooldownEndTick = new uint[5];
         // Aim más reciente recibido durante un windup en curso (re-apuntado en tiempo real).
         private readonly Vector3[] _pendingAimDirection = new Vector3[5];
         private readonly Vector3[] _pendingAimPoint = new Vector3[5];
@@ -36,11 +38,11 @@ namespace Game.Presentation.Abilities
 
         // Carga sostenida (habilidades chargeable). El tiempo real lo mide el SERVIDOR:
         // el cliente solo avisa "empecé" y "solté"; nunca manda cuánto cargó.
-        private readonly float[] _serverChargeStartTime = new float[5];
+        private readonly uint[] _serverChargeStartTick = new uint[5];
         private readonly bool[] _serverCharging = new bool[5];
         private readonly bool[] _localCharging = new bool[5];
         // Reloj LOCAL, solo para el preview de trayectoria (aproximado, no autoritativo).
-        private readonly float[] _localChargeStartTime = new float[5];
+        private readonly uint[] _localChargeStartTick = new uint[5];
 
         private Mana _mana;
         private PlayerMovementController _movement;
@@ -72,19 +74,35 @@ namespace Game.Presentation.Abilities
             }
         }
 
-        /// <summary>Progreso de cooldown del slot (0 = listo, 1 = recién usado). Usa la predicción local del owner.</summary>
-        public float GetCooldownProgress(int slot)
+        // ---------- Helpers de tiempo (ticks) ----------
+
+        private bool IsOnCooldown(uint endTick) => base.TimeManager.Tick < endTick;
+
+        /// <summary>Segundos restantes hasta endTick, en el reloj local de este lado (server o cliente). 0 si ya pasó.</summary>
+        private float RemainingSeconds(uint endTick)
         {
-            if (slot < 0 || slot >= _localCooldownEndTime.Length) return 0f;
+            uint now = base.TimeManager.Tick;
+            if (endTick <= now) return 0f;
+            return (float)base.TimeManager.TicksToTime(endTick - now);
+        }
+
+        private uint TicksFromNow(float seconds) => base.TimeManager.Tick + base.TimeManager.TimeToTicks(seconds);
+
+        private float GetCooldownRemainingNormalized(int slot)
+        {
+            if (slot < 0 || slot >= _localCooldownEndTick.Length) return 0f;
 
             AbilitySO ability = _equippedAbilities[slot];
             if (ability == null || ability.Cooldown <= 0f) return 0f;
 
-            float remaining = _localCooldownEndTime[slot] - Time.time;
+            float remaining = RemainingSeconds(_localCooldownEndTick[slot]);
             if (remaining <= 0f) return 0f;
 
             return Mathf.Clamp01(remaining / ability.Cooldown);
         }
+
+        /// <summary>Progreso de cooldown del slot (0 = listo, 1 = recién usado). Usa la predicción local del owner.</summary>
+        public float GetCooldownProgress(int slot) => GetCooldownRemainingNormalized(slot);
 
         private void Awake()
         {
@@ -144,8 +162,9 @@ namespace Game.Presentation.Abilities
                     // Preview de trayectoria: se actualiza cada frame mientras se sostiene.
                     if (_localCharging[i] && ability.ShowTrajectoryPreview && _trajectoryPreview != null)
                     {
+                        float held = (float)base.TimeManager.TicksToTime(base.TimeManager.Tick - _localChargeStartTick[i]);
                         float t = ability.MaxChargeDuration > 0f
-                            ? Mathf.Clamp01((Time.time - _localChargeStartTime[i]) / ability.MaxChargeDuration)
+                            ? Mathf.Clamp01(held / ability.MaxChargeDuration)
                             : 1f;
                         ability.GetLaunchForCharge(t, out float launchSpeed, out float gravity);
                         ResolveAim(out _, out Vector3 aimPoint);
@@ -168,7 +187,7 @@ namespace Game.Presentation.Abilities
             if (ability == null) return;
 
             // Chequeos locales (feedback inmediato, no autoritativos).
-            if (Time.time < _localCooldownEndTime[slot]) return;
+            if (IsOnCooldown(_localCooldownEndTick[slot])) return;
             if (_mana != null && _mana.Current < ability.ResourceCost) return;
 
             // Predicción local de cooldown solamente. El maná lo descuenta y sincroniza el servidor.
@@ -204,11 +223,11 @@ namespace Game.Presentation.Abilities
 
             // Chequeos locales (feedback inmediato, no autoritativos). El cooldown de esta
             // habilidad recién se predice al SOLTAR (arranca cuando se dispara, no al cargar).
-            if (Time.time < _localCooldownEndTime[slot]) return;
+            if (IsOnCooldown(_localCooldownEndTick[slot])) return;
             if (_mana != null && _mana.Current < ability.ResourceCost) return;
 
             _localCharging[slot] = true;
-            _localChargeStartTime[slot] = Time.time;
+            _localChargeStartTick[slot] = base.TimeManager.Tick;
             _chargeVfx?.BeginCharge(ability.MaxChargeDuration); // telegrafía local instantánea
             BeginChargeServerRpc(slot);
         }
@@ -244,23 +263,23 @@ namespace Game.Presentation.Abilities
             if (_serverCharging[slot]) return; // ya estaba cargando
 
             // Validar cooldown autoritativo (de un cast anterior).
-            if (Time.time < _serverCooldownEndTime[slot])
+            if (IsOnCooldown(_serverCooldownEndTick[slot]))
             {
-                RejectCastTargetRpc(base.Owner, slot, _serverCooldownEndTime[slot] - Time.time);
+                RejectCastTargetRpc(base.Owner, slot, RemainingSeconds(_serverCooldownEndTick[slot]));
                 return;
             }
 
             // Validar y descontar maná autoritativo (se cobra al EMPEZAR a cargar).
             if (_mana != null && !_mana.TrySpend(ability.ResourceCost))
             {
-                RejectCastTargetRpc(base.Owner, slot, _serverCooldownEndTime[slot] - Time.time);
+                RejectCastTargetRpc(base.Owner, slot, RemainingSeconds(_serverCooldownEndTick[slot]));
                 return;
             }
 
             // El cooldown NO arranca acá: arranca al soltar (ver ReleaseChargeServerRpc),
             // para que cargar más tiempo no "regale" cooldown gratis.
             _serverCharging[slot] = true;
-            _serverChargeStartTime[slot] = Time.time; // reloj del SERVIDOR: el cliente no decide la carga
+            _serverChargeStartTick[slot] = base.TimeManager.Tick; // reloj del SERVIDOR: el cliente no decide la carga
 
             PlayChargeVfxObserversRpc(ability.MaxChargeDuration); // telegrafía para los demás
         }
@@ -278,10 +297,10 @@ namespace Game.Presentation.Abilities
 
             // Cooldown arranca AHORA (al disparar), no cuando empezó a cargar.
             float castSpeed = _stats != null ? _stats.CastSpeedMultiplier : 1f;
-            _serverCooldownEndTime[slot] = Time.time + ability.Cooldown / Mathf.Max(0.1f, castSpeed);
+            _serverCooldownEndTick[slot] = TicksFromNow(ability.Cooldown / Mathf.Max(0.1f, castSpeed));
 
             // Carga medida contra el reloj del servidor y acotada a [0..1].
-            float held = Time.time - _serverChargeStartTime[slot];
+            float held = (float)base.TimeManager.TicksToTime(base.TimeManager.Tick - _serverChargeStartTick[slot]);
             float maxCharge = Mathf.Max(0.01f, ability.MaxChargeDuration);
             float charge = Mathf.Clamp01(held / maxCharge);
 
@@ -293,7 +312,7 @@ namespace Game.Presentation.Abilities
         private void PredictCooldownLocally(int slot, AbilitySO ability)
         {
             float castSpeed = _stats != null ? _stats.CastSpeedMultiplier : 1f;
-            _localCooldownEndTime[slot] = Time.time + ability.Cooldown / Mathf.Max(0.1f, castSpeed);
+            _localCooldownEndTick[slot] = TicksFromNow(ability.Cooldown / Mathf.Max(0.1f, castSpeed));
         }
 
         private System.Collections.IEnumerator PlayLocalFireFeedbackDelayed(AbilitySO ability, float delay)
@@ -370,20 +389,20 @@ namespace Game.Presentation.Abilities
             AbilitySO ability = _equippedAbilities[slot];
             if (ability == null) return;
 
-            if (Time.time < _serverCooldownEndTime[slot])
+            if (IsOnCooldown(_serverCooldownEndTick[slot]))
             {
-                RejectCastTargetRpc(base.Owner, slot, _serverCooldownEndTime[slot] - Time.time);
+                RejectCastTargetRpc(base.Owner, slot, RemainingSeconds(_serverCooldownEndTick[slot]));
                 return;
             }
 
             if (_mana != null && !_mana.TrySpend(ability.ResourceCost))
             {
-                RejectCastTargetRpc(base.Owner, slot, _serverCooldownEndTime[slot] - Time.time);
+                RejectCastTargetRpc(base.Owner, slot, RemainingSeconds(_serverCooldownEndTick[slot]));
                 return;
             }
 
             float castSpeed = _stats != null ? _stats.CastSpeedMultiplier : 1f;
-            _serverCooldownEndTime[slot] = Time.time + ability.Cooldown / Mathf.Max(0.1f, castSpeed);
+            _serverCooldownEndTick[slot] = TicksFromNow(ability.Cooldown / Mathf.Max(0.1f, castSpeed));
 
             if (ability.WindupDuration > 0f)
             {
@@ -450,9 +469,9 @@ namespace Game.Presentation.Abilities
         [TargetRpc]
         private void RejectCastTargetRpc(FishNet.Connection.NetworkConnection conn, int slot, float cooldownRemaining)
         {
-            // Llega el tiempo RESTANTE, no un timestamp del servidor: Time.time cuenta desde el
-            // arranque de cada proceso, así que un absoluto del servidor no significa nada acá.
-            _localCooldownEndTime[slot] = cooldownRemaining > 0f ? Time.time + cooldownRemaining : 0f;
+            // Llega el tiempo RESTANTE, no un tick absoluto del servidor: el tick del servidor no
+            // significa nada en el reloj local del cliente. Se convierte a ticks LOCALES acá.
+            _localCooldownEndTick[slot] = cooldownRemaining > 0f ? TicksFromNow(cooldownRemaining) : 0u;
             if (_localCharging[slot])
             {
                 _localCharging[slot] = false;
@@ -537,15 +556,6 @@ namespace Game.Presentation.Abilities
             return _equippedAbilities[slot];
         }
 
-        public float GetCooldownNormalized(int slot)
-        {
-            if (slot < 0 || slot >= _equippedAbilities.Length) return 0f;
-            AbilitySO ability = _equippedAbilities[slot];
-            if (ability == null || ability.Cooldown <= 0f) return 0f;
-
-            float remaining = _localCooldownEndTime[slot] - Time.time;
-            if (remaining <= 0f) return 0f;
-            return Mathf.Clamp01(remaining / ability.Cooldown);
-        }
+        public float GetCooldownNormalized(int slot) => GetCooldownRemainingNormalized(slot);
     }
 }

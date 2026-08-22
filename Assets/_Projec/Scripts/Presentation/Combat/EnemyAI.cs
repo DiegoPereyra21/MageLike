@@ -202,7 +202,7 @@ namespace Game.Presentation.Combat
 
         private Transform FindNearestPlayer(float radius)
         {
-            var players = FindObjectsByType<Game.Presentation.Player.PlayerMovementController>(FindObjectsSortMode.None);
+            var players = Game.Presentation.Player.PlayerRegistry.Active;
             Transform nearest = null;
             float best = radius;
             foreach (var p in players)

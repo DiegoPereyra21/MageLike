@@ -240,7 +240,7 @@ MonoBehaviour:
   _clientAuthoritative: 0
   _sendToOwner: 1
   _interval: 1
-  _synchronizePosition: 1
+  _synchronizePosition: 0
   _positionSensitivity: 0.001
   _positionSnapping:
     X: 0
@@ -274,6 +274,10 @@ MonoBehaviour:
   _networkObjectCache: {fileID: 3536709759041560106}
   _detectionRadius: 27
   _closeRangeRadius: 17
+  _visionBlockMask:
+    serializedVersion: 2
+    m_Bits: 0
+  _eyeHeight: 1.5
   _burstProjectilePrefab: {fileID: 9077845970666463845, guid: 007947feaa3cedf4b975548e3fa50a77, type: 3}
   _burstCount: 3
   _burstInterval: 0.25

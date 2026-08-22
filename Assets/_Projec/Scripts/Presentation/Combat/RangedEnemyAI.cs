@@ -88,7 +88,7 @@ namespace Game.Presentation.Combat
 
         private Transform FindNearestPlayer(float radius)
         {
-            var players = FindObjectsByType<Player.PlayerMovementController>(FindObjectsSortMode.None);
+            var players = Player.PlayerRegistry.Active;
             Transform nearest = null;
             float best = radius;
             foreach (var p in players)
